@@ -145,21 +145,6 @@ int main() {
 	std::vector<VkExtensionProperties> available_extensions(available_extensions_count);
 	VULKAN_CALL(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &available_extensions_count, available_extensions.data()));
 
-	//for (char const * required_extension : device_extensions) {
-	//	bool found = false;
-	//	for (VkExtensionProperties const & properties : available_extensions) {
-	//		if (strcmp(required_extension, properties.extensionName) == 0) {
-	//			found = true;
-	//			break;
-	//		}
-	//	}
-
-	//	if (!found) {
-	//		printf("ERROR: Extension '%s' is not available!\n", required_extension);
-	//		abort();
-	//	}
-	//}
-
 	uint32_t queue_families_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
 
@@ -280,14 +265,14 @@ int main() {
 	swapchain_create_info.clipped = VK_TRUE;
 	swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
 
-	VkSwapchainKHR swap_chain;
-	VULKAN_CALL(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swap_chain));
+	VkSwapchainKHR swapchain;
+	VULKAN_CALL(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain));
 
 	u32 swap_chain_image_count;
-	vkGetSwapchainImagesKHR(device, swap_chain, &swap_chain_image_count, nullptr);
+	vkGetSwapchainImagesKHR(device, swapchain, &swap_chain_image_count, nullptr);
 
 	std::vector<VkImage> swap_chain_images(swap_chain_image_count);
-	vkGetSwapchainImagesKHR(device, swap_chain, &swap_chain_image_count, swap_chain_images.data());
+	vkGetSwapchainImagesKHR(device, swapchain, &swap_chain_image_count, swap_chain_images.data());
 
 	std::vector<VkImageView> image_views(swap_chain_image_count);
 
@@ -422,6 +407,14 @@ int main() {
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colour_attachment_ref;
+	
+	VkSubpassDependency dependency = { };
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 	VkRenderPassCreateInfo render_pass_create_info = { };
 	render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -429,6 +422,8 @@ int main() {
 	render_pass_create_info.pAttachments    = &colour_attachment;
 	render_pass_create_info.subpassCount = 1;
 	render_pass_create_info.pSubpasses   = &subpass;
+	render_pass_create_info.dependencyCount = 1;
+	render_pass_create_info.pDependencies   = &dependency;
 
 	VkRenderPass render_pass;
 	VULKAN_CALL(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &render_pass));
@@ -511,7 +506,7 @@ int main() {
 		renderpass_begin_info.renderArea.extent = extent;
 		renderpass_begin_info.clearValueCount = 1;
 		renderpass_begin_info.pClearValues    = &clear_black;
-
+		
 		vkCmdBeginRenderPass(command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
@@ -520,12 +515,93 @@ int main() {
 		VULKAN_CALL(vkEndCommandBuffer(command_buffers[i]));
 	}
 
+	VkSemaphoreCreateInfo semaphore_create_info = { };
+    semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fence_create_info = { };
+    fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	const int MAX_FRAMES_IN_FLIGHT = 2;
+	std::vector<VkSemaphore> semaphores_image_available(MAX_FRAMES_IN_FLIGHT);
+	std::vector<VkSemaphore> semaphores_render_done    (MAX_FRAMES_IN_FLIGHT);
+	
+	std::vector<VkFence> inflight_fences(MAX_FRAMES_IN_FLIGHT);
+	std::vector<VkFence> images_in_flight(swap_chain_image_count, VK_NULL_HANDLE);
+
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VULKAN_CALL(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_image_available[i]));
+		VULKAN_CALL(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
+
+		VULKAN_CALL(vkCreateFence(device, &fence_create_info, nullptr, &inflight_fences[i]));
+	}
+
+	int current_frame = 0;
+
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+		
+		VkSemaphore const & semaphore_image_available = semaphores_image_available[current_frame];
+		VkSemaphore const & semaphore_render_done     = semaphores_render_done    [current_frame];
+
+		VkFence const & fence = inflight_fences[current_frame];
+
+		VULKAN_CALL(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+		
+		u32 image_index;
+		vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index);
+		
+		if (images_in_flight[image_index] != VK_NULL_HANDLE) {
+			vkWaitForFences(device, 1, &images_in_flight[image_index], VK_TRUE, UINT64_MAX);
+		}
+		images_in_flight[image_index] = inflight_fences[current_frame];
+
+		VULKAN_CALL(vkResetFences(device, 1, &fence));
+
+		VkSemaphore          wait_semaphores[] = { semaphore_image_available };
+		VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		
+		VkSemaphore signal_semaphores[] = { semaphore_render_done };
+
+		VkSubmitInfo submit_info = { };
+		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit_info.waitSemaphoreCount = 1;
+		submit_info.pWaitSemaphores    = wait_semaphores;
+		submit_info.pWaitDstStageMask  = wait_stages;
+		submit_info.commandBufferCount = 1;
+		submit_info.pCommandBuffers    = &command_buffers[image_index];
+		submit_info.signalSemaphoreCount = 1;
+		submit_info.pSignalSemaphores    = signal_semaphores;
+
+		VULKAN_CALL(vkQueueSubmit(queue_graphics, 1, &submit_info, fence));
+		
+		VkSwapchainKHR swapchains[] = { swapchain };
+
+		VkPresentInfoKHR present_info =  { };
+		present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		present_info.waitSemaphoreCount = 1;
+		present_info.pWaitSemaphores    = signal_semaphores;
+		present_info.swapchainCount = 1;
+		present_info.pSwapchains    = swapchains;
+		present_info.pImageIndices = &image_index;
+		present_info.pResults = nullptr;
+
+		VULKAN_CALL(vkQueuePresentKHR(queue_present, &present_info));
+
+		current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 	
+	VULKAN_CALL(vkDeviceWaitIdle(device));
+
 	// Cleanup
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
+        vkDestroySemaphore(device, semaphores_render_done    [i], nullptr);
+
+		vkDestroyFence(device, inflight_fences[i], nullptr);
+    }
+
 	vkDestroyCommandPool(device, command_pool, nullptr);
 
 	for (VkFramebuffer const & framebuffer : framebuffers) {
@@ -544,7 +620,7 @@ int main() {
         vkDestroyImageView(device, image_view, nullptr);
     }
 
-	vkDestroySwapchainKHR(device, swap_chain, nullptr);
+	vkDestroySwapchainKHR(device, swapchain, nullptr);
 
 	if (validation_layers_enabled) {
 		VULKAN_PROC(vkDestroyDebugUtilsMessengerEXT)(instance, debug_messenger, nullptr);
