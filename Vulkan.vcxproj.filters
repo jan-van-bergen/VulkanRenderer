@@ -9,5 +9,25 @@
     <ClInclude Include="Util.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="VulkanCall.h" />
+    <ClInclude Include="Math.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix4.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Quaternion.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector2.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector3.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Math">
+      <UniqueIdentifier>{87256be7-8365-43e6-85f2-07539b276ba0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

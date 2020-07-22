@@ -10,6 +10,9 @@
 #include "Types.h"
 #include "VulkanCall.h"
 
+#include "Vector2.h"
+#include "Vector3.h"
+
 #include "Shader.h"
 
 int const screen_width  = 900;
@@ -83,12 +86,53 @@ static std::vector<VkFramebuffer> framebuffers;
 static VkCommandPool                command_pool;
 static std::vector<VkCommandBuffer> command_buffers;
 
+static VkBuffer       vertex_buffer;
+static VkDeviceMemory vertex_buffer_memory;
+
 static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 static std::vector<VkSemaphore> semaphores_image_available(MAX_FRAMES_IN_FLIGHT);
 static std::vector<VkSemaphore> semaphores_render_done    (MAX_FRAMES_IN_FLIGHT);
 	
 static std::vector<VkFence> inflight_fences(MAX_FRAMES_IN_FLIGHT);
 static std::vector<VkFence> images_in_flight;
+
+struct Vertex {
+	Vector2 position;
+	Vector3 colour;
+
+	static VkVertexInputBindingDescription get_binding_description() {
+		VkVertexInputBindingDescription bindingDescription = { };
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		return bindingDescription;
+	}
+
+	static std::vector<VkVertexInputAttributeDescription> get_attribute_description() {
+		std::vector<VkVertexInputAttributeDescription> attribute_descriptions(2);
+
+		// Position
+		attribute_descriptions[0].binding = 0;
+		attribute_descriptions[0].location = 0;
+		attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+		attribute_descriptions[0].offset = offsetof(Vertex, position);
+
+		// Colour
+		attribute_descriptions[1].binding = 0;
+		attribute_descriptions[1].location = 1;
+		attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attribute_descriptions[1].offset = offsetof(Vertex, colour);
+
+		return attribute_descriptions;
+	}
+};
+
+static std::vector<Vertex> const vertices = {
+	{ {  0.0f, -0.5f}, { 1.0f, 0.0f, 0.0f } },
+	{ {  0.5f,  0.5f}, { 0.0f, 1.0f, 0.0f } },
+	{ { -0.5f,  0.5f}, { 0.0f, 0.0f, 1.0f } }
+};
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
 	framebuffer_needs_resize = true;
@@ -345,12 +389,15 @@ static void init_pipeline() {
 		shader_frag.get_stage(VK_SHADER_STAGE_FRAGMENT_BIT),
 	};
 
+	VkVertexInputBindingDescription                binding_descriptions   = Vertex::get_binding_description();
+	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = Vertex::get_attribute_description();
+
 	VkPipelineVertexInputStateCreateInfo vertex_input_create_info = { };
 	vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_create_info.vertexBindingDescriptionCount = 0;
-	vertex_input_create_info.pVertexBindingDescriptions    = nullptr;
-	vertex_input_create_info.vertexAttributeDescriptionCount = 0;
-	vertex_input_create_info.pVertexAttributeDescriptions    = nullptr;
+	vertex_input_create_info.vertexBindingDescriptionCount = 1;
+	vertex_input_create_info.pVertexBindingDescriptions    = &binding_descriptions;
+	vertex_input_create_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
+	vertex_input_create_info.pVertexAttributeDescriptions    = attribute_descriptions.data();
 
 	VkPipelineInputAssemblyStateCreateInfo input_asm_create_info = { };
 	input_asm_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -547,12 +594,61 @@ static void init_command_buffers() {
 		renderpass_begin_info.pClearValues    = &clear_black;
 		
 		vkCmdBeginRenderPass(command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
 		vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
+
+		VkBuffer vertex_buffers[] = { vertex_buffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
+
+		vkCmdDraw(command_buffers[i], vertices.size(), 1, 0, 0);
+
 		vkCmdEndRenderPass(command_buffers[i]);
 
 		VULKAN_CALL(vkEndCommandBuffer(command_buffers[i]));
 	}
+}
+
+static u32 find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memory_properties;
+	vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
+
+	for (u32 i = 0; i < memory_properties.memoryTypeCount; i++) {
+		if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	abort();
+}
+
+static void init_vertex_buffer() {
+	VkBufferCreateInfo buffer_create_info = { };
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.size = sizeof(vertices[0]) * vertices.size();
+	buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	VULKAN_CALL(vkCreateBuffer(device, &buffer_create_info, nullptr, &vertex_buffer));
+
+	VkMemoryRequirements requirements;
+	vkGetBufferMemoryRequirements(device, vertex_buffer, &requirements);
+
+	VkMemoryAllocateInfo alloc_info = { };
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = requirements.size;
+	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	VULKAN_CALL(vkAllocateMemory(device, &alloc_info, nullptr, &vertex_buffer_memory));
+
+	VULKAN_CALL(vkBindBufferMemory(device, vertex_buffer, vertex_buffer_memory, 0));
+
+	void * data_destination;
+	vkMapMemory(device, vertex_buffer_memory, 0, buffer_create_info.size, 0, &data_destination);
+
+	memcpy(data_destination, vertices.data(), buffer_create_info.size);
+
+	vkUnmapMemory(device, vertex_buffer_memory);
 }
 
 static void init_sync_primitives() {
@@ -594,6 +690,9 @@ static void cleanup_swapchain() {
 
 static void cleanup() {
 	cleanup_swapchain();
+
+	vkDestroyBuffer(device, vertex_buffer, nullptr);
+	vkFreeMemory(device, vertex_buffer_memory, nullptr);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -653,6 +752,7 @@ int main() {
 	init_swapchain(screen_width, screen_height);
 	init_pipeline();
 	init_framebuffers();
+	init_vertex_buffer();
 	init_command_buffers();
 	init_sync_primitives();
 
