@@ -7,13 +7,10 @@ layout(location = 1) in vec3 in_colour;
 layout(location = 0) out vec3 out_colour;
 
 layout(binding = 0, row_major) uniform UniformBufferObject {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
+	mat4 wvp;
 } ubo;
 
 void main() {
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(in_position, 0.0f, 1.0f);
-	//gl_Position = vec4(in_position, 0.0f, 1.0f) * ubo.model * ubo.view * ubo.proj;
+	gl_Position = ubo.wvp * vec4(in_position, 0.0f, 1.0f);
 	out_colour  = in_colour;
 }

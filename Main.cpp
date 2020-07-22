@@ -18,6 +18,9 @@
 #include "Vector3.h"
 #include "Matrix4.h"
 
+#include "Input.h"
+#include "Camera.h"
+
 static u32 screen_width  = 900;
 static u32 screen_height = 600;
 
@@ -150,13 +153,17 @@ static std::vector<Vertex> const vertices = {
 static std::vector<u16> const indices = { 0, 1, 2, 2, 3, 0 };
 
 struct UniformBufferObject {
-    Matrix4 model;
-    Matrix4 view;
-    Matrix4 proj;
+    Matrix4 wvp;
 };
+
+static Camera camera(DEG_TO_RAD(110.0f), screen_width, screen_height);
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
 	framebuffer_needs_resize = true;
+}
+
+static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods) {
+	Input::update_key(key, action);
 }
 
 static void init_glfw() {
@@ -164,10 +171,11 @@ static void init_glfw() {
 
 	// Init GLFW window
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	//glfwWindowHint(GLFW_RESIZABLE,  GLFW_FALSE);
-	
+
 	window = glfwCreateWindow(screen_width, screen_height, "Vulkan", nullptr, nullptr);
+
 	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
+	glfwSetKeyCallback            (window, glfw_key_callback);
 }
 
 static void init_instance() {
@@ -1011,12 +1019,24 @@ int main() {
 	init_command_buffers();
 	init_sync_primitives();
 
+	camera.position.z = 2.0f;
+
+	double time_curr = 0.0f;
+	double time_prev = 0.0f;
+	double time_delta;
+
 	int current_frame = 0;
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
-		
+
+		time_curr = glfwGetTime();
+		time_delta = time_curr - time_prev;
+		time_prev = time_curr;
+
+		camera.update(time_delta);
+
 		VkSemaphore const & semaphore_image_available = semaphores_image_available[current_frame];
 		VkSemaphore const & semaphore_render_done     = semaphores_render_done    [current_frame];
 
@@ -1046,9 +1066,7 @@ int main() {
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(time_current - time_start).count();
 
 			UniformBufferObject ubo = { };
-			ubo.model = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), time));
-			ubo.view  = Matrix4::create_translation(Vector3(0.0f, 0.0f, -1.0f));
-			ubo.proj  = Matrix4::perspective(DEG_TO_RAD(110.0f), static_cast<float>(screen_width) / static_cast<float>(screen_height), 0.1f, 10.0f);
+			ubo.wvp = camera.get_view_projection() * Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), time));
 			
 			void * data;
 			vkMapMemory(device, uniform_buffers_memory[image_index], 0, sizeof(ubo), 0, &data);
@@ -1089,6 +1107,8 @@ int main() {
 		}
 
 		current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+		Input::finish_frame();
 	}
 
 	VULKAN_CALL(vkDeviceWaitIdle(device));
