@@ -19,7 +19,7 @@ static VkExtent2D extent = { screen_width, screen_height };
 
 static GLFWwindow * window;
 
-static bool framebuffer_resized = false;
+static bool framebuffer_needs_resize = false;
 
 static VkSurfaceFormatKHR const format = { VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 static VkPresentModeKHR   const present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
@@ -91,7 +91,7 @@ static std::vector<VkFence> inflight_fences(MAX_FRAMES_IN_FLIGHT);
 static std::vector<VkFence> images_in_flight;
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
-	framebuffer_resized = true;
+	framebuffer_needs_resize = true;
 }
 
 static void init_glfw() {
@@ -615,6 +615,9 @@ static void cleanup() {
 	
 	vkDestroyDevice(device, nullptr);
 	vkDestroyInstance(instance, nullptr);
+	
+	glfwDestroyWindow(window);
+	glfwTerminate();
 }
 
 static void recreate_swapchain() {
@@ -706,8 +709,9 @@ int main() {
 
 		VkResult result = vkQueuePresentKHR(queue_present, &present_info);
 
-		if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_resized) {
+		if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_needs_resize) {
 			recreate_swapchain();
+			framebuffer_needs_resize = false;
 		} else {
 			VULKAN_CALL(result);
 		}
@@ -718,9 +722,6 @@ int main() {
 	VULKAN_CALL(vkDeviceWaitIdle(device));
 	
 	cleanup();
-
-	glfwDestroyWindow(window);
-	glfwTerminate();
 
 	return 0;
 }
