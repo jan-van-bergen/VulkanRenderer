@@ -159,13 +159,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Math.h" />
     <ClInclude Include="Matrix4.h" />
     <ClInclude Include="Quaternion.h" />
-    <ClInclude Include="Shader.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="Vector2.h" />

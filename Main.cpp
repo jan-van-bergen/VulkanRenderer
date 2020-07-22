@@ -5,15 +5,16 @@
 #include <optional>
 #include <set>
 
+#include <string>
+
 #include <algorithm>
 
+#include "Util.h"
 #include "Types.h"
 #include "VulkanCall.h"
 
 #include "Vector2.h"
 #include "Vector3.h"
-
-#include "Shader.h"
 
 int const screen_width  = 900;
 int const screen_height = 600;
@@ -73,9 +74,6 @@ static VkQueue queue_present;
 static VkSwapchainKHR swapchain;
 
 static std::vector<VkImageView> image_views;
-
-static Shader shader_vert;
-static Shader shader_frag;
 
 static VkRenderPass render_pass;
 static VkPipelineLayout pipeline_layout;
@@ -380,13 +378,38 @@ static void init_swapchain(u32 width, u32 height) {
 	}
 }
 
+static VkShaderModule shader_load(VkDevice device, std::string const & filename) {
+	std::vector<char> spirv = read_file(filename);
+
+	VkShaderModuleCreateInfo create_info = { };
+	create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	create_info.codeSize = spirv.size();
+	create_info.pCode = reinterpret_cast<const uint32_t*>(spirv.data());
+
+	VkShaderModule shader;
+	VULKAN_CALL(vkCreateShaderModule(device, &create_info, nullptr, &shader));
+
+	return shader;
+}
+
+static VkPipelineShaderStageCreateInfo shader_get_stage(VkShaderModule shader_module, VkShaderStageFlagBits stage) {
+	VkPipelineShaderStageCreateInfo vertex_stage_create_info = { };
+	vertex_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertex_stage_create_info.stage = stage;
+
+	vertex_stage_create_info.module = shader_module;
+	vertex_stage_create_info.pName = "main";
+
+	return vertex_stage_create_info;
+}
+
 static void init_pipeline() {
-	shader_vert = Shader::load(device, "Shaders\\vert.spv");
-	shader_frag = Shader::load(device, "Shaders\\frag.spv");
+	VkShaderModule shader_vert = shader_load(device, "Shaders\\vert.spv");
+	VkShaderModule shader_frag = shader_load(device, "Shaders\\frag.spv");
 
 	VkPipelineShaderStageCreateInfo shader_stages[] = {
-		shader_vert.get_stage(VK_SHADER_STAGE_VERTEX_BIT),
-		shader_frag.get_stage(VK_SHADER_STAGE_FRAGMENT_BIT),
+		shader_get_stage(shader_vert, VK_SHADER_STAGE_VERTEX_BIT),
+		shader_get_stage(shader_frag, VK_SHADER_STAGE_FRAGMENT_BIT),
 	};
 
 	VkVertexInputBindingDescription                binding_descriptions   = Vertex::get_binding_description();
@@ -535,6 +558,9 @@ static void init_pipeline() {
 	pipeline_create_info.basePipelineIndex  = -1;
 
 	VULKAN_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline));
+	
+    vkDestroyShaderModule(device, shader_vert, nullptr);
+    vkDestroyShaderModule(device, shader_frag, nullptr);
 }
 
 static void init_framebuffers() {
@@ -556,14 +582,122 @@ static void init_framebuffers() {
 	}
 }
 
-static void init_command_buffers() {
+static void init_command_pool() {
 	VkCommandPoolCreateInfo command_pool_create_info = { };
 	command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	command_pool_create_info.queueFamilyIndex = queue_family_graphics.value();
 	command_pool_create_info.flags = 0;
 
 	VULKAN_CALL(vkCreateCommandPool(device, &command_pool_create_info, nullptr, &command_pool));
-	
+}
+
+static u32 find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memory_properties;
+	vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
+
+	for (u32 i = 0; i < memory_properties.memoryTypeCount; i++) {
+		if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	abort();
+}
+
+static void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
+	VkBufferCreateInfo buffer_create_info = { };
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.size = size;
+	buffer_create_info.usage = usage;
+	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	VULKAN_CALL(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer));
+
+	VkMemoryRequirements requirements;
+	vkGetBufferMemoryRequirements(device, buffer, &requirements);
+
+	VkMemoryAllocateInfo alloc_info = { };
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = requirements.size;
+	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
+
+	VULKAN_CALL(vkAllocateMemory(device, &alloc_info, nullptr, &buffer_memory));
+
+	VULKAN_CALL(vkBindBufferMemory(device, buffer, buffer_memory, 0));
+
+}
+
+static void copy_buffer(VkBuffer buffer_dst, VkBuffer buffer_src, VkDeviceSize size) {
+	VkCommandBufferAllocateInfo alloc_info = { };
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandPool = command_pool;
+	alloc_info.commandBufferCount = 1;
+
+	VkCommandBuffer copy_command_buffer;
+	VULKAN_CALL(vkAllocateCommandBuffers(device, &alloc_info, &copy_command_buffer));
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	VULKAN_CALL(vkBeginCommandBuffer(copy_command_buffer, &beginInfo));
+
+	VkBufferCopy buffer_copy = { };
+	buffer_copy.srcOffset = 0;
+	buffer_copy.dstOffset = 0;
+	buffer_copy.size = size;
+	vkCmdCopyBuffer(copy_command_buffer, buffer_src, buffer_dst, 1, &buffer_copy);
+
+	VULKAN_CALL(vkEndCommandBuffer(copy_command_buffer));
+
+	VkSubmitInfo submit_info = { };
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers    = &copy_command_buffer;
+	vkQueueSubmit(queue_graphics, 1, &submit_info, VK_NULL_HANDLE);
+
+	vkQueueWaitIdle(queue_graphics);
+
+	vkFreeCommandBuffers(device, command_pool, 1, &copy_command_buffer);
+}
+
+static void init_vertex_buffer() {
+	size_t buffer_size = vertices.size() * sizeof(Vertex);
+
+	VkBuffer       staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+	create_buffer(
+		buffer_size,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		staging_buffer,
+		staging_buffer_memory
+	);
+
+	create_buffer(
+		buffer_size,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		vertex_buffer,
+		vertex_buffer_memory
+	);
+
+	// Copy into staging buffer
+	void * data_destination;
+	vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data_destination);
+
+	memcpy(data_destination, vertices.data(), buffer_size);
+
+	vkUnmapMemory(device, staging_buffer_memory);
+
+	copy_buffer(vertex_buffer, staging_buffer, buffer_size);
+
+    vkDestroyBuffer(device, staging_buffer, nullptr);
+    vkFreeMemory(device, staging_buffer_memory, nullptr);
+}
+
+static void init_command_buffers() {
 	command_buffers.resize(framebuffers.size());
 
 	VkCommandBufferAllocateInfo command_buffer_alloc_info = { };
@@ -607,48 +741,6 @@ static void init_command_buffers() {
 
 		VULKAN_CALL(vkEndCommandBuffer(command_buffers[i]));
 	}
-}
-
-static u32 find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties) {
-	VkPhysicalDeviceMemoryProperties memory_properties;
-	vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
-
-	for (u32 i = 0; i < memory_properties.memoryTypeCount; i++) {
-		if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
-			return i;
-		}
-	}
-
-	abort();
-}
-
-static void init_vertex_buffer() {
-	VkBufferCreateInfo buffer_create_info = { };
-	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	buffer_create_info.size = sizeof(vertices[0]) * vertices.size();
-	buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	VULKAN_CALL(vkCreateBuffer(device, &buffer_create_info, nullptr, &vertex_buffer));
-
-	VkMemoryRequirements requirements;
-	vkGetBufferMemoryRequirements(device, vertex_buffer, &requirements);
-
-	VkMemoryAllocateInfo alloc_info = { };
-	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	alloc_info.allocationSize = requirements.size;
-	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-	VULKAN_CALL(vkAllocateMemory(device, &alloc_info, nullptr, &vertex_buffer_memory));
-
-	VULKAN_CALL(vkBindBufferMemory(device, vertex_buffer, vertex_buffer_memory, 0));
-
-	void * data_destination;
-	vkMapMemory(device, vertex_buffer_memory, 0, buffer_create_info.size, 0, &data_destination);
-
-	memcpy(data_destination, vertices.data(), buffer_create_info.size);
-
-	vkUnmapMemory(device, vertex_buffer_memory);
 }
 
 static void init_sync_primitives() {
@@ -703,9 +795,6 @@ static void cleanup() {
 
 	vkDestroyCommandPool(device, command_pool, nullptr);
 
-	shader_vert.destroy(device);
-	shader_frag.destroy(device);
-
 	if (validation_layers_enabled) {
 		VULKAN_PROC(vkDestroyDebugUtilsMessengerEXT)(instance, debug_messenger, nullptr);
 	}
@@ -752,6 +841,7 @@ int main() {
 	init_swapchain(screen_width, screen_height);
 	init_pipeline();
 	init_framebuffers();
+	init_command_pool();
 	init_vertex_buffer();
 	init_command_buffers();
 	init_sync_primitives();
