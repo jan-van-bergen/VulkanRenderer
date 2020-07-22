@@ -396,7 +396,6 @@ static VkPipelineShaderStageCreateInfo shader_get_stage(VkShaderModule shader_mo
 	VkPipelineShaderStageCreateInfo vertex_stage_create_info = { };
 	vertex_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertex_stage_create_info.stage = stage;
-
 	vertex_stage_create_info.module = shader_module;
 	vertex_stage_create_info.pName = "main";
 
@@ -637,11 +636,11 @@ static void copy_buffer(VkBuffer buffer_dst, VkBuffer buffer_src, VkDeviceSize s
 	VkCommandBuffer copy_command_buffer;
 	VULKAN_CALL(vkAllocateCommandBuffers(device, &alloc_info, &copy_command_buffer));
 
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	VkCommandBufferBeginInfo begin_info = { };
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	VULKAN_CALL(vkBeginCommandBuffer(copy_command_buffer, &beginInfo));
+	VULKAN_CALL(vkBeginCommandBuffer(copy_command_buffer, &begin_info));
 
 	VkBufferCopy buffer_copy = { };
 	buffer_copy.srcOffset = 0;
