@@ -87,6 +87,9 @@ static std::vector<VkCommandBuffer> command_buffers;
 static VkBuffer       vertex_buffer;
 static VkDeviceMemory vertex_buffer_memory;
 
+static VkBuffer       index_buffer;
+static VkDeviceMemory index_buffer_memory;
+
 static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 static std::vector<VkSemaphore> semaphores_image_available(MAX_FRAMES_IN_FLIGHT);
 static std::vector<VkSemaphore> semaphores_render_done    (MAX_FRAMES_IN_FLIGHT);
@@ -127,10 +130,13 @@ struct Vertex {
 };
 
 static std::vector<Vertex> const vertices = {
-	{ {  0.0f, -0.5f}, { 1.0f, 0.0f, 0.0f } },
-	{ {  0.5f,  0.5f}, { 0.0f, 1.0f, 0.0f } },
-	{ { -0.5f,  0.5f}, { 0.0f, 0.0f, 1.0f } }
+	{ { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+    { {  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
+    { {  0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f } },
+    { { -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f } }
 };
+
+static std::vector<u16> const indices = { 0, 1, 2, 2, 3, 0 };
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
 	framebuffer_needs_resize = true;
@@ -696,6 +702,40 @@ static void init_vertex_buffer() {
     vkFreeMemory(device, staging_buffer_memory, nullptr);
 }
 
+static void init_index_buffer() {
+	VkDeviceSize buffer_size = indices.size() * sizeof(u16);
+
+    VkBuffer       staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+    create_buffer(
+		buffer_size,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		staging_buffer,
+		staging_buffer_memory
+	);
+	
+    create_buffer(
+		buffer_size,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		index_buffer,
+		index_buffer_memory
+	);
+
+    void * data;
+    vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
+
+    memcpy(data, indices.data(), (size_t) buffer_size);
+    
+	vkUnmapMemory(device, staging_buffer_memory);
+
+    copy_buffer(index_buffer, staging_buffer, buffer_size);
+
+    vkDestroyBuffer(device, staging_buffer, nullptr);
+    vkFreeMemory(device, staging_buffer_memory, nullptr);
+}
+
 static void init_command_buffers() {
 	command_buffers.resize(framebuffers.size());
 
@@ -734,7 +774,9 @@ static void init_command_buffers() {
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
 
-		vkCmdDraw(command_buffers[i], vertices.size(), 1, 0, 0);
+		vkCmdBindIndexBuffer(command_buffers[i], index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+		vkCmdDrawIndexed(command_buffers[i], indices.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(command_buffers[i]);
 
@@ -784,6 +826,9 @@ static void cleanup() {
 
 	vkDestroyBuffer(device, vertex_buffer, nullptr);
 	vkFreeMemory(device, vertex_buffer_memory, nullptr);
+
+	vkDestroyBuffer(device, index_buffer, nullptr);
+    vkFreeMemory(device, index_buffer_memory, nullptr);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -842,6 +887,7 @@ int main() {
 	init_framebuffers();
 	init_command_pool();
 	init_vertex_buffer();
+	init_index_buffer();
 	init_command_buffers();
 	init_sync_primitives();
 
