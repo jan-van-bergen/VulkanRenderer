@@ -17,8 +17,7 @@ u32 VulkanMemory::find_memory_type(u32 type_filter, VkMemoryPropertyFlags proper
 }
 
 void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
-	VkBufferCreateInfo buffer_create_info = { };
-	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	buffer_create_info.size = size;
 	buffer_create_info.usage = usage;
 	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -30,8 +29,7 @@ void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 	VkMemoryRequirements requirements;
 	vkGetBufferMemoryRequirements(device, buffer, &requirements);
 
-	VkMemoryAllocateInfo alloc_info = { };
-	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	alloc_info.allocationSize = requirements.size;
 	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
 
@@ -41,8 +39,7 @@ void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 }
 
 VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
-	VkCommandBufferAllocateInfo alloc_info = { };
-	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	VkCommandBufferAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	alloc_info.commandPool = VulkanContext::get_command_pool();
 	alloc_info.commandBufferCount = 1;
@@ -50,8 +47,7 @@ VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
 	VkCommandBuffer command_buffer;
 	VULKAN_CALL(vkAllocateCommandBuffers(VulkanContext::get_device(), &alloc_info, &command_buffer));
 
-	VkCommandBufferBeginInfo begin_info = { };
-	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	VULKAN_CALL(vkBeginCommandBuffer(command_buffer, &begin_info));
@@ -62,8 +58,7 @@ VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
 void VulkanMemory::command_buffer_single_use_end(VkCommandBuffer command_buffer) {
 	vkEndCommandBuffer(command_buffer);
 
-	VkSubmitInfo submit_info = { };
-	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &command_buffer;
 
@@ -99,8 +94,7 @@ void VulkanMemory::buffer_memory_copy(VkDeviceMemory device_memory, void const *
 }
 
 void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory) {
-	VkImageCreateInfo image_create_info = { };
-	image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	image_create_info.imageType = VK_IMAGE_TYPE_2D;
 	image_create_info.extent.width  = width;
 	image_create_info.extent.height = height;
@@ -122,8 +116,7 @@ void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageT
 	VkMemoryRequirements requirements;
 	vkGetImageMemoryRequirements(device, image, &requirements);
 
-	VkMemoryAllocateInfo alloc_info = { };
-	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	alloc_info.allocationSize = requirements.size;
 	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
 
@@ -133,8 +126,7 @@ void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageT
 }
 
 VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_mask) {
-	VkImageViewCreateInfo image_view_create_info = { };
-	image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	VkImageViewCreateInfo image_view_create_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	image_view_create_info.image = image;
 	image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	image_view_create_info.format = format;
@@ -159,8 +151,7 @@ VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkIm
 void VulkanMemory::transition_image_layout(VkImage image, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new) {
 	VkCommandBuffer command_buffer = command_buffer_single_use_begin();
 
-	VkImageMemoryBarrier barrier = { };
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	barrier.oldLayout = layout_old;
 	barrier.newLayout = layout_new;
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

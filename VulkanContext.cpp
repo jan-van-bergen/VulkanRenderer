@@ -84,26 +84,23 @@ static void init_instance() {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // Additional debug extension
 	}
 	
-	VkApplicationInfo app_info = { };
-	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	app_info.pApplicationName = "Hello Triangle";
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "Vulkan";
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.apiVersion = VK_API_VERSION_1_0;
 
-	VkInstanceCreateInfo instance_create_info = { };
-	instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	VkInstanceCreateInfo instance_create_info = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 	instance_create_info.pApplicationInfo = &app_info;
 	instance_create_info.enabledLayerCount   = validation_layers_names.size();
 	instance_create_info.ppEnabledLayerNames = validation_layers_names.data();
 	instance_create_info.enabledExtensionCount   = extensions.size();
 	instance_create_info.ppEnabledExtensionNames = extensions.data();
 	
-	VkDebugUtilsMessengerCreateInfoEXT callback_create_info = { };
+	VkDebugUtilsMessengerCreateInfoEXT callback_create_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 
 	if (validation_layers_enabled) {		
-		callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		callback_create_info.messageSeverity =
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -178,8 +175,7 @@ static void init_device() {
 	std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 
 	for (u32 queue_family : unique_queue_families) {
-		VkDeviceQueueCreateInfo queue_create_info = { };
-		queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		VkDeviceQueueCreateInfo queue_create_info = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
 		queue_create_info.queueFamilyIndex = queue_family;
 		queue_create_info.queueCount       = 1;
 		queue_create_info.pQueuePriorities = &queue_priority;
@@ -189,16 +185,13 @@ static void init_device() {
 	VkPhysicalDeviceFeatures device_features = { };
 	device_features.samplerAnisotropy = VK_TRUE;
 
-	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures dsf = { };
-	dsf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES;
+	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures dsf = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES };
 
-	VkPhysicalDeviceFeatures2 query = { };
-	query.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	VkPhysicalDeviceFeatures2 query = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	query.pNext = &dsf;
 	vkGetPhysicalDeviceFeatures2(physical_device, &query);
 
-	VkDeviceCreateInfo device_create_info = { };
-	device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	VkDeviceCreateInfo device_create_info = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 	device_create_info.pQueueCreateInfos    = queue_create_infos.data();
 	device_create_info.queueCreateInfoCount = queue_create_infos.size();
 	device_create_info.pEnabledFeatures = &device_features;
@@ -222,8 +215,7 @@ static void init_queues() {
 }
 
 static void init_command_pool() {
-	VkCommandPoolCreateInfo command_pool_create_info = { };
-	command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	VkCommandPoolCreateInfo command_pool_create_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	command_pool_create_info.queueFamilyIndex = queue_family_graphics.value();
 	command_pool_create_info.flags = 0;
 
@@ -266,8 +258,7 @@ VkSwapchainKHR VulkanContext::create_swapchain(u32 width, u32 height) {
 		image_count = surface_capabilities.maxImageCount;
 	}
 
-	VkSwapchainCreateInfoKHR swapchain_create_info = { };
-	swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	VkSwapchainCreateInfoKHR swapchain_create_info = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 	swapchain_create_info.surface = surface;
 	swapchain_create_info.minImageCount = image_count;
 	swapchain_create_info.imageFormat     = FORMAT.format;
