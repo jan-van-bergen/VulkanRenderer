@@ -20,5 +20,5 @@ public:
 
 	void update(float delta);
 
-	Matrix4 const & get_view_projection() const { return view_projection; }
+	inline Matrix4 const & get_view_projection() const { return view_projection; }
 };

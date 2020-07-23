@@ -4,11 +4,19 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="VulkanMemory.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanContext.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanRenderer.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Types.h" />
     <ClInclude Include="Util.h" />
-    <ClInclude Include="VulkanCall.h" />
     <ClInclude Include="Math.h">
       <Filter>Math</Filter>
     </ClInclude>
@@ -26,10 +34,25 @@
     </ClInclude>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="VulkanCall.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanContext.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanMemory.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanRenderer.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">
       <UniqueIdentifier>{87256be7-8365-43e6-85f2-07539b276ba0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Vulkan">
+      <UniqueIdentifier>{3a36d78c-fedc-4e5b-9443-90d28a351033}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

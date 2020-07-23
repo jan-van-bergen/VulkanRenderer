@@ -161,6 +161,9 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="VulkanContext.cpp" />
+    <ClCompile Include="VulkanMemory.cpp" />
+    <ClCompile Include="VulkanRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -168,11 +171,14 @@
     <ClInclude Include="Math.h" />
     <ClInclude Include="Matrix4.h" />
     <ClInclude Include="Quaternion.h" />
+    <ClInclude Include="VulkanRenderer.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="Vector2.h" />
     <ClInclude Include="Vector3.h" />
     <ClInclude Include="VulkanCall.h" />
+    <ClInclude Include="VulkanContext.h" />
+    <ClInclude Include="VulkanMemory.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
