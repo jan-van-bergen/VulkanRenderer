@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) in vec2 in_position;
+layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec2 in_texcoord;
 layout(location = 2) in vec3 in_colour;
 
@@ -13,7 +13,7 @@ layout(binding = 0, row_major) uniform UniformBufferObject {
 } ubo;
 
 void main() {
-	gl_Position = ubo.wvp * vec4(in_position, 0.0f, 1.0f);
+	gl_Position = ubo.wvp * vec4(in_position, 1.0f);
 
 	out_texcoord = in_texcoord;
 	out_colour   = in_colour;

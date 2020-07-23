@@ -71,28 +71,14 @@ struct alignas(16) Matrix4 {
 		Matrix4 result;
 		result(0, 0) =  1.0f / (aspect * tan_half_fov);
 		result(1, 1) = -1.0f / tan_half_fov;
-		result(2, 2) = -(far + near) / (far - near);
+		result(2, 2) = far / (near - far);
 		result(3, 2) = -1.0f;
-		result(2, 3) = -2.0f * (far * near) / (far - near);
+		result(2, 3) = -(far * near) / (far - near);
 		result(3, 3) =  0.0f;
 
 		return result;
 	}
-	
-	inline static Matrix4 perspective_infinite(float fov, float aspect, float near) {
-		float tan_half_fov = tanf(0.5f * fov);
 
-		Matrix4 result;
-		result(0, 0) =  1.0f / (aspect * tan_half_fov);
-		result(1, 1) =  1.0f / tan_half_fov;
-		result(2, 2) = -1.0f;
-		result(3, 2) = -1.0f;
-		result(2, 3) = -2.0f * near;
-		result(3, 3) =  0.0f;
-
-		return result;
-	}
-	
 	// Transforms a Vector3 as if the fourth coordinate is 1
 	inline static Vector3 transform_position(const Matrix4 & matrix, const Vector3 & position) {
 		return Vector3(
