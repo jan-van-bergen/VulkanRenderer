@@ -16,8 +16,8 @@ static VkDevice device;
 
 static VkSurfaceKHR surface;
 
-static std::optional<u32> queue_family_graphics;
-static std::optional<u32> queue_family_present;
+static u32 queue_family_graphics;
+static u32 queue_family_present;
 
 static VkQueue queue_graphics;
 static VkQueue queue_present;
@@ -148,29 +148,35 @@ static void init_queue_families() {
 	std::vector<VkQueueFamilyProperties> queue_families(queue_families_count);
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_families.data());
 	
+	std::optional<u32> opt_queue_family_graphics;
+	std::optional<u32> opt_queue_family_present;
+
 	for (int i = 0; i < queue_families_count; i++) {
 		VkBool32 supports_graphics = queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
 		VkBool32 supports_present  = false;
 		VULKAN_CALL(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_present));
 
-		if (supports_graphics) queue_family_graphics = i;
+		if (supports_graphics) opt_queue_family_graphics = i;
 		if (supports_present)  queue_family_present  = i;
 
-		if (queue_family_graphics.has_value() && queue_family_present.has_value()) break;
+		if (opt_queue_family_graphics.has_value() && opt_queue_family_present.has_value()) break;
 	}
 
-	if (!queue_family_graphics.has_value() && !queue_family_present.has_value()) {
+	if (!opt_queue_family_graphics.has_value() && !opt_queue_family_present.has_value()) {
 		printf("Failed to create queue families!\n");	
 		abort();
 	}
+
+	queue_family_graphics = opt_queue_family_graphics.value();
+	queue_family_present  = opt_queue_family_present .value();
 }
 
 static void init_device() {
 	float queue_priority = 1.0f;
 	
 	std::set<u32> unique_queue_families = {
-		queue_family_graphics.value(),
-		queue_family_present .value()
+		queue_family_graphics,
+		queue_family_present
 	};
 	std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 
@@ -210,13 +216,13 @@ static void init_device() {
 }
 
 static void init_queues() {
-	vkGetDeviceQueue(device, queue_family_graphics.value(), 0, &queue_graphics);
-	vkGetDeviceQueue(device, queue_family_present .value(), 0, &queue_present);
+	vkGetDeviceQueue(device, queue_family_graphics, 0, &queue_graphics);
+	vkGetDeviceQueue(device, queue_family_present,  0, &queue_present);
 }
 
 static void init_command_pool() {
 	VkCommandPoolCreateInfo command_pool_create_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-	command_pool_create_info.queueFamilyIndex = queue_family_graphics.value();
+	command_pool_create_info.queueFamilyIndex = queue_family_graphics;
 	command_pool_create_info.flags = 0;
 
 	VULKAN_CALL(vkCreateCommandPool(device, &command_pool_create_info, nullptr, &command_pool));
@@ -241,7 +247,7 @@ void VulkanContext::destroy() {
 
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	
-	vkDestroyDevice(device, nullptr);
+	vkDestroyDevice  (device,   nullptr);
 	vkDestroyInstance(instance, nullptr);
 }
 
@@ -267,15 +273,15 @@ VkSwapchainKHR VulkanContext::create_swapchain(u32 width, u32 height) {
 	swapchain_create_info.imageArrayLayers = 1;
 	swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	u32 const queueFamilyIndices[] = {
-		queue_family_graphics.value(),
-		queue_family_present .value()
+	u32 queue_family_indices[] = {
+		queue_family_graphics,
+		queue_family_present
 	};
 
-	if (queue_family_graphics.value() != queue_family_present.value()) {
+	if (queue_family_graphics != queue_family_present) {
 		swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		swapchain_create_info.queueFamilyIndexCount = 2;
-		swapchain_create_info.pQueueFamilyIndices   = queueFamilyIndices;
+		swapchain_create_info.pQueueFamilyIndices   = queue_family_indices;
 	} else {
 		swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		swapchain_create_info.queueFamilyIndexCount = 0;
