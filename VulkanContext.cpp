@@ -157,12 +157,12 @@ static void init_queue_families() {
 		VULKAN_CALL(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_present));
 
 		if (supports_graphics) opt_queue_family_graphics = i;
-		if (supports_present)  queue_family_present  = i;
+		if (supports_present)  opt_queue_family_present  = i;
 
 		if (opt_queue_family_graphics.has_value() && opt_queue_family_present.has_value()) break;
 	}
 
-	if (!opt_queue_family_graphics.has_value() && !opt_queue_family_present.has_value()) {
+	if (!opt_queue_family_graphics.has_value() || !opt_queue_family_present.has_value()) {
 		printf("Failed to create queue families!\n");	
 		abort();
 	}
