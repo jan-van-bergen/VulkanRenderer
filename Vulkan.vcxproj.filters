@@ -1,49 +1,49 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="Input.cpp" />
-    <ClCompile Include="VulkanMemory.cpp">
+    <ClCompile Include="Src\Main.cpp" />
+    <ClCompile Include="Src\Camera.cpp" />
+    <ClCompile Include="Src\Input.cpp" />
+    <ClCompile Include="Src\VulkanMemory.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanContext.cpp">
+    <ClCompile Include="Src\VulkanContext.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanRenderer.cpp">
+    <ClCompile Include="Src\VulkanRenderer.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Types.h" />
-    <ClInclude Include="Util.h" />
-    <ClInclude Include="Math.h">
+    <ClInclude Include="Src\Types.h" />
+    <ClInclude Include="Src\Util.h" />
+    <ClInclude Include="Src\Math.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Matrix4.h">
+    <ClInclude Include="Src\Matrix4.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Quaternion.h">
+    <ClInclude Include="Src\Quaternion.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Vector2.h">
+    <ClInclude Include="Src\Vector2.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Vector3.h">
+    <ClInclude Include="Src\Vector3.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Input.h" />
-    <ClInclude Include="VulkanCall.h">
+    <ClInclude Include="Src\Camera.h" />
+    <ClInclude Include="Src\Input.h" />
+    <ClInclude Include="Src\VulkanCall.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanContext.h">
+    <ClInclude Include="Src\VulkanContext.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanMemory.h">
+    <ClInclude Include="Src\VulkanMemory.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanRenderer.h">
+    <ClInclude Include="Src\VulkanRenderer.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
