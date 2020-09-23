@@ -1,4 +1,4 @@
-#include "VulkanCall.h"
+#include "VulkanCheck.h"
 #include "VulkanContext.h"
 #include "VulkanMemory.h"
 #include "VulkanRenderer.h"
@@ -63,7 +63,7 @@ int main() {
 			Input::finish_frame();
 		}
 
-		VULKAN_CALL(vkDeviceWaitIdle(VulkanContext::get_device()));
+		VK_CHECK(vkDeviceWaitIdle(VulkanContext::get_device()));
 	}
 	VulkanContext::destroy();
 	

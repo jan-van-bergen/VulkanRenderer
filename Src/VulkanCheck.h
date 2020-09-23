@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#define VULKAN_CALL(result) check_vulkan_call(result, __FILE__, __LINE__);
+#define VK_CHECK(result) check_vulkan_call(result, __FILE__, __LINE__);
 
 inline void check_vulkan_call(VkResult result, const char * file, int line) {
 	if (result != VK_SUCCESS) {

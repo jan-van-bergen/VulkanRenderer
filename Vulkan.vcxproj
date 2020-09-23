@@ -176,7 +176,7 @@
     <ClInclude Include="Src\Types.h" />
     <ClInclude Include="Src\Vector2.h" />
     <ClInclude Include="Src\Vector3.h" />
-    <ClInclude Include="Src\VulkanCall.h" />
+    <ClInclude Include="Src\VulkanCheck.h" />
     <ClInclude Include="Src\VulkanContext.h" />
     <ClInclude Include="Src\VulkanMemory.h" />
   </ItemGroup>

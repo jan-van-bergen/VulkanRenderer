@@ -7,7 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
 
-#include "VulkanCall.h"
+#include "VulkanCheck.h"
 #include "VulkanContext.h"
 #include "VulkanMemory.h"
 
@@ -85,7 +85,7 @@ static VkShaderModule shader_load(VkDevice device, std::string const & filename)
 	create_info.pCode = reinterpret_cast<const u32 *>(spirv.data());
 
 	VkShaderModule shader;
-	VULKAN_CALL(vkCreateShaderModule(device, &create_info, nullptr, &shader));
+	VK_CHECK(vkCreateShaderModule(device, &create_info, nullptr, &shader));
 
 	return shader;
 }
@@ -163,7 +163,7 @@ void VulkanRenderer::create_descriptor_set_layout() {
 	layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
 	layout_create_info.pBindings    = layout_bindings;
 
-	VULKAN_CALL(vkCreateDescriptorSetLayout(VulkanContext::get_device(), &layout_create_info, nullptr, &descriptor_set_layout));
+	VK_CHECK(vkCreateDescriptorSetLayout(VulkanContext::get_device(), &layout_create_info, nullptr, &descriptor_set_layout));
 }
 
 void VulkanRenderer::create_pipeline() {
@@ -253,7 +253,7 @@ void VulkanRenderer::create_pipeline() {
 	pipeline_layout_create_info.pushConstantRangeCount = 0;
 	pipeline_layout_create_info.pPushConstantRanges    = nullptr;
 
-	VULKAN_CALL(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout));
+	VK_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout));
 
 	VkAttachmentDescription attachment_colour = { };
 	attachment_colour.format = VulkanContext::FORMAT.format;
@@ -307,7 +307,7 @@ void VulkanRenderer::create_pipeline() {
 	render_pass_create_info.dependencyCount = 1;
 	render_pass_create_info.pDependencies   = &dependency;
 
-	VULKAN_CALL(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &render_pass));
+	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &render_pass));
 
 	VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 	depth_stencil_create_info.depthTestEnable  = VK_TRUE;
@@ -339,7 +339,7 @@ void VulkanRenderer::create_pipeline() {
 	pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
 	pipeline_create_info.basePipelineIndex  = -1;
 
-	VULKAN_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline));
+	VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline));
 	
 	vkDestroyShaderModule(device, shader_vert, nullptr);
 	vkDestroyShaderModule(device, shader_frag, nullptr);
@@ -359,7 +359,7 @@ void VulkanRenderer::create_framebuffers() {
 		framebuffer_create_info.height = height;
 		framebuffer_create_info.layers = 1;
 
-		VULKAN_CALL(vkCreateFramebuffer(VulkanContext::get_device(), &framebuffer_create_info, nullptr, &framebuffers[i]));
+		VK_CHECK(vkCreateFramebuffer(VulkanContext::get_device(), &framebuffer_create_info, nullptr, &framebuffers[i]));
 	}
 }
 
@@ -506,7 +506,7 @@ void VulkanRenderer::create_texture() {
 	sampler_create_info.minLod     = 0.0f;
 	sampler_create_info.maxLod     = 0.0f;
 
-	VULKAN_CALL(vkCreateSampler(device, &sampler_create_info, nullptr, &texture_sampler));
+	VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &texture_sampler));
 }
 
 void VulkanRenderer::create_uniform_buffers() {
@@ -536,7 +536,7 @@ void VulkanRenderer::create_descriptor_pool() {
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
 	pool_create_info.maxSets = image_views.size();
 
-	VULKAN_CALL(vkCreateDescriptorPool(VulkanContext::get_device(), &pool_create_info, nullptr, &descriptor_pool));
+	VK_CHECK(vkCreateDescriptorPool(VulkanContext::get_device(), &pool_create_info, nullptr, &descriptor_pool));
 }
 
 void VulkanRenderer::create_descriptor_sets() {
@@ -550,7 +550,7 @@ void VulkanRenderer::create_descriptor_sets() {
 	VkDevice device = VulkanContext::get_device();
 
 	descriptor_sets.resize(image_views.size());
-	VULKAN_CALL(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
+	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
 
 	for (int i = 0; i < image_views.size(); i++) {
 		VkDescriptorBufferInfo buffer_info = { };
@@ -595,14 +595,14 @@ void VulkanRenderer::create_command_buffers() {
 	command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	command_buffer_alloc_info.commandBufferCount = command_buffers.size();
 
-	VULKAN_CALL(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, command_buffers.data()));
+	VK_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, command_buffers.data()));
 
 	for (int i = 0; i < command_buffers.size(); i++) {
 		VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		command_buffer_begin_info.flags = 0;
 		command_buffer_begin_info.pInheritanceInfo = nullptr;
 
-		VULKAN_CALL(vkBeginCommandBuffer(command_buffers[i], &command_buffer_begin_info));
+		VK_CHECK(vkBeginCommandBuffer(command_buffers[i], &command_buffer_begin_info));
 		
 		VkClearValue clear_values[2] = { };
 		clear_values[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -632,7 +632,7 @@ void VulkanRenderer::create_command_buffers() {
 
 		vkCmdEndRenderPass(command_buffers[i]);
 
-		VULKAN_CALL(vkEndCommandBuffer(command_buffers[i]));
+		VK_CHECK(vkEndCommandBuffer(command_buffers[i]));
 	}
 }
 
@@ -645,10 +645,10 @@ void VulkanRenderer::create_sync_primitives() {
 	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		VULKAN_CALL(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_image_available[i]));
-		VULKAN_CALL(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
+		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_image_available[i]));
+		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
 
-		VULKAN_CALL(vkCreateFence(device, &fence_create_info, nullptr, &inflight_fences[i]));
+		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &inflight_fences[i]));
 	}
 
 	images_in_flight.resize(image_views.size(), VK_NULL_HANDLE);
@@ -695,7 +695,7 @@ void VulkanRenderer::render() {
 
 	VkFence const & fence = inflight_fences[current_frame];
 
-	VULKAN_CALL(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+	VK_CHECK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
 		
 	u32 image_index;
 	vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index);
@@ -705,7 +705,7 @@ void VulkanRenderer::render() {
 	}
 	images_in_flight[image_index] = inflight_fences[current_frame];
 
-	VULKAN_CALL(vkResetFences(device, 1, &fence));
+	VK_CHECK(vkResetFences(device, 1, &fence));
 
 	VkSemaphore          wait_semaphores[] = { semaphore_image_available };
 	VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -736,7 +736,7 @@ void VulkanRenderer::render() {
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores    = signal_semaphores;
 
-	VULKAN_CALL(vkQueueSubmit(queue_graphics, 1, &submit_info, fence));
+	VK_CHECK(vkQueueSubmit(queue_graphics, 1, &submit_info, fence));
 		
 	VkSwapchainKHR swapchains[] = { swapchain };
 
@@ -764,7 +764,7 @@ void VulkanRenderer::render() {
 		width  = w;
 		height = h;
 		
-		VULKAN_CALL(vkDeviceWaitIdle(device));
+		VK_CHECK(vkDeviceWaitIdle(device));
 
 		destroy_swapchain();
 		create_swapchain();
@@ -773,7 +773,7 @@ void VulkanRenderer::render() {
 
 		framebuffer_needs_resize = false;
 	} else {
-		VULKAN_CALL(result);
+		VK_CHECK(result);
 	}
 
 	current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;

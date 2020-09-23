@@ -1,6 +1,6 @@
 #include "VulkanMemory.h"
 
-#include "VulkanCall.h"
+#include "VulkanCheck.h"
 #include "VulkanContext.h"
 
 u32 VulkanMemory::find_memory_type(u32 type_filter, VkMemoryPropertyFlags properties) {
@@ -24,7 +24,7 @@ void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 
 	VkDevice device = VulkanContext::get_device();
 
-	VULKAN_CALL(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer));
+	VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer));
 
 	VkMemoryRequirements requirements;
 	vkGetBufferMemoryRequirements(device, buffer, &requirements);
@@ -33,9 +33,9 @@ void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 	alloc_info.allocationSize = requirements.size;
 	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
 
-	VULKAN_CALL(vkAllocateMemory(device, &alloc_info, nullptr, &buffer_memory));
+	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &buffer_memory));
 
-	VULKAN_CALL(vkBindBufferMemory(device, buffer, buffer_memory, 0));
+	VK_CHECK(vkBindBufferMemory(device, buffer, buffer_memory, 0));
 }
 
 VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
@@ -45,12 +45,12 @@ VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
 	alloc_info.commandBufferCount = 1;
 
 	VkCommandBuffer command_buffer;
-	VULKAN_CALL(vkAllocateCommandBuffers(VulkanContext::get_device(), &alloc_info, &command_buffer));
+	VK_CHECK(vkAllocateCommandBuffers(VulkanContext::get_device(), &alloc_info, &command_buffer));
 
 	VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	VULKAN_CALL(vkBeginCommandBuffer(command_buffer, &begin_info));
+	VK_CHECK(vkBeginCommandBuffer(command_buffer, &begin_info));
 
 	return command_buffer;
 }
@@ -64,8 +64,8 @@ void VulkanMemory::command_buffer_single_use_end(VkCommandBuffer command_buffer)
 
 	VkQueue queue_graphics = VulkanContext::get_queue_graphics();
 
-	VULKAN_CALL(vkQueueSubmit(queue_graphics, 1, &submit_info, VK_NULL_HANDLE));
-	VULKAN_CALL(vkQueueWaitIdle(queue_graphics));
+	VK_CHECK(vkQueueSubmit(queue_graphics, 1, &submit_info, VK_NULL_HANDLE));
+	VK_CHECK(vkQueueWaitIdle(queue_graphics));
 
 	vkFreeCommandBuffers(VulkanContext::get_device(), VulkanContext::get_command_pool(), 1, &command_buffer);
 }
@@ -111,7 +111,7 @@ void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageT
 	
 	VkDevice device = VulkanContext::get_device();
 
-	VULKAN_CALL(vkCreateImage(device, &image_create_info, nullptr, &image));
+	VK_CHECK(vkCreateImage(device, &image_create_info, nullptr, &image));
 
 	VkMemoryRequirements requirements;
 	vkGetImageMemoryRequirements(device, image, &requirements);
@@ -120,9 +120,9 @@ void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageT
 	alloc_info.allocationSize = requirements.size;
 	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
 
-	VULKAN_CALL(vkAllocateMemory(device, &alloc_info, nullptr, &image_memory));
+	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &image_memory));
 
-	VULKAN_CALL(vkBindImageMemory(device, image, image_memory, 0));
+	VK_CHECK(vkBindImageMemory(device, image, image_memory, 0));
 }
 
 VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_mask) {
@@ -143,7 +143,7 @@ VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkIm
 	image_view_create_info.subresourceRange.layerCount     = 1;
 
 	VkImageView image_view;
-	VULKAN_CALL(vkCreateImageView(VulkanContext::get_device(), &image_view_create_info, nullptr, &image_view));
+	VK_CHECK(vkCreateImageView(VulkanContext::get_device(), &image_view_create_info, nullptr, &image_view));
 
 	return image_view;
 }

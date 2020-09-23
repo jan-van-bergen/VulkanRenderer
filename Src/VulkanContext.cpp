@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "VulkanCall.h"
+#include "VulkanCheck.h"
 #include "VulkanMemory.h"
 
 #include "Math.h"
@@ -115,7 +115,7 @@ static void init_instance() {
 		instance_create_info.pNext = &callback_create_info;
 	}
 	
-	VULKAN_CALL(vkCreateInstance(&instance_create_info, nullptr, &instance));
+	VK_CHECK(vkCreateInstance(&instance_create_info, nullptr, &instance));
 	
 	if (validation_layers_enabled) {
 		VULKAN_PROC(vkCreateDebugUtilsMessengerEXT)(instance, &callback_create_info, nullptr, &debug_messenger);
@@ -138,7 +138,7 @@ static void init_physical_device() {
 }
 
 static void init_surface(GLFWwindow * window) {
-	VULKAN_CALL(glfwCreateWindowSurface(instance, window, nullptr, &surface));	
+	VK_CHECK(glfwCreateWindowSurface(instance, window, nullptr, &surface));	
 }
 
 static void init_queue_families() {
@@ -154,7 +154,7 @@ static void init_queue_families() {
 	for (int i = 0; i < queue_families_count; i++) {
 		VkBool32 supports_graphics = queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
 		VkBool32 supports_present  = false;
-		VULKAN_CALL(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_present));
+		VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_present));
 
 		if (supports_graphics) opt_queue_family_graphics = i;
 		if (supports_present)  opt_queue_family_present  = i;
@@ -212,7 +212,7 @@ static void init_device() {
 		device_create_info.enabledLayerCount = 0;
 	}
 	
-	VULKAN_CALL(vkCreateDevice(physical_device, &device_create_info, nullptr, &device));
+	VK_CHECK(vkCreateDevice(physical_device, &device_create_info, nullptr, &device));
 }
 
 static void init_queues() {
@@ -225,7 +225,7 @@ static void init_command_pool() {
 	command_pool_create_info.queueFamilyIndex = queue_family_graphics;
 	command_pool_create_info.flags = 0;
 
-	VULKAN_CALL(vkCreateCommandPool(device, &command_pool_create_info, nullptr, &command_pool));
+	VK_CHECK(vkCreateCommandPool(device, &command_pool_create_info, nullptr, &command_pool));
 }
 
 void VulkanContext::init(GLFWwindow * window) {
@@ -295,7 +295,7 @@ VkSwapchainKHR VulkanContext::create_swapchain(u32 width, u32 height) {
 	swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
 
 	VkSwapchainKHR swapchain;
-	VULKAN_CALL(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain));
+	VK_CHECK(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain));
 
 	return swapchain;
 }
