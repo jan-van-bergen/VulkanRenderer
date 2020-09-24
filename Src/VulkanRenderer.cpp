@@ -9,7 +9,6 @@
 
 #include "VulkanCheck.h"
 #include "VulkanContext.h"
-#include "VulkanMemory.h"
 
 #include "Vector2.h"
 #include "Vector3.h"
@@ -73,11 +72,8 @@ VulkanRenderer::~VulkanRenderer() {
 	vkDestroyImage    (device, texture_image,        nullptr);
 	vkFreeMemory      (device, texture_image_memory, nullptr);
 
-	vkDestroyBuffer(device, vertex_buffer,        nullptr);
-	vkFreeMemory   (device, vertex_buffer_memory, nullptr);
-
-	vkDestroyBuffer(device, index_buffer,        nullptr);
-	vkFreeMemory   (device, index_buffer_memory, nullptr);
+	VulkanMemory::buffer_free(device, vertex_buffer);
+	VulkanMemory::buffer_free(device, index_buffer);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -329,63 +325,45 @@ void VulkanRenderer::create_depth_buffer() {
 void VulkanRenderer::create_vertex_buffer() {
 	u64 buffer_size = Util::vector_size_in_bytes(mesh->vertices);
 
-	VkBuffer       staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-	VulkanMemory::create_buffer(
+	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(
 		buffer_size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		staging_buffer,
-		staging_buffer_memory
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
 
-	VulkanMemory::create_buffer(
+	vertex_buffer = VulkanMemory::buffer_create(
 		buffer_size,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		vertex_buffer,
-		vertex_buffer_memory
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer_memory, mesh->vertices.data(), buffer_size);
+	VulkanMemory::buffer_memory_copy(staging_buffer.memory, mesh->vertices.data(), buffer_size);
 
-	VulkanMemory::buffer_copy(vertex_buffer, staging_buffer, buffer_size);
+	VulkanMemory::buffer_copy(vertex_buffer.buffer, staging_buffer.buffer, buffer_size);
 
-	VkDevice device = VulkanContext::get_device();
-
-	vkDestroyBuffer(device, staging_buffer,        nullptr);
-	vkFreeMemory   (device, staging_buffer_memory, nullptr);
+	VulkanMemory::buffer_free(VulkanContext::get_device(), staging_buffer);
 }
 
 void VulkanRenderer::create_index_buffer() {
 	VkDeviceSize buffer_size = Util::vector_size_in_bytes(mesh->indices);
 
-	VkBuffer       staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-	VulkanMemory::create_buffer(
+	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(
 		buffer_size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		staging_buffer,
-		staging_buffer_memory
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
 	
-	VulkanMemory::create_buffer(
+	index_buffer = VulkanMemory::buffer_create(
 		buffer_size,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		index_buffer,
-		index_buffer_memory
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer_memory, mesh->indices.data(), buffer_size);
+	VulkanMemory::buffer_memory_copy(staging_buffer.memory, mesh->indices.data(), buffer_size);
 
-	VulkanMemory::buffer_copy(index_buffer, staging_buffer, buffer_size);
+	VulkanMemory::buffer_copy(index_buffer.buffer, staging_buffer.buffer, buffer_size);
 	
-	VkDevice device = VulkanContext::get_device();
-
-	vkDestroyBuffer(device, staging_buffer,        nullptr);
-	vkFreeMemory   (device, staging_buffer_memory, nullptr);
+	VulkanMemory::buffer_free(VulkanContext::get_device(), staging_buffer);
 }
 
 void VulkanRenderer::create_texture() {
@@ -401,17 +379,12 @@ void VulkanRenderer::create_texture() {
 
 	VkDeviceSize texture_size = texture_width * texture_height * 4;
 
-	VkBuffer       staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-
-	VulkanMemory::create_buffer(texture_size,
+	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(texture_size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		staging_buffer,
-		staging_buffer_memory
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer_memory, pixels, texture_size);
+	VulkanMemory::buffer_memory_copy(staging_buffer.memory, pixels, texture_size);
 
 	stbi_image_free(pixels);
 
@@ -427,14 +400,13 @@ void VulkanRenderer::create_texture() {
 	);
 
 	VulkanMemory::transition_image_layout(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	VulkanMemory::buffer_copy_to_image(staging_buffer, texture_image, texture_width, texture_height);
+	VulkanMemory::buffer_copy_to_image(staging_buffer.buffer, texture_image, texture_width, texture_height);
 
 	VulkanMemory::transition_image_layout(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	VkDevice device = VulkanContext::get_device();
 
-	vkDestroyBuffer(device, staging_buffer,        nullptr);
-	vkFreeMemory   (device, staging_buffer_memory, nullptr);
+	VulkanMemory::buffer_free(device, staging_buffer);
 
 	texture_image_view = VulkanMemory::create_image_view(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 	
@@ -460,15 +432,12 @@ void VulkanRenderer::create_texture() {
 void VulkanRenderer::create_uniform_buffers() {
 	VkDeviceSize buffer_size = sizeof(UniformBufferObject);
 
-	uniform_buffers       .resize(image_views.size());
-	uniform_buffers_memory.resize(image_views.size());
+	uniform_buffers.resize(image_views.size());
 
 	for (int i = 0; i < image_views.size(); i++) {
-		VulkanMemory::create_buffer(buffer_size,
+		uniform_buffers[i] = VulkanMemory::buffer_create(buffer_size,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			uniform_buffers[i],
-			uniform_buffers_memory[i]
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 	}
 }
@@ -502,7 +471,7 @@ void VulkanRenderer::create_descriptor_sets() {
 
 	for (int i = 0; i < image_views.size(); i++) {
 		VkDescriptorBufferInfo buffer_info = { };
-		buffer_info.buffer = uniform_buffers[i];
+		buffer_info.buffer = uniform_buffers[i].buffer;
 		buffer_info.offset = 0;
 		buffer_info.range = sizeof(UniformBufferObject);
 
@@ -568,11 +537,11 @@ void VulkanRenderer::create_command_buffers() {
 
 		vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-		VkBuffer vertex_buffers[] = { vertex_buffer };
+		VkBuffer vertex_buffers[] = { vertex_buffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
 
-		vkCmdBindIndexBuffer(command_buffers[i], index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(command_buffers[i], index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[i], 0, nullptr);
 
@@ -668,11 +637,12 @@ void VulkanRenderer::render() {
 
 		UniformBufferObject ubo = { };
 		ubo.wvp = camera.get_view_projection() * Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time));
-			
-		void * data;
-		vkMapMemory(device, uniform_buffers_memory[image_index], 0, sizeof(ubo), 0, &data);
+		
+		void * data; vkMapMemory(device, uniform_buffers[image_index].memory, 0, sizeof(ubo), 0, &data);
+		
 		memcpy(data, &ubo, sizeof(ubo));
-		vkUnmapMemory(device, uniform_buffers_memory[image_index]);
+
+		vkUnmapMemory(device, uniform_buffers[image_index].memory);
 	}
 
 	VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -751,8 +721,7 @@ void VulkanRenderer::destroy_swapchain() {
 	for (int i = 0; i < image_views.size(); i++) {
 		vkDestroyImageView(device, image_views[i], nullptr);
 
-		vkDestroyBuffer(device, uniform_buffers       [i], nullptr);
-		vkFreeMemory   (device, uniform_buffers_memory[i], nullptr);
+		VulkanMemory::buffer_free(device, uniform_buffers[i]);
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);

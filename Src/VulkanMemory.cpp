@@ -16,7 +16,9 @@ u32 VulkanMemory::find_memory_type(u32 type_filter, VkMemoryPropertyFlags proper
 	abort();
 }
 
-void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
+VulkanMemory::Buffer VulkanMemory::buffer_create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+	Buffer buffer;
+
 	VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	buffer_create_info.size = size;
 	buffer_create_info.usage = usage;
@@ -24,18 +26,25 @@ void VulkanMemory::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
 
 	VkDevice device = VulkanContext::get_device();
 
-	VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer));
+	VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer.buffer));
 
 	VkMemoryRequirements requirements;
-	vkGetBufferMemoryRequirements(device, buffer, &requirements);
+	vkGetBufferMemoryRequirements(device, buffer.buffer, &requirements);
 
 	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	alloc_info.allocationSize = requirements.size;
 	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
 
-	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &buffer_memory));
+	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &buffer.memory));
 
-	VK_CHECK(vkBindBufferMemory(device, buffer, buffer_memory, 0));
+	VK_CHECK(vkBindBufferMemory(device, buffer.buffer, buffer.memory, 0));
+
+	return buffer;
+}
+
+void VulkanMemory::buffer_free(VkDevice device, Buffer & buffer) {
+	vkDestroyBuffer(device, buffer.buffer, nullptr);
+	vkFreeMemory   (device, buffer.memory, nullptr);
 }
 
 VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {

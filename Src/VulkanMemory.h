@@ -4,12 +4,18 @@
 #include "Types.h"
 
 namespace VulkanMemory {
+	struct Buffer {
+		VkBuffer       buffer;
+		VkDeviceMemory memory;
+	};
+
 	VkCommandBuffer command_buffer_single_use_begin();
 	void            command_buffer_single_use_end(VkCommandBuffer command_buffer);
 
 	u32 find_memory_type(u32 type_filter, VkMemoryPropertyFlags properties);
 
-	void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer & buffer, VkDeviceMemory & buffer_memory);
+	Buffer buffer_create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+	void   buffer_free  (VkDevice device, Buffer & buffer);
 
 	void buffer_copy(VkBuffer buffer_dst, VkBuffer buffer_src, VkDeviceSize size);
 	void buffer_memory_copy(VkDeviceMemory device_memory, void const * data, u64 size);

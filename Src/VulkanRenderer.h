@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "VulkanMemory.h"
+
 #include "Camera.h"
 #include "Mesh.h"
 
@@ -33,15 +35,11 @@ class VulkanRenderer {
 	VkDeviceMemory depth_image_memory;
 	VkImageView    depth_image_view;
 
-	VkBuffer       vertex_buffer;
-	VkDeviceMemory vertex_buffer_memory;
-
-	VkBuffer       index_buffer;
-	VkDeviceMemory index_buffer_memory;
-
-	std::vector<VkBuffer>       uniform_buffers;
-	std::vector<VkDeviceMemory> uniform_buffers_memory;
-
+	VulkanMemory::Buffer vertex_buffer;
+	VulkanMemory::Buffer index_buffer;
+	
+	std::vector<VulkanMemory::Buffer> uniform_buffers;
+	
 	VkDescriptorPool             descriptor_pool;
 	std::vector<VkDescriptorSet> descriptor_sets;
 
