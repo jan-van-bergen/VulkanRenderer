@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Camera.h"
+#include "Mesh.h"
 
 #include "Types.h"
 
@@ -59,6 +60,8 @@ class VulkanRenderer {
 
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	
+	Mesh const * mesh;
+
 	void create_swapchain();
 
 	void create_descriptor_set_layout();

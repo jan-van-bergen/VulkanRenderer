@@ -13,6 +13,9 @@
     <ClCompile Include="Src\VulkanRenderer.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Mesh.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Types.h" />
@@ -46,6 +49,9 @@
     <ClInclude Include="Src\VulkanCheck.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Mesh.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">
@@ -53,6 +59,9 @@
     </Filter>
     <Filter Include="Vulkan">
       <UniqueIdentifier>{3a36d78c-fedc-4e5b-9443-90d28a351033}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{e4cf129a-4cc2-47f3-8c80-871ae0b1bddf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

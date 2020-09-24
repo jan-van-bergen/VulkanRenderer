@@ -36,12 +36,12 @@ namespace Util {
     }
 
 	template<typename T, int N>
-	constexpr int array_element_count(T const (& array)[N]) {
+	constexpr size_t array_element_count(T const (& array)[N]) {
 		return N;
 	}
 
     template<typename T>
-    constexpr int vector_size_in_bytes(std::vector<T> const & vector) {
+    constexpr size_t vector_size_in_bytes(std::vector<T> const & vector) {
         return vector.size() * sizeof(T);
     }
 }

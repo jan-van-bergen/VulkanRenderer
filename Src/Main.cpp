@@ -33,9 +33,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
 	glfwSetKeyCallback            (window, glfw_key_callback);
 
-	std::vector<char const *> device_extensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
+	std::vector<char const *> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 	VulkanContext::init(window);
 	{

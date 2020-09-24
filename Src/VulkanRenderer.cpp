@@ -17,62 +17,6 @@
 
 #include "Util.h"
 
-struct Vertex {
-	Vector3 position;
-	Vector2 texcoord;
-	Vector3 colour;
-
-	static VkVertexInputBindingDescription get_binding_description() {
-		VkVertexInputBindingDescription bindingDescription = { };
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::vector<VkVertexInputAttributeDescription> get_attribute_description() {
-		std::vector<VkVertexInputAttributeDescription> attribute_descriptions(3);
-
-		// Position
-		attribute_descriptions[0].binding  = 0;
-		attribute_descriptions[0].location = 0;
-		attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attribute_descriptions[0].offset = offsetof(Vertex, position);
-		
-		// Texture Coordinates
-		attribute_descriptions[1].binding  = 0;
-		attribute_descriptions[1].location = 1;
-		attribute_descriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
-		attribute_descriptions[1].offset = offsetof(Vertex, texcoord);
-
-		// Colour
-		attribute_descriptions[2].binding  = 0;
-		attribute_descriptions[2].location = 2;
-		attribute_descriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attribute_descriptions[2].offset = offsetof(Vertex, colour);
-
-		return attribute_descriptions;
-	}
-};
-
-static std::vector<Vertex> const vertices = {
-	{ { -0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-	{ {  0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-	{ {  0.5f,  0.5f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
-	{ { -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f } },
-
-	{ { -0.5f, -0.5f, -1.0f }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-	{ {  0.5f, -0.5f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-	{ {  0.5f,  0.5f, -1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
-	{ { -0.5f,  0.5f, -1.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f } }
-};
-
-static std::vector<u32> const indices = {
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4
-};
-
 struct UniformBufferObject {
 	alignas(16) Matrix4 wvp;
 };
@@ -110,11 +54,15 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
+	mesh = Mesh::load("data/monkey.obj");
+
 	create_swapchain();
 }
 
 VulkanRenderer::~VulkanRenderer() {
 	destroy_swapchain();
+
+	Mesh::free();
 
 	VkDevice device = VulkanContext::get_device();
 
@@ -177,8 +125,8 @@ void VulkanRenderer::create_pipeline() {
 		shader_get_stage(shader_frag, VK_SHADER_STAGE_FRAGMENT_BIT),
 	};
 
-	VkVertexInputBindingDescription                binding_descriptions   = Vertex::get_binding_description();
-	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = Vertex::get_attribute_description();
+	VkVertexInputBindingDescription                binding_descriptions   = Mesh::Vertex::get_binding_description();
+	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = Mesh::Vertex::get_attribute_description();
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 	vertex_input_create_info.vertexBindingDescriptionCount = 1;
@@ -379,7 +327,7 @@ void VulkanRenderer::create_depth_buffer() {
 }
 
 void VulkanRenderer::create_vertex_buffer() {
-	u64 buffer_size = Util::vector_size_in_bytes(vertices);
+	u64 buffer_size = Util::vector_size_in_bytes(mesh->vertices);
 
 	VkBuffer       staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -399,7 +347,7 @@ void VulkanRenderer::create_vertex_buffer() {
 		vertex_buffer_memory
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer_memory, vertices.data(), buffer_size);
+	VulkanMemory::buffer_memory_copy(staging_buffer_memory, mesh->vertices.data(), buffer_size);
 
 	VulkanMemory::buffer_copy(vertex_buffer, staging_buffer, buffer_size);
 
@@ -410,7 +358,7 @@ void VulkanRenderer::create_vertex_buffer() {
 }
 
 void VulkanRenderer::create_index_buffer() {
-	VkDeviceSize buffer_size = Util::vector_size_in_bytes(indices);
+	VkDeviceSize buffer_size = Util::vector_size_in_bytes(mesh->indices);
 
 	VkBuffer       staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -430,7 +378,7 @@ void VulkanRenderer::create_index_buffer() {
 		index_buffer_memory
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer_memory, indices.data(), buffer_size);
+	VulkanMemory::buffer_memory_copy(staging_buffer_memory, mesh->indices.data(), buffer_size);
 
 	VulkanMemory::buffer_copy(index_buffer, staging_buffer, buffer_size);
 	
@@ -628,7 +576,7 @@ void VulkanRenderer::create_command_buffers() {
 
 		vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[i], 0, nullptr);
 
-		vkCmdDrawIndexed(command_buffers[i], indices.size(), 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffers[i], mesh->indices.size(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(command_buffers[i]);
 
@@ -719,7 +667,7 @@ void VulkanRenderer::render() {
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(time_current - time_start).count();
 
 		UniformBufferObject ubo = { };
-		ubo.wvp = camera.get_view_projection() * Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), time));
+		ubo.wvp = camera.get_view_projection() * Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time));
 			
 		void * data;
 		vkMapMemory(device, uniform_buffers_memory[image_index], 0, sizeof(ubo), 0, &data);

@@ -161,6 +161,7 @@
     <ClCompile Include="Src\Camera.cpp" />
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
+    <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\VulkanContext.cpp" />
     <ClCompile Include="Src\VulkanMemory.cpp" />
     <ClCompile Include="Src\VulkanRenderer.cpp" />
@@ -170,6 +171,7 @@
     <ClInclude Include="Src\Input.h" />
     <ClInclude Include="Src\Math.h" />
     <ClInclude Include="Src\Matrix4.h" />
+    <ClInclude Include="Src\Mesh.h" />
     <ClInclude Include="Src\Quaternion.h" />
     <ClInclude Include="Src\VulkanRenderer.h" />
     <ClInclude Include="Src\Util.h" />

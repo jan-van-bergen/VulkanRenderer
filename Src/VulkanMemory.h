@@ -14,7 +14,7 @@ namespace VulkanMemory {
 	void buffer_copy(VkBuffer buffer_dst, VkBuffer buffer_src, VkDeviceSize size);
 	void buffer_memory_copy(VkDeviceMemory device_memory, void const * data, u64 size);
 
-	void create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory);
+	void        create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory);
 	VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_mask);
 
 	void transition_image_layout(VkImage image, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new);
