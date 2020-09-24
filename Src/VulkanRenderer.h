@@ -35,9 +35,6 @@ class VulkanRenderer {
 	VkDeviceMemory depth_image_memory;
 	VkImageView    depth_image_view;
 
-	VulkanMemory::Buffer vertex_buffer;
-	VulkanMemory::Buffer index_buffer;
-	
 	std::vector<VulkanMemory::Buffer> uniform_buffers;
 	
 	VkDescriptorPool             descriptor_pool;
@@ -58,7 +55,7 @@ class VulkanRenderer {
 
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	
-	Mesh const * mesh;
+	std::vector<Mesh *> meshes;
 
 	void create_swapchain();
 

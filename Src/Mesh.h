@@ -57,6 +57,6 @@ struct Mesh {
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
 
-	static Mesh const * load(std::string const & filename);
-	static void free();
+	static Mesh * load(std::string const & filename);
+	static void   free();
 };

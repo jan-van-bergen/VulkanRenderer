@@ -7,7 +7,7 @@
 
 static std::unordered_map<std::string, std::unique_ptr<Mesh>> cache;
 
-Mesh const * Mesh::load(std::string const & filename) {
+Mesh * Mesh::load(std::string const & filename) {
 	std::unique_ptr<Mesh> & mesh = cache[filename];
 
 	if (mesh != nullptr) return mesh.get();

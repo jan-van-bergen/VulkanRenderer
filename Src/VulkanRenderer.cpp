@@ -53,15 +53,14 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
-	mesh = Mesh::load("data/monkey.obj");
+	meshes.push_back(Mesh::load("data/monkey.obj"));
+	meshes.push_back(Mesh::load("data/cube.obj"));
 
 	create_swapchain();
 }
 
 VulkanRenderer::~VulkanRenderer() {
 	destroy_swapchain();
-
-	Mesh::free();
 
 	VkDevice device = VulkanContext::get_device();
 
@@ -72,8 +71,12 @@ VulkanRenderer::~VulkanRenderer() {
 	vkDestroyImage    (device, texture_image,        nullptr);
 	vkFreeMemory      (device, texture_image_memory, nullptr);
 
-	VulkanMemory::buffer_free(vertex_buffer);
-	VulkanMemory::buffer_free(index_buffer);
+	for (auto const & mesh : meshes) {
+		VulkanMemory::buffer_free(mesh->vertex_buffer);
+		VulkanMemory::buffer_free(mesh->index_buffer);
+	}
+	
+	Mesh::free();
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -323,27 +326,31 @@ void VulkanRenderer::create_depth_buffer() {
 }
 
 void VulkanRenderer::create_vertex_buffer() {
-	u64 buffer_size = Util::vector_size_in_bytes(mesh->vertices);
+	for (auto & mesh : meshes) {
+		u64 buffer_size = Util::vector_size_in_bytes(mesh->vertices);
 
-	vertex_buffer = VulkanMemory::buffer_create(
-		buffer_size,
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	);
+		mesh->vertex_buffer = VulkanMemory::buffer_create(
+			buffer_size,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
-	VulkanMemory::buffer_copy_staged(vertex_buffer, mesh->vertices.data(), buffer_size);
+		VulkanMemory::buffer_copy_staged(mesh->vertex_buffer, mesh->vertices.data(), buffer_size);
+	}
 }
 
 void VulkanRenderer::create_index_buffer() {
-	VkDeviceSize buffer_size = Util::vector_size_in_bytes(mesh->indices);
+	for (auto & mesh : meshes) {
+		VkDeviceSize buffer_size = Util::vector_size_in_bytes(mesh->indices);
 
-	index_buffer = VulkanMemory::buffer_create(
-		buffer_size,
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	);
+		mesh->index_buffer = VulkanMemory::buffer_create(
+			buffer_size,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
-	VulkanMemory::buffer_copy_staged(index_buffer, mesh->indices.data(), buffer_size);
+		VulkanMemory::buffer_copy_staged(mesh->index_buffer, mesh->indices.data(), buffer_size);
+	}
 }
 
 void VulkanRenderer::create_texture() {
@@ -517,15 +524,17 @@ void VulkanRenderer::create_command_buffers() {
 
 		vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-		VkBuffer vertex_buffers[] = { vertex_buffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
+		for (auto const & mesh : meshes) {
+			VkBuffer vertex_buffers[] = { mesh->vertex_buffer.buffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
 
-		vkCmdBindIndexBuffer(command_buffers[i], index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(command_buffers[i], mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[i], 0, nullptr);
+			vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[i], 0, nullptr);
 
-		vkCmdDrawIndexed(command_buffers[i], mesh->indices.size(), 1, 0, 0, 0);
+			vkCmdDrawIndexed(command_buffers[i], mesh->indices.size(), 1, 0, 0, 0);
+		}
 
 		vkCmdEndRenderPass(command_buffers[i]);
 
