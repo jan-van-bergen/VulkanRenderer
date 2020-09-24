@@ -31,10 +31,12 @@ Mesh const * Mesh::load(std::string const & filename) {
 	
 	struct IndexHash {
 		size_t operator()(tinyobj::index_t const & index) const {
-			return
-				std::hash<int>()(index.vertex_index)   ^
-				std::hash<int>()(index.texcoord_index) ^
-				std::hash<int>()(index.normal_index);
+			size_t hash = 17;
+			hash = hash * 37 + std::hash<int>()(index.vertex_index);
+			hash = hash * 37 + std::hash<int>()(index.texcoord_index);
+			hash = hash * 37 + std::hash<int>()(index.normal_index);
+
+			return hash;
 		}
 	};
 
@@ -64,16 +66,9 @@ Mesh const * Mesh::load(std::string const & filename) {
 				vertex_cache.insert(std::make_pair(index, vertex_index));
 
 				auto & vertex = mesh->vertices.emplace_back();
-				vertex.position = Vector3(
-					attrib.vertices[index.vertex_index*3 + 0],
-					attrib.vertices[index.vertex_index*3 + 1],
-					attrib.vertices[index.vertex_index*3 + 2]
-				);
-				vertex.texcoord = Vector2(
-					       attrib.texcoords[index.texcoord_index*2 + 0],
-					1.0f - attrib.texcoords[index.texcoord_index*2 + 1]
-				);
-				vertex.colour = Vector3(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX));
+				vertex.position = Vector3(&attrib.vertices[index.vertex_index*3]);
+				vertex.texcoord = Vector2(attrib.texcoords[index.texcoord_index*2 + 0], 1.0f - attrib.texcoords[index.texcoord_index*2 + 1]);
+				vertex.colour   = Vector3(1.0f);
 			}
 
 			mesh->indices.push_back(vertex_index);
