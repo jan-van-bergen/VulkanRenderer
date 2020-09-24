@@ -72,8 +72,8 @@ VulkanRenderer::~VulkanRenderer() {
 	vkDestroyImage    (device, texture_image,        nullptr);
 	vkFreeMemory      (device, texture_image_memory, nullptr);
 
-	VulkanMemory::buffer_free(device, vertex_buffer);
-	VulkanMemory::buffer_free(device, index_buffer);
+	VulkanMemory::buffer_free(vertex_buffer);
+	VulkanMemory::buffer_free(index_buffer);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -325,45 +325,25 @@ void VulkanRenderer::create_depth_buffer() {
 void VulkanRenderer::create_vertex_buffer() {
 	u64 buffer_size = Util::vector_size_in_bytes(mesh->vertices);
 
-	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(
-		buffer_size,
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
-
 	vertex_buffer = VulkanMemory::buffer_create(
 		buffer_size,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer.memory, mesh->vertices.data(), buffer_size);
-
-	VulkanMemory::buffer_copy(vertex_buffer.buffer, staging_buffer.buffer, buffer_size);
-
-	VulkanMemory::buffer_free(VulkanContext::get_device(), staging_buffer);
+	VulkanMemory::buffer_copy_staged(vertex_buffer, mesh->vertices.data(), buffer_size);
 }
 
 void VulkanRenderer::create_index_buffer() {
 	VkDeviceSize buffer_size = Util::vector_size_in_bytes(mesh->indices);
 
-	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(
-		buffer_size,
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
-	
 	index_buffer = VulkanMemory::buffer_create(
 		buffer_size,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer.memory, mesh->indices.data(), buffer_size);
-
-	VulkanMemory::buffer_copy(index_buffer.buffer, staging_buffer.buffer, buffer_size);
-	
-	VulkanMemory::buffer_free(VulkanContext::get_device(), staging_buffer);
+	VulkanMemory::buffer_copy_staged(index_buffer, mesh->indices.data(), buffer_size);
 }
 
 void VulkanRenderer::create_texture() {
@@ -384,7 +364,7 @@ void VulkanRenderer::create_texture() {
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
 
-	VulkanMemory::buffer_memory_copy(staging_buffer.memory, pixels, texture_size);
+	VulkanMemory::buffer_copy_direct(staging_buffer, pixels, texture_size);
 
 	stbi_image_free(pixels);
 
@@ -406,7 +386,7 @@ void VulkanRenderer::create_texture() {
 
 	VkDevice device = VulkanContext::get_device();
 
-	VulkanMemory::buffer_free(device, staging_buffer);
+	VulkanMemory::buffer_free(staging_buffer);
 
 	texture_image_view = VulkanMemory::create_image_view(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 	
@@ -721,7 +701,7 @@ void VulkanRenderer::destroy_swapchain() {
 	for (int i = 0; i < image_views.size(); i++) {
 		vkDestroyImageView(device, image_views[i], nullptr);
 
-		VulkanMemory::buffer_free(device, uniform_buffers[i]);
+		VulkanMemory::buffer_free(uniform_buffers[i]);
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);

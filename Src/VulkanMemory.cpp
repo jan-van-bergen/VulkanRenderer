@@ -42,9 +42,46 @@ VulkanMemory::Buffer VulkanMemory::buffer_create(VkDeviceSize size, VkBufferUsag
 	return buffer;
 }
 
-void VulkanMemory::buffer_free(VkDevice device, Buffer & buffer) {
+void VulkanMemory::buffer_free(Buffer & buffer) {
+	VkDevice device = VulkanContext::get_device();
+
 	vkDestroyBuffer(device, buffer.buffer, nullptr);
 	vkFreeMemory   (device, buffer.memory, nullptr);
+}
+
+void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size) {	
+	// Create temporary staging buffer
+	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(
+		size,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+
+	buffer_copy_direct(staging_buffer, data_src, size);
+
+	// Copy Staging Buffer over to desired destination Buffer
+	VkCommandBuffer copy_command_buffer = command_buffer_single_use_begin();
+
+	VkBufferCopy buffer_copy = { };
+	buffer_copy.srcOffset = 0;
+	buffer_copy.dstOffset = 0;
+	buffer_copy.size = size;
+	vkCmdCopyBuffer(copy_command_buffer, staging_buffer.buffer, buffer_dst.buffer, 1, &buffer_copy);
+
+	command_buffer_single_use_end(copy_command_buffer);
+
+	buffer_free(staging_buffer);
+}
+
+void VulkanMemory::buffer_copy_direct(Buffer const & buffer_dst, void const * data_src, size_t size) {
+	VkDevice device = VulkanContext::get_device();
+
+	// Copy data over to the Staging Buffer
+	void * dst; vkMapMemory(device, buffer_dst.memory, 0, size, 0, &dst);
+
+	memcpy(dst, data_src, size);
+
+	vkUnmapMemory(device, buffer_dst.memory);
 }
 
 VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
@@ -77,29 +114,6 @@ void VulkanMemory::command_buffer_single_use_end(VkCommandBuffer command_buffer)
 	VK_CHECK(vkQueueWaitIdle(queue_graphics));
 
 	vkFreeCommandBuffers(VulkanContext::get_device(), VulkanContext::get_command_pool(), 1, &command_buffer);
-}
-
-void VulkanMemory::buffer_copy(VkBuffer buffer_dst, VkBuffer buffer_src, VkDeviceSize size) {
-	VkCommandBuffer copy_command_buffer = command_buffer_single_use_begin();
-
-	VkBufferCopy buffer_copy = { };
-	buffer_copy.srcOffset = 0;
-	buffer_copy.dstOffset = 0;
-	buffer_copy.size = size;
-	vkCmdCopyBuffer(copy_command_buffer, buffer_src, buffer_dst, 1, &buffer_copy);
-
-	command_buffer_single_use_end(copy_command_buffer);
-}
-
-void VulkanMemory::buffer_memory_copy(VkDeviceMemory device_memory, void const * data, u64 size) {
-	VkDevice device = VulkanContext::get_device();
-
-	void * dst;
-	vkMapMemory(device, device_memory, 0, size, 0, &dst);
-
-	memcpy(dst, data, size);
-
-	vkUnmapMemory(device, device_memory);
 }
 
 void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory) {

@@ -15,10 +15,10 @@ namespace VulkanMemory {
 	u32 find_memory_type(u32 type_filter, VkMemoryPropertyFlags properties);
 
 	Buffer buffer_create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	void   buffer_free  (VkDevice device, Buffer & buffer);
+	void   buffer_free(Buffer & buffer);
 
-	void buffer_copy(VkBuffer buffer_dst, VkBuffer buffer_src, VkDeviceSize size);
-	void buffer_memory_copy(VkDeviceMemory device_memory, void const * data, u64 size);
+	void buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size);
+	void buffer_copy_direct(Buffer const & buffer_dst, void const * data_src, size_t size);
 
 	void        create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory);
 	VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_mask);

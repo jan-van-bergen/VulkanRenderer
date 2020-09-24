@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "VulkanMemory.h"
+
 #include "Types.h"
 
 #include "Vector2.h"
@@ -51,6 +53,9 @@ struct Mesh {
 
 	std::vector<Vertex> vertices;
 	std::vector<u32>    indices;
+
+	VulkanMemory::Buffer vertex_buffer;
+	VulkanMemory::Buffer index_buffer;
 
 	static Mesh const * load(std::string const & filename);
 	static void free();
