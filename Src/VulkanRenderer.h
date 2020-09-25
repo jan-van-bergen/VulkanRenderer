@@ -21,13 +21,15 @@ class VulkanRenderer {
 	VkSwapchainKHR           swapchain;
 	std::vector<VkImageView> image_views;
 	
-	VkRenderPass     render_pass;
+	VkRenderPass render_pass;
+	VkRenderPass render_pass_gui;
+
 	VkPipelineLayout pipeline_layout;
 	VkPipeline       pipeline;
-
+	
 	VkDescriptorSetLayout descriptor_set_layout;
 
-	std::vector<VkFramebuffer> framebuffers;
+	std::vector<VkFramebuffer> frame_buffers;
 
 	std::vector<VkCommandBuffer> command_buffers;
 
@@ -39,6 +41,8 @@ class VulkanRenderer {
 	
 	VkDescriptorPool             descriptor_pool;
 	std::vector<VkDescriptorSet> descriptor_sets;
+
+	VkDescriptorPool descriptor_pool_gui;
 
 	VkImage        texture_image;
 	VkDeviceMemory texture_image_memory;
@@ -69,8 +73,11 @@ class VulkanRenderer {
 	void create_uniform_buffers();
 	void create_descriptor_pool();
 	void create_descriptor_sets();
+	void create_imgui();
 	void create_command_buffers();
 	void create_sync_primitives();
+
+	void record_command_buffer(u32 image_index);
 
 	void destroy_swapchain();
 

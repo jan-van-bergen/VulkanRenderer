@@ -20,10 +20,15 @@ namespace VulkanContext {
 
 	VkSwapchainKHR create_swapchain(u32 width, u32 height);
 
+	VkInstance get_instance();
+
 	VkPhysicalDevice get_physical_device();
 	VkDevice         get_device();
 
 	VkSurfaceKHR get_surface();
+
+	u32 get_queue_family_graphics();
+	u32 get_queue_family_present();
 
 	VkQueue get_queue_graphics();
 	VkQueue get_queue_present();

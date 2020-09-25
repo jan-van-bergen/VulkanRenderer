@@ -158,6 +158,12 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\Imgui\imgui.cpp" />
+    <ClCompile Include="include\Imgui\imgui_demo.cpp" />
+    <ClCompile Include="include\Imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\Imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="include\Imgui\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="include\Imgui\imgui_widgets.cpp" />
     <ClCompile Include="Src\Camera.cpp" />
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
@@ -167,6 +173,14 @@
     <ClCompile Include="Src\VulkanRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Imgui\imconfig.h" />
+    <ClInclude Include="include\Imgui\imgui.h" />
+    <ClInclude Include="include\Imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="include\Imgui\imgui_impl_vulkan.h" />
+    <ClInclude Include="include\Imgui\imgui_internal.h" />
+    <ClInclude Include="include\Imgui\imstb_rectpack.h" />
+    <ClInclude Include="include\Imgui\imstb_textedit.h" />
+    <ClInclude Include="include\Imgui\imstb_truetype.h" />
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Input.h" />
     <ClInclude Include="Src\Math.h" />

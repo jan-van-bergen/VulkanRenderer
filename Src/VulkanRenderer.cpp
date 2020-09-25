@@ -7,6 +7,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
 
+#include <Imgui/imgui.h>
+#include <Imgui/imgui_impl_glfw.h>
+#include <Imgui/imgui_impl_vulkan.h>
+
 #include "VulkanCheck.h"
 #include "VulkanContext.h"
 
@@ -27,8 +31,7 @@ static VkShaderModule shader_load(VkDevice device, std::string const & filename)
 	create_info.codeSize = spirv.size();
 	create_info.pCode = reinterpret_cast<const u32 *>(spirv.data());
 
-	VkShaderModule shader;
-	VK_CHECK(vkCreateShaderModule(device, &create_info, nullptr, &shader));
+	VkShaderModule shader; VK_CHECK(vkCreateShaderModule(device, &create_info, nullptr, &shader));
 
 	return shader;
 }
@@ -55,6 +58,11 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	meshes.push_back(Mesh::load("data/monkey.obj"));
 	meshes.push_back(Mesh::load("data/cube.obj"));
+	
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui::StyleColorsDark();
 
 	create_swapchain();
 }
@@ -62,7 +70,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 VulkanRenderer::~VulkanRenderer() {
 	destroy_swapchain();
 
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
@@ -114,18 +122,18 @@ void VulkanRenderer::create_descriptor_set_layout() {
 }
 
 void VulkanRenderer::create_pipeline() {
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
-	VkShaderModule shader_vert = shader_load(device, "Shaders\\vert.spv");
-	VkShaderModule shader_frag = shader_load(device, "Shaders\\frag.spv");
+	auto shader_vert = shader_load(device, "Shaders\\vert.spv");
+	auto shader_frag = shader_load(device, "Shaders\\frag.spv");
 
 	VkPipelineShaderStageCreateInfo shader_stages[] = {
 		shader_get_stage(shader_vert, VK_SHADER_STAGE_VERTEX_BIT),
 		shader_get_stage(shader_frag, VK_SHADER_STAGE_FRAGMENT_BIT),
 	};
 
-	VkVertexInputBindingDescription                binding_descriptions   = Mesh::Vertex::get_binding_description();
-	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = Mesh::Vertex::get_attribute_description();
+	auto binding_descriptions   = Mesh::Vertex::get_binding_description();
+	auto attribute_descriptions = Mesh::Vertex::get_attribute_description();
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 	vertex_input_create_info.vertexBindingDescriptionCount = 1;
@@ -210,7 +218,7 @@ void VulkanRenderer::create_pipeline() {
 	attachment_colour.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachment_colour.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachment_colour.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachment_colour.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachment_colour.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference attachment_ref_colour = { };
 	attachment_ref_colour.attachment = 0;
@@ -287,13 +295,13 @@ void VulkanRenderer::create_pipeline() {
 	pipeline_create_info.basePipelineIndex  = -1;
 
 	VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline));
-	
+
 	vkDestroyShaderModule(device, shader_vert, nullptr);
 	vkDestroyShaderModule(device, shader_frag, nullptr);
 }
 
 void VulkanRenderer::create_framebuffers() {
-	framebuffers.resize(image_views.size());
+	frame_buffers.resize(image_views.size());
 
 	for (int i = 0; i < image_views.size(); i++) {
 		VkImageView attachments[] = { image_views[i], depth_image_view };
@@ -306,7 +314,7 @@ void VulkanRenderer::create_framebuffers() {
 		framebuffer_create_info.height = height;
 		framebuffer_create_info.layers = 1;
 
-		VK_CHECK(vkCreateFramebuffer(VulkanContext::get_device(), &framebuffer_create_info, nullptr, &framebuffers[i]));
+		VK_CHECK(vkCreateFramebuffer(VulkanContext::get_device(), &framebuffer_create_info, nullptr, &frame_buffers[i]));
 	}
 }
 
@@ -326,8 +334,8 @@ void VulkanRenderer::create_depth_buffer() {
 }
 
 void VulkanRenderer::create_vertex_buffer() {
-	for (auto & mesh : meshes) {
-		u64 buffer_size = Util::vector_size_in_bytes(mesh->vertices);
+	for (auto const & mesh : meshes) {
+		auto buffer_size = Util::vector_size_in_bytes(mesh->vertices);
 
 		mesh->vertex_buffer = VulkanMemory::buffer_create(
 			buffer_size,
@@ -340,8 +348,8 @@ void VulkanRenderer::create_vertex_buffer() {
 }
 
 void VulkanRenderer::create_index_buffer() {
-	for (auto & mesh : meshes) {
-		VkDeviceSize buffer_size = Util::vector_size_in_bytes(mesh->indices);
+	for (auto const & mesh : meshes) {
+		auto buffer_size = Util::vector_size_in_bytes(mesh->indices);
 
 		mesh->index_buffer = VulkanMemory::buffer_create(
 			buffer_size,
@@ -358,7 +366,7 @@ void VulkanRenderer::create_texture() {
 	int texture_height;
 	int texture_channels;
 
-	u8 * pixels = stbi_load("Data\\bricks.png", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
+	auto pixels = stbi_load("Data\\bricks.png", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
 	if (!pixels) {
 		printf("ERROR: Unable to load Texture!\n");
 		abort();
@@ -391,7 +399,7 @@ void VulkanRenderer::create_texture() {
 
 	VulkanMemory::transition_image_layout(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
 	VulkanMemory::buffer_free(staging_buffer);
 
@@ -417,7 +425,7 @@ void VulkanRenderer::create_texture() {
 }
 
 void VulkanRenderer::create_uniform_buffers() {
-	VkDeviceSize buffer_size = sizeof(UniformBufferObject);
+	auto buffer_size = sizeof(UniformBufferObject);
 
 	uniform_buffers.resize(image_views.size());
 
@@ -451,7 +459,7 @@ void VulkanRenderer::create_descriptor_sets() {
 	alloc_info.descriptorSetCount = image_views.size();
 	alloc_info.pSetLayouts = layouts.data();
 
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
 	descriptor_sets.resize(image_views.size());
 	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
@@ -489,10 +497,55 @@ void VulkanRenderer::create_descriptor_sets() {
 	}
 }
 
-void VulkanRenderer::create_command_buffers() {
-	VkDevice device = VulkanContext::get_device();
+void VulkanRenderer::create_imgui() {
+	// Setup Platform/Renderer bindings
+	ImGui_ImplGlfw_InitForVulkan(window, true);
 
-	command_buffers.resize(framebuffers.size());
+	VkDescriptorPoolSize pool_sizes[] = {
+		{ VK_DESCRIPTOR_TYPE_SAMPLER,                1000 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,          1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,   1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,   1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,       1000 }
+	};
+
+	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	pool_create_info.poolSizeCount = Util::array_element_count(pool_sizes);
+	pool_create_info.pPoolSizes    = pool_sizes;
+	pool_create_info.maxSets = image_views.size();
+
+	VK_CHECK(vkCreateDescriptorPool(VulkanContext::get_device(), &pool_create_info, nullptr, &descriptor_pool_gui));
+
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance       = VulkanContext::get_instance();
+	init_info.PhysicalDevice = VulkanContext::get_physical_device();
+	init_info.Device         = VulkanContext::get_device();
+	init_info.QueueFamily = VulkanContext::get_queue_family_graphics();
+	init_info.Queue       = VulkanContext::get_queue_graphics();
+	init_info.PipelineCache = nullptr;
+	init_info.DescriptorPool = descriptor_pool_gui;
+	init_info.Allocator = nullptr;
+	init_info.MinImageCount = 2;
+	init_info.ImageCount    = image_views.size();
+	init_info.CheckVkResultFn = [](VkResult result) { VK_CHECK(result); };
+
+	ImGui_ImplVulkan_Init(&init_info, render_pass);
+
+	VkCommandBuffer command_buffer = VulkanMemory::command_buffer_single_use_begin();
+	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+	VulkanMemory::command_buffer_single_use_end(command_buffer);
+}
+
+void VulkanRenderer::create_command_buffers() {
+	auto device = VulkanContext::get_device();
+
+	command_buffers.resize(frame_buffers.size());
 
 	VkCommandBufferAllocateInfo command_buffer_alloc_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	command_buffer_alloc_info.commandPool = VulkanContext::get_command_pool();
@@ -500,50 +553,62 @@ void VulkanRenderer::create_command_buffers() {
 	command_buffer_alloc_info.commandBufferCount = command_buffers.size();
 
 	VK_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, command_buffers.data()));
+}
 
-	for (int i = 0; i < command_buffers.size(); i++) {
-		VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-		command_buffer_begin_info.flags = 0;
-		command_buffer_begin_info.pInheritanceInfo = nullptr;
+void VulkanRenderer::record_command_buffer(u32 image_index) {
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+	ImGui::ShowDemoWindow();
+	ImGui::Render();
 
-		VK_CHECK(vkBeginCommandBuffer(command_buffers[i], &command_buffer_begin_info));
+	auto & command_buffer = command_buffers[image_index];
+	auto & frame_buffer   = frame_buffers  [image_index];
+	auto & descriptor_set = descriptor_sets[image_index];
+
+	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	command_buffer_begin_info.flags = 0;
+	command_buffer_begin_info.pInheritanceInfo = nullptr;
+
+	VK_CHECK(vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info));
 		
-		VkClearValue clear_values[2] = { };
-		clear_values[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
-		clear_values[1].depthStencil = { 1.0f, 0 };
+	VkClearValue clear_values[2] = { };
+	clear_values[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
+	clear_values[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderpass_begin_info.renderPass = render_pass;
-		renderpass_begin_info.framebuffer = framebuffers[i];
-		renderpass_begin_info.renderArea.offset = { 0, 0 };
-		renderpass_begin_info.renderArea.extent = { width, height };
-		renderpass_begin_info.clearValueCount = Util::array_element_count(clear_values);
-		renderpass_begin_info.pClearValues    = clear_values;
+	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	renderpass_begin_info.renderPass = render_pass;
+	renderpass_begin_info.framebuffer = frame_buffer;
+	renderpass_begin_info.renderArea.offset = { 0, 0 };
+	renderpass_begin_info.renderArea.extent = { width, height };
+	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_values);
+	renderpass_begin_info.pClearValues    = clear_values;
 		
-		vkCmdBeginRenderPass(command_buffers[i], &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-		for (auto const & mesh : meshes) {
-			VkBuffer vertex_buffers[] = { mesh->vertex_buffer.buffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(command_buffers[i], 0, 1, vertex_buffers, offsets);
+	for (auto const & mesh : meshes) {
+		VkBuffer vertex_buffers[] = { mesh->vertex_buffer.buffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
-			vkCmdBindIndexBuffer(command_buffers[i], mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(command_buffer, mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdBindDescriptorSets(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[i], 0, nullptr);
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
 
-			vkCmdDrawIndexed(command_buffers[i], mesh->indices.size(), 1, 0, 0, 0);
-		}
-
-		vkCmdEndRenderPass(command_buffers[i]);
-
-		VK_CHECK(vkEndCommandBuffer(command_buffers[i]));
+		vkCmdDrawIndexed(command_buffer, mesh->indices.size(), 1, 0, 0, 0);
 	}
+
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
+
+	vkCmdEndRenderPass(command_buffer);
+
+	VK_CHECK(vkEndCommandBuffer(command_buffer));
 }
 
 void VulkanRenderer::create_sync_primitives() {
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
 	VkSemaphoreCreateInfo semaphore_create_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
@@ -561,15 +626,12 @@ void VulkanRenderer::create_sync_primitives() {
 }
 
 void VulkanRenderer::create_swapchain() {
-	this->swapchain = VulkanContext::create_swapchain(width, height);
+	swapchain = VulkanContext::create_swapchain(width, height);
 
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
-	u32 swapchain_image_count;
-	vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
-
-	std::vector<VkImage> swapchain_images(swapchain_image_count);
-	vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images.data());
+	u32                  swapchain_image_count;                   vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
+	std::vector<VkImage> swapchain_images(swapchain_image_count); vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images.data());
 
 	image_views.resize(swapchain_image_count);
 
@@ -589,29 +651,31 @@ void VulkanRenderer::create_swapchain() {
 	create_descriptor_sets();
 	create_command_buffers();
 	create_sync_primitives();
+	create_imgui();	
 }
 
 void VulkanRenderer::render() {
-	VkDevice device        = VulkanContext::get_device();
-	VkQueue queue_graphics = VulkanContext::get_queue_graphics();
-	VkQueue queue_present  = VulkanContext::get_queue_present();
+	auto device         = VulkanContext::get_device();
+	auto queue_graphics = VulkanContext::get_queue_graphics();
+	auto queue_present  = VulkanContext::get_queue_present();
 
-	VkSemaphore const & semaphore_image_available = semaphores_image_available[current_frame];
-	VkSemaphore const & semaphore_render_done     = semaphores_render_done    [current_frame];
+	auto const & semaphore_image_available = semaphores_image_available[current_frame];
+	auto const & semaphore_render_done     = semaphores_render_done    [current_frame];
 
-	VkFence const & fence = inflight_fences[current_frame];
+	auto const & fence = inflight_fences[current_frame];
 
 	VK_CHECK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-		
-	u32 image_index;
-	vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index);
-		
+
+	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
+
 	if (images_in_flight[image_index] != VK_NULL_HANDLE) {
 		vkWaitForFences(device, 1, &images_in_flight[image_index], VK_TRUE, UINT64_MAX);
 	}
 	images_in_flight[image_index] = inflight_fences[current_frame];
 
 	VK_CHECK(vkResetFences(device, 1, &fence));
+		
+	record_command_buffer(image_index);
 
 	VkSemaphore          wait_semaphores[] = { semaphore_image_available };
 	VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -622,16 +686,12 @@ void VulkanRenderer::render() {
 		static auto time_start = std::chrono::high_resolution_clock::now();
 
 		auto time_current = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(time_current - time_start).count();
+		auto time         = std::chrono::duration<float, std::chrono::seconds::period>(time_current - time_start).count();
 
 		UniformBufferObject ubo = { };
 		ubo.wvp = camera.get_view_projection() * Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time));
 		
-		void * data; vkMapMemory(device, uniform_buffers[image_index].memory, 0, sizeof(ubo), 0, &data);
-		
-		memcpy(data, &ubo, sizeof(ubo));
-
-		vkUnmapMemory(device, uniform_buffers[image_index].memory);
+		VulkanMemory::buffer_copy_direct(uniform_buffers[image_index], &ubo, sizeof(ubo));
 	}
 
 	VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -655,7 +715,7 @@ void VulkanRenderer::render() {
 	present_info.pImageIndices = &image_index;
 	present_info.pResults = nullptr;
 
-	VkResult result = vkQueuePresentKHR(queue_present, &present_info);
+	auto result = vkQueuePresentKHR(queue_present, &present_info);
 
 	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_needs_resize) {
 		int w, h;
@@ -687,10 +747,10 @@ void VulkanRenderer::render() {
 }
 
 void VulkanRenderer::destroy_swapchain() {
-	VkDevice      device       = VulkanContext::get_device();
-	VkCommandPool command_pool = VulkanContext::get_command_pool();
+	auto device       = VulkanContext::get_device();
+	auto command_pool = VulkanContext::get_command_pool();
 
-	for (VkFramebuffer const & framebuffer : framebuffers) {
+	for (auto const & framebuffer : frame_buffers) {
 		vkDestroyFramebuffer(device, framebuffer, nullptr);
 	}
 

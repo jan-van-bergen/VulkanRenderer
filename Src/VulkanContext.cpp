@@ -25,9 +25,9 @@ static VkQueue queue_present;
 static VkCommandPool command_pool;
 
 #ifdef NDEBUG
-bool validation_layers_enabled = false;
+static constexpr bool validation_layers_enabled = false;
 #else
-bool validation_layers_enabled = true;
+static constexpr bool validation_layers_enabled = true;
 #endif
 
 std::vector<char const *> const validation_layers_names = {
@@ -55,18 +55,15 @@ std::vector<char const *> const device_extensions = {
 
 static void init_instance() {
 	// Get GLFW required extensions
-	u32           glfw_extension_count = 0;
-	char const ** glfw_extensions(glfwGetRequiredInstanceExtensions(&glfw_extension_count));
+	u32  glfw_extension_count = 0;
+	auto glfw_extensions      = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 	
 	std::vector<char const *> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
 
 	// Init validation layers
 	if (validation_layers_enabled) {
-		u32 layer_count;
-		vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-
-		std::vector<VkLayerProperties> layers(layer_count);
-		vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
+		u32 layer_count;                                    vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+		std::vector<VkLayerProperties> layers(layer_count); vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
 
 		for (char const * layer_name : validation_layers_names) {
 			bool available = false;
@@ -123,17 +120,14 @@ static void init_instance() {
 }
 
 static void init_physical_device() {
-	u32 device_count = 0;
-	vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+	u32 device_count = 0;                                vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+	std::vector<VkPhysicalDevice> devices(device_count); vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
 	
 	if (device_count == 0) {
 		printf("ERROR: No Physical Devices available!\n");
 		abort();
 	}
 
-	std::vector<VkPhysicalDevice> devices(device_count);
-	vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
-	
 	physical_device = devices[0];
 }
 
@@ -142,11 +136,8 @@ static void init_surface(GLFWwindow * window) {
 }
 
 static void init_queue_families() {
-	u32 queue_families_count = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
-
-	std::vector<VkQueueFamilyProperties> queue_families(queue_families_count);
-	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_families.data());
+	u32                                  queue_families_count = 0;             vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
+	std::vector<VkQueueFamilyProperties> queue_families(queue_families_count); vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_families.data());
 	
 	std::optional<u32> opt_queue_family_graphics;
 	std::optional<u32> opt_queue_family_present;
@@ -172,7 +163,7 @@ static void init_queue_families() {
 }
 
 static void init_device() {
-	float queue_priority = 1.0f;
+	auto queue_priority = 1.0f;
 	
 	std::set<u32> unique_queue_families = {
 		queue_family_graphics,
@@ -223,7 +214,7 @@ static void init_queues() {
 static void init_command_pool() {
 	VkCommandPoolCreateInfo command_pool_create_info = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	command_pool_create_info.queueFamilyIndex = queue_family_graphics;
-	command_pool_create_info.flags = 0;
+	command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	VK_CHECK(vkCreateCommandPool(device, &command_pool_create_info, nullptr, &command_pool));
 }
@@ -294,16 +285,20 @@ VkSwapchainKHR VulkanContext::create_swapchain(u32 width, u32 height) {
 	swapchain_create_info.clipped = VK_TRUE;
 	swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
 
-	VkSwapchainKHR swapchain;
-	VK_CHECK(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain));
+	VkSwapchainKHR swapchain; VK_CHECK(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain));
 
 	return swapchain;
 }
+
+VkInstance VulkanContext::get_instance() { return instance; }
 
 VkPhysicalDevice VulkanContext::get_physical_device() { return physical_device; }
 VkDevice         VulkanContext::get_device()          { return device; }
 
 VkSurfaceKHR VulkanContext::get_surface() { return surface; }
+
+u32 VulkanContext::get_queue_family_graphics() { return queue_family_graphics; }
+u32 VulkanContext::get_queue_family_present()  { return queue_family_present; }
 
 VkQueue VulkanContext::get_queue_graphics() { return queue_graphics; }
 VkQueue VulkanContext::get_queue_present()  { return queue_present;  }

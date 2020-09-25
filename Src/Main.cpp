@@ -10,8 +10,8 @@
 #include "Input.h"
 #include "Camera.h"
 
-static u32 screen_width  = 900;
-static u32 screen_height = 600;
+static u32 screen_width  = 1280;
+static u32 screen_height = 720;
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
 	VulkanRenderer * renderer = reinterpret_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
