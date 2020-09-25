@@ -341,3 +341,6 @@ healthchecksdb
 
 # SPIR-V (Shader binary)
 *.spv
+
+# ImGui Settings file
+imgui.ini
