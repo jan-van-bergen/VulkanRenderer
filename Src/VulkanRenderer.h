@@ -60,6 +60,12 @@ class VulkanRenderer {
 	
 	std::vector<Mesh *> meshes;
 
+	// Timing
+	float frame_delta;
+	float time_since_last_second = 0.0f;
+	int frames_since_last_second = 0;
+	int fps = 0;
+
 	void create_swapchain();
 
 	void create_descriptor_set_layout();
@@ -88,5 +94,6 @@ public:
 	VulkanRenderer(GLFWwindow * window, u32 width, u32 height);
 	~VulkanRenderer();
 
+	void update(float delta);
 	void render();
 };

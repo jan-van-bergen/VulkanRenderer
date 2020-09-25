@@ -498,8 +498,7 @@ void VulkanRenderer::create_descriptor_sets() {
 }
 
 void VulkanRenderer::create_imgui() {
-	// Setup Platform/Renderer bindings
-	ImGui_ImplGlfw_InitForVulkan(window, true);
+	ImGui_ImplGlfw_InitForVulkan(window, false);
 
 	VkDescriptorPoolSize pool_sizes[] = {
 		{ VK_DESCRIPTOR_TYPE_SAMPLER,                1000 },
@@ -522,7 +521,7 @@ void VulkanRenderer::create_imgui() {
 
 	VK_CHECK(vkCreateDescriptorPool(VulkanContext::get_device(), &pool_create_info, nullptr, &descriptor_pool_gui));
 
-	ImGui_ImplVulkan_InitInfo init_info = {};
+	ImGui_ImplVulkan_InitInfo init_info = { };
 	init_info.Instance       = VulkanContext::get_instance();
 	init_info.PhysicalDevice = VulkanContext::get_physical_device();
 	init_info.Device         = VulkanContext::get_device();
@@ -559,7 +558,12 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
-	ImGui::ShowDemoWindow();
+	
+	ImGui::Begin("Vulkan Renderer");
+	ImGui::Text("Delta: %.2f ms", 1000.0f * frame_delta);
+	ImGui::Text("FPS:   %d", fps);
+	ImGui::End();
+
 	ImGui::Render();
 
 	auto & command_buffer = command_buffers[image_index];
@@ -654,6 +658,22 @@ void VulkanRenderer::create_swapchain() {
 	create_imgui();	
 }
 
+void VulkanRenderer::update(float delta) {
+	frame_delta = delta;
+
+	camera.update(delta);
+
+	time_since_last_second += delta;
+	frames_since_last_second++;
+
+	while (time_since_last_second >= 1.0f) {
+		time_since_last_second -= 1.0f;
+
+		fps = frames_since_last_second;
+		frames_since_last_second = 0;
+	}
+}
+
 void VulkanRenderer::render() {
 	auto device         = VulkanContext::get_device();
 	auto queue_graphics = VulkanContext::get_queue_graphics();
@@ -735,6 +755,8 @@ void VulkanRenderer::render() {
 
 		destroy_swapchain();
 		create_swapchain();
+
+		printf("Recreated SwapChain!\n");
 
 		camera.on_resize(width, height);
 

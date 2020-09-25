@@ -54,8 +54,7 @@ int main() {
 			time_delta = time_curr - time_prev;
 			time_prev  = time_curr;
 
-			renderer.camera.update(time_delta);
-
+			renderer.update(float(time_delta));
 			renderer.render();
 		
 			Input::finish_frame();
