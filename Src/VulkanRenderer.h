@@ -22,8 +22,7 @@ class VulkanRenderer {
 	std::vector<VkImageView> image_views;
 	
 	VkRenderPass render_pass;
-	VkRenderPass render_pass_gui;
-
+	
 	VkPipelineLayout pipeline_layout;
 	VkPipeline       pipeline;
 	

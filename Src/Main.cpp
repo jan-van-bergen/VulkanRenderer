@@ -30,8 +30,8 @@ int main() {
 
 	GLFWwindow * window = glfwCreateWindow(screen_width, screen_height, "Vulkan", nullptr, nullptr);
 
-	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
-	glfwSetKeyCallback            (window, glfw_key_callback);
+	glfwSetFramebufferSizeCallback(window, &glfw_framebuffer_resize_callback);
+	glfwSetKeyCallback            (window, &glfw_key_callback);
 
 	std::vector<char const *> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -50,9 +50,9 @@ int main() {
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 
-			time_curr = glfwGetTime();
+			time_curr  = glfwGetTime();
 			time_delta = time_curr - time_prev;
-			time_prev = time_curr;
+			time_prev  = time_curr;
 
 			renderer.camera.update(time_delta);
 
@@ -61,6 +61,7 @@ int main() {
 			Input::finish_frame();
 		}
 
+		// Sync before destroying
 		VK_CHECK(vkDeviceWaitIdle(VulkanContext::get_device()));
 	}
 	VulkanContext::destroy();
