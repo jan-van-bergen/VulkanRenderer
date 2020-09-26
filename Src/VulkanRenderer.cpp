@@ -72,6 +72,11 @@ VulkanRenderer::~VulkanRenderer() {
 
 	auto device = VulkanContext::get_device();
 
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+	vkDestroyDescriptorPool(device, descriptor_pool_gui, nullptr);
+
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
 	vkDestroySampler  (device, texture_sampler,      nullptr);
