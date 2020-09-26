@@ -9,14 +9,6 @@
 struct alignas(16) Matrix4 {
 	float cells[16];
 
-	inline Matrix4() {
-		memset(cells, 0, sizeof(cells));
-		cells[0]  = 1.0f;
-		cells[5]  = 1.0f;
-		cells[10] = 1.0f;
-		cells[15] = 1.0f;
-	}
-
 	inline FORCEINLINE float & operator()(int row, int col) { 
 		assert(row >= 0 && row < 4); 
 		assert(col >= 0 && col < 4); 
@@ -28,9 +20,22 @@ struct alignas(16) Matrix4 {
 		assert(col >= 0 && col < 4); 
 		return cells[col + (row << 2)];
 	}
+	
+	inline static Matrix4 identity() {
+		Matrix4 result;
+
+		memset(result.cells, 0, sizeof(result.cells));
+		result.cells[0]  = 1.0f;
+		result.cells[5]  = 1.0f;
+		result.cells[10] = 1.0f;
+		result.cells[15] = 1.0f;
+
+		return result;
+	}
 
 	inline static Matrix4 create_translation(const Vector3 & translation) {
-		Matrix4 result;
+		Matrix4 result = Matrix4::identity();
+
 		result(0, 3) = translation.x;
 		result(1, 3) = translation.y;
 		result(2, 3) = translation.z;
@@ -49,7 +54,8 @@ struct alignas(16) Matrix4 {
 		float wy = rotation.w * rotation.y;
 		float wz = rotation.w * rotation.z;
 
-		Matrix4 result;
+		Matrix4 result = Matrix4::identity();
+
 		result(0, 0) = 1.0f - 2.0f * (yy + zz);
 		result(1, 0) =        2.0f * (xy + wz);
 		result(2, 0) =        2.0f * (xz - wy);
@@ -68,7 +74,8 @@ struct alignas(16) Matrix4 {
 	inline static Matrix4 perspective(float fov, float aspect, float near, float far) {
 		float tan_half_fov = tanf(0.5f * fov);
 
-		Matrix4 result;
+		Matrix4 result = Matrix4::identity();
+
 		result(0, 0) =  1.0f / (aspect * tan_half_fov);
 		result(1, 1) = -1.0f / tan_half_fov;
 		result(2, 2) = far / (near - far);

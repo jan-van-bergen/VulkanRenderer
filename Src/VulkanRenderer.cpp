@@ -56,8 +56,8 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
-	meshes.push_back(Mesh::load("data/monkey.obj"));
-	meshes.push_back(Mesh::load("data/cube.obj"));
+	renderables.push_back({ Mesh::load("data/monkey.obj"), nullptr, Matrix4::identity() });
+	renderables.push_back({ Mesh::load("data/cube.obj"),   nullptr, Matrix4::identity() });
 	
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -75,6 +75,7 @@ VulkanRenderer::~VulkanRenderer() {
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+
 	vkDestroyDescriptorPool(device, descriptor_pool_gui, nullptr);
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
@@ -84,9 +85,9 @@ VulkanRenderer::~VulkanRenderer() {
 	vkDestroyImage    (device, texture_image,        nullptr);
 	vkFreeMemory      (device, texture_image_memory, nullptr);
 
-	for (auto const & mesh : meshes) {
-		VulkanMemory::buffer_free(mesh->vertex_buffer);
-		VulkanMemory::buffer_free(mesh->index_buffer);
+	for (auto const & renderable : renderables) {
+		VulkanMemory::buffer_free(renderable.mesh->vertex_buffer);
+		VulkanMemory::buffer_free(renderable.mesh->index_buffer);
 	}
 	
 	Mesh::free();
@@ -325,8 +326,7 @@ void VulkanRenderer::create_framebuffers() {
 
 void VulkanRenderer::create_depth_buffer() {
 	VulkanMemory::create_image(
-		width,
-		height,
+		width, height,
 		VulkanContext::DEPTH_FORMAT,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -339,30 +339,30 @@ void VulkanRenderer::create_depth_buffer() {
 }
 
 void VulkanRenderer::create_vertex_buffer() {
-	for (auto const & mesh : meshes) {
-		auto buffer_size = Util::vector_size_in_bytes(mesh->vertices);
+	for (auto const & renderable : renderables) {
+		auto buffer_size = Util::vector_size_in_bytes(renderable.mesh->vertices);
 
-		mesh->vertex_buffer = VulkanMemory::buffer_create(
+		renderable.mesh->vertex_buffer = VulkanMemory::buffer_create(
 			buffer_size,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 
-		VulkanMemory::buffer_copy_staged(mesh->vertex_buffer, mesh->vertices.data(), buffer_size);
+		VulkanMemory::buffer_copy_staged(renderable.mesh->vertex_buffer, renderable.mesh->vertices.data(), buffer_size);
 	}
 }
 
 void VulkanRenderer::create_index_buffer() {
-	for (auto const & mesh : meshes) {
-		auto buffer_size = Util::vector_size_in_bytes(mesh->indices);
+	for (auto const & renderable : renderables) {
+		auto buffer_size = Util::vector_size_in_bytes(renderable.mesh->indices);
 
-		mesh->index_buffer = VulkanMemory::buffer_create(
+		renderable.mesh->index_buffer = VulkanMemory::buffer_create(
 			buffer_size,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 
-		VulkanMemory::buffer_copy_staged(mesh->index_buffer, mesh->indices.data(), buffer_size);
+		VulkanMemory::buffer_copy_staged(renderable.mesh->index_buffer, renderable.mesh->indices.data(), buffer_size);
 	}
 }
 
@@ -597,16 +597,16 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-	for (auto const & mesh : meshes) {
-		VkBuffer vertex_buffers[] = { mesh->vertex_buffer.buffer };
+	for (auto const & renderable : renderables) {
+		VkBuffer vertex_buffers[] = { renderable.mesh->vertex_buffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
-		vkCmdBindIndexBuffer(command_buffer, mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(command_buffer, renderable.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
 
-		vkCmdDrawIndexed(command_buffer, mesh->indices.size(), 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffer, renderable.mesh->indices.size(), 1, 0, 0, 0);
 	}
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);

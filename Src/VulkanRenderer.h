@@ -8,9 +8,18 @@
 #include "VulkanMemory.h"
 
 #include "Camera.h"
+
 #include "Mesh.h"
+#include "Material.h"
 
 #include "Types.h"
+
+struct Renderable {
+	Mesh     * mesh;
+	Material * material;
+
+	Matrix4 transform;
+};
 
 class VulkanRenderer {
 	u32 width;
@@ -58,7 +67,7 @@ class VulkanRenderer {
 
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	
-	std::vector<Mesh *> meshes;
+	std::vector<Renderable> renderables;
 
 	// Timing
 	float frame_delta;
