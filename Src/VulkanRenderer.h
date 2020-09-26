@@ -22,9 +22,6 @@ struct Renderable {
 };
 
 class VulkanRenderer {
-	u32 width;
-	u32 height;
-	
 	GLFWwindow * window;
 
 	VkSwapchainKHR           swapchain;
@@ -96,6 +93,9 @@ class VulkanRenderer {
 	void destroy_swapchain();
 
 public:
+	u32 width;
+	u32 height;
+	
 	bool framebuffer_needs_resize;
 
 	Camera camera;

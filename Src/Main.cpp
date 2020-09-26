@@ -18,10 +18,6 @@ static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int
 	renderer->framebuffer_needs_resize = true;
 }
 
-static void glfw_key_callback(GLFWwindow * window, int key, int scancode, int action, int mods) {
-	Input::update_key(key, action);
-}
-
 int main() {
 	glfwInit();
 
@@ -30,8 +26,11 @@ int main() {
 
 	GLFWwindow * window = glfwCreateWindow(screen_width, screen_height, "Vulkan", nullptr, nullptr);
 
+	Input::detail::init(window);
+
 	glfwSetFramebufferSizeCallback(window, &glfw_framebuffer_resize_callback);
-	glfwSetKeyCallback            (window, &glfw_key_callback);
+	glfwSetKeyCallback            (window, &Input::detail::glfw_callback_key);
+	glfwSetCursorPosCallback      (window, &Input::detail::glfw_callback_mouse);
 
 	std::vector<char const *> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -41,7 +40,7 @@ int main() {
 		renderer.camera.position.z = 2.0f;
 	
 		glfwSetWindowUserPointer(window, &renderer);
-
+		
 		double time_curr = 0.0f;
 		double time_prev = 0.0f;
 		double time_delta;
@@ -56,8 +55,8 @@ int main() {
 
 			renderer.update(float(time_delta));
 			renderer.render();
-		
-			Input::finish_frame();
+
+			Input::detail::finish_frame();
 		}
 
 		// Sync before destroying
@@ -68,7 +67,7 @@ int main() {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 
-	getchar();
+	puts("Press any key to continue..."); getchar();
 
 	return 0;
 }

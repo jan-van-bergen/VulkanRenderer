@@ -9,11 +9,21 @@ class Camera {
 
 	Matrix4      projection;
 	Matrix4 view_projection;
+	
+	bool mouse_locked;
+
+	float angle_x;
+	float angle_y;
+
+	int mouse_prev_x;
+	int mouse_prev_y;
+
+	void set_locked(bool locked);
 
 public:
 	Vector3    position;
 	Quaternion rotation;
-
+	
 	Camera(float fov, int width, int height, float near = 0.1f, float far = 100.0f);
 	
 	void on_resize(int width, int height);

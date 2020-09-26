@@ -115,7 +115,7 @@ struct Quaternion {
 	}
 };
 
-inline Quaternion operator*(const Quaternion & left, Quaternion & right) {
+inline Quaternion operator*(const Quaternion & left, const Quaternion & right) {
 	return Quaternion(
 		left.x * right.w + left.w * right.x + left.y * right.z - left.z * right.y,
 		left.y * right.w + left.w * right.y + left.z * right.x - left.x * right.z,
