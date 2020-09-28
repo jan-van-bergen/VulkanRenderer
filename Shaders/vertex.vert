@@ -8,12 +8,12 @@ layout(location = 2) in vec3 in_colour;
 layout(location = 0) out vec2 out_texcoord;
 layout(location = 1) out vec3 out_colour;
 
-layout(binding = 0, row_major) uniform UniformBufferObject {	
+layout(push_constant, row_major) uniform PushConstants {
 	mat4 wvp;
-} ubo;
+} push_constants;
 
 void main() {
-	gl_Position = ubo.wvp * vec4(in_position, 1.0f);
+	gl_Position = push_constants.wvp * vec4(in_position, 1.0f);
 
 	out_texcoord = in_texcoord;
 	out_colour   = in_colour;

@@ -20,7 +20,7 @@
 
 #include "Util.h"
 
-struct UniformBufferObject {
+struct PushConstants {
 	alignas(16) Matrix4 wvp;
 };
 
@@ -101,13 +101,6 @@ VulkanRenderer::~VulkanRenderer() {
 }
 
 void VulkanRenderer::create_descriptor_set_layout() {
-	VkDescriptorSetLayoutBinding layout_binding_ubo = { };
-	layout_binding_ubo.binding = 0;
-	layout_binding_ubo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	layout_binding_ubo.descriptorCount = 1;
-	layout_binding_ubo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	layout_binding_ubo.pImmutableSamplers = nullptr;
-
 	VkDescriptorSetLayoutBinding layout_binding_sampler = { };
 	layout_binding_sampler.binding = 1;
 	layout_binding_sampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -116,7 +109,6 @@ void VulkanRenderer::create_descriptor_set_layout() {
 	layout_binding_sampler.pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutBinding layout_bindings[] = {
-		layout_binding_ubo,
 		layout_binding_sampler
 	};
 
@@ -208,11 +200,16 @@ void VulkanRenderer::create_pipeline() {
 	blend_state_create_info.blendConstants[2] = 0.0f;
 	blend_state_create_info.blendConstants[3] = 0.0f;
 
+	VkPushConstantRange push_constants;
+	push_constants.offset = 0;
+	push_constants.size = sizeof(PushConstants);
+	push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
 	VkPipelineLayoutCreateInfo pipeline_layout_create_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipeline_layout_create_info.setLayoutCount = 1;
 	pipeline_layout_create_info.pSetLayouts    = &descriptor_set_layout;
-	pipeline_layout_create_info.pushConstantRangeCount = 0;
-	pipeline_layout_create_info.pPushConstantRanges    = nullptr;
+	pipeline_layout_create_info.pushConstantRangeCount = 1;
+	pipeline_layout_create_info.pPushConstantRanges    = &push_constants;
 
 	VK_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout));
 
@@ -224,7 +221,7 @@ void VulkanRenderer::create_pipeline() {
 	attachment_colour.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachment_colour.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachment_colour.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachment_colour.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachment_colour.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 	VkAttachmentReference attachment_ref_colour = { };
 	attachment_ref_colour.attachment = 0;
@@ -429,22 +426,8 @@ void VulkanRenderer::create_texture() {
 	VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &texture_sampler));
 }
 
-void VulkanRenderer::create_uniform_buffers() {
-	auto buffer_size = sizeof(UniformBufferObject);
-
-	uniform_buffers.resize(image_views.size());
-
-	for (int i = 0; i < image_views.size(); i++) {
-		uniform_buffers[i] = VulkanMemory::buffer_create(buffer_size,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-	}
-}
-
 void VulkanRenderer::create_descriptor_pool() {
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         image_views.size() },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_views.size() },
 	};
 
@@ -470,33 +453,20 @@ void VulkanRenderer::create_descriptor_sets() {
 	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
 
 	for (int i = 0; i < image_views.size(); i++) {
-		VkDescriptorBufferInfo buffer_info = { };
-		buffer_info.buffer = uniform_buffers[i].buffer;
-		buffer_info.offset = 0;
-		buffer_info.range = sizeof(UniformBufferObject);
-
 		VkDescriptorImageInfo image_info = { };
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		image_info.imageView = texture_image_view;
 		image_info.sampler   = texture_sampler;
 
-		VkWriteDescriptorSet write_descriptor_sets[2] = { };
+		VkWriteDescriptorSet write_descriptor_sets[1] = { };
 
 		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor_sets[0].dstSet = descriptor_sets[i];
-		write_descriptor_sets[0].dstBinding = 0;
+		write_descriptor_sets[0].dstBinding = 1;
 		write_descriptor_sets[0].dstArrayElement = 0;
-		write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write_descriptor_sets[0].descriptorCount = 1;
-		write_descriptor_sets[0].pBufferInfo = &buffer_info;
-
-		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		write_descriptor_sets[1].dstSet = descriptor_sets[i];
-		write_descriptor_sets[1].dstBinding = 1;
-		write_descriptor_sets[1].dstArrayElement = 0;
-		write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		write_descriptor_sets[1].descriptorCount = 1;
-		write_descriptor_sets[1].pImageInfo = &image_info;
+		write_descriptor_sets[0].pImageInfo = &image_info;
 
 		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
 	}
@@ -598,6 +568,11 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 	for (auto const & renderable : renderables) {
+		PushConstants push_constants;
+		push_constants.wvp = camera.get_view_projection() * renderable.transform;
+
+		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
+
 		VkBuffer vertex_buffers[] = { renderable.mesh->vertex_buffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
@@ -655,7 +630,6 @@ void VulkanRenderer::create_swapchain() {
 	create_vertex_buffer();
 	create_index_buffer();
 	create_texture();
-	create_uniform_buffers();
 	create_descriptor_pool();
 	create_descriptor_sets();
 	create_command_buffers();
@@ -667,6 +641,12 @@ void VulkanRenderer::update(float delta) {
 	frame_delta = delta;
 
 	camera.update(delta);
+
+	static float time = 0.0f;
+	time += delta;
+
+	renderables[0].transform = Matrix4::create_scale(1.0f + 0.5f * std::sin(time));
+	renderables[1].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(10.0f, 0.0f, 0.0f));
 
 	time_since_last_second += delta;
 	frames_since_last_second++;
@@ -706,18 +686,6 @@ void VulkanRenderer::render() {
 	VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		
 	VkSemaphore signal_semaphores[] = { semaphore_render_done };
-
-	{
-		static auto time_start = std::chrono::high_resolution_clock::now();
-
-		auto time_current = std::chrono::high_resolution_clock::now();
-		auto time         = std::chrono::duration<float, std::chrono::seconds::period>(time_current - time_start).count();
-
-		UniformBufferObject ubo = { };
-		ubo.wvp = camera.get_view_projection() * Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time));
-		
-		VulkanMemory::buffer_copy_direct(uniform_buffers[image_index], &ubo, sizeof(ubo));
-	}
 
 	VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submit_info.waitSemaphoreCount = 1;
@@ -796,8 +764,6 @@ void VulkanRenderer::destroy_swapchain() {
 	
 	for (int i = 0; i < image_views.size(); i++) {
 		vkDestroyImageView(device, image_views[i], nullptr);
-
-		VulkanMemory::buffer_free(uniform_buffers[i]);
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);

@@ -42,8 +42,6 @@ class VulkanRenderer {
 	VkDeviceMemory depth_image_memory;
 	VkImageView    depth_image_view;
 
-	std::vector<VulkanMemory::Buffer> uniform_buffers;
-	
 	VkDescriptorPool             descriptor_pool;
 	std::vector<VkDescriptorSet> descriptor_sets;
 
@@ -81,7 +79,6 @@ class VulkanRenderer {
 	void create_vertex_buffer();
 	void create_index_buffer();
 	void create_texture();
-	void create_uniform_buffers();
 	void create_descriptor_pool();
 	void create_descriptor_sets();
 	void create_imgui();
