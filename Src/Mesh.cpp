@@ -67,8 +67,8 @@ Mesh * Mesh::load(std::string const & filename) {
 
 				auto & vertex = mesh->vertices.emplace_back();
 				vertex.position = Vector3(&attrib.vertices[index.vertex_index*3]);
-				vertex.texcoord = Vector2(attrib.texcoords[index.texcoord_index*2 + 0], 1.0f - attrib.texcoords[index.texcoord_index*2 + 1]);
-				vertex.colour   = Vector3(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX));
+				vertex.texcoord = Vector2(attrib.texcoords[index.texcoord_index*2], 1.0f - attrib.texcoords[index.texcoord_index*2 + 1]);
+				vertex.normal   = Vector3(&attrib.normals [index.normal_index*3]);
 			}
 
 			mesh->indices.push_back(vertex_index);

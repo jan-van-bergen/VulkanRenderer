@@ -120,7 +120,7 @@ static void init_instance() {
 }
 
 static void init_physical_device() {
-	u32 device_count = 0;                                vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+	u32                           device_count = 0;      vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 	std::vector<VkPhysicalDevice> devices(device_count); vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
 	
 	if (device_count == 0) {
@@ -129,6 +129,10 @@ static void init_physical_device() {
 	}
 
 	physical_device = devices[0];
+
+	VkPhysicalDeviceProperties properties; vkGetPhysicalDeviceProperties(physical_device, &properties);
+
+	printf("Picked Device Name: %s\n", properties.deviceName);
 }
 
 static void init_surface(GLFWwindow * window) {

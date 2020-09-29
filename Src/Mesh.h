@@ -15,7 +15,7 @@ struct Mesh {
 	struct Vertex {
 		Vector3 position;
 		Vector2 texcoord;
-		Vector3 colour;
+		Vector3 normal;
 
 		static VkVertexInputBindingDescription get_binding_description() {
 			VkVertexInputBindingDescription bindingDescription = { };
@@ -45,7 +45,7 @@ struct Mesh {
 			attribute_descriptions[2].binding  = 0;
 			attribute_descriptions[2].location = 2;
 			attribute_descriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attribute_descriptions[2].offset = offsetof(Vertex, colour);
+			attribute_descriptions[2].offset = offsetof(Vertex, normal);
 
 			return attribute_descriptions;
 		}

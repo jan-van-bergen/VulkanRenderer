@@ -21,6 +21,7 @@
 #include "Util.h"
 
 struct PushConstants {
+	alignas(16) Matrix4 world;
 	alignas(16) Matrix4 wvp;
 };
 
@@ -569,7 +570,8 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 	for (auto const & renderable : renderables) {
 		PushConstants push_constants;
-		push_constants.wvp = camera.get_view_projection() * renderable.transform;
+		push_constants.world = renderable.transform;
+		push_constants.wvp   = camera.get_view_projection() * renderable.transform;
 
 		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
 
