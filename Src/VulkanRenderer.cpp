@@ -82,15 +82,12 @@ VulkanRenderer::~VulkanRenderer() {
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
-	for (auto const & texture : textures) {
-		texture->free();
-	}
-
 	for (auto const & renderable : renderables) {
 		VulkanMemory::buffer_free(renderable.mesh->vertex_buffer);
 		VulkanMemory::buffer_free(renderable.mesh->index_buffer);
 	}
 	
+	Texture::free();
 	Mesh::free();
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -512,6 +509,7 @@ void VulkanRenderer::create_command_buffers() {
 }
 
 void VulkanRenderer::record_command_buffer(u32 image_index) {
+	// Capture GUI draw data
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -528,12 +526,14 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	auto & uniform_buffer = uniform_buffers[image_index];
 	auto & descriptor_set = descriptor_sets[image_index];
 
+	// Begin Command Buffer
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	command_buffer_begin_info.flags = 0;
 	command_buffer_begin_info.pInheritanceInfo = nullptr;
 
 	VK_CHECK(vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info));
-		
+	
+	// Begin Render Pass
 	VkClearValue clear_values[2] = { };
 	clear_values[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
 	clear_values[1].depthStencil = { 1.0f, 0 };
@@ -550,6 +550,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	
+	// Upload UBO
 	auto aligned_size = Math::round_up(sizeof(UniformBufferObject), VulkanContext::get_min_uniform_buffer_alignment());
 
 	std::vector<std::byte> buf(renderables.size() * aligned_size);
@@ -563,6 +564,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 	VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
 	
+	// Render Renderables
 	for (int i = 0; i < renderables.size(); i++) {
 		auto const & renderable = renderables[i];
 
@@ -584,8 +586,10 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		vkCmdDrawIndexed(command_buffer, renderable.mesh->indices.size(), 1, 0, 0, 0);
 	}
 
+	// Render GUI
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 
+	// Complete
 	vkCmdEndRenderPass(command_buffer);
 
 	VK_CHECK(vkEndCommandBuffer(command_buffer));
@@ -746,10 +750,6 @@ void VulkanRenderer::destroy_swapchain() {
 	auto device       = VulkanContext::get_device();
 	auto command_pool = VulkanContext::get_command_pool();
 
-	for (auto const & framebuffer : frame_buffers) {
-		vkDestroyFramebuffer(device, framebuffer, nullptr);
-	}
-
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);
 	vkFreeMemory      (device, depth_image_memory, nullptr);
@@ -764,7 +764,10 @@ void VulkanRenderer::destroy_swapchain() {
 	vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
 	
 	for (int i = 0; i < image_views.size(); i++) {
-		vkDestroyImageView(device, image_views[i], nullptr);
+		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
+		vkDestroyImageView  (device, image_views  [i], nullptr);
+
+		VulkanMemory::buffer_free(uniform_buffers[i]);
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);

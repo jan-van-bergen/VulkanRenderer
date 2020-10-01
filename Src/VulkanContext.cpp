@@ -34,7 +34,7 @@ static constexpr bool validation_layers_enabled = true;
 
 std::vector<char const *> const validation_layers_names = {
 	"VK_LAYER_KHRONOS_validation",
-	"VK_LAYER_LUNARG_standard_validation"
+	//"VK_LAYER_LUNARG_standard_validation"
 	//"VK_LAYER_RENDERDOC_Capture"
 };
 
