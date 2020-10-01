@@ -10,14 +10,14 @@
 #include "Camera.h"
 
 #include "Mesh.h"
-#include "Material.h"
+#include "Texture.h"
 
 #include "Types.h"
 
 struct Renderable {
-	Mesh     * mesh;
-	Material * material;
-
+	Mesh * mesh;
+	u32 texture_index;
+	
 	Matrix4 transform;
 };
 
@@ -42,15 +42,12 @@ class VulkanRenderer {
 	VkDeviceMemory depth_image_memory;
 	VkImageView    depth_image_view;
 
+	std::vector<VulkanMemory::Buffer> uniform_buffers;
+
 	VkDescriptorPool             descriptor_pool;
 	std::vector<VkDescriptorSet> descriptor_sets;
 
 	VkDescriptorPool descriptor_pool_gui;
-
-	VkImage        texture_image;
-	VkDeviceMemory texture_image_memory;
-	VkImageView    texture_image_view;
-	VkSampler      texture_sampler;
 
 	std::vector<VkSemaphore> semaphores_image_available;
 	std::vector<VkSemaphore> semaphores_render_done;
@@ -63,6 +60,7 @@ class VulkanRenderer {
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	
 	std::vector<Renderable> renderables;
+	std::vector<Texture *>  textures;
 
 	// Timing
 	float frame_delta;
@@ -78,7 +76,8 @@ class VulkanRenderer {
 	void create_framebuffers();
 	void create_vertex_buffer();
 	void create_index_buffer();
-	void create_texture();
+	void create_textures();
+	void create_uniform_buffers();
 	void create_descriptor_pool();
 	void create_descriptor_sets();
 	void create_imgui();

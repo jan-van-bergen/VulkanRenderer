@@ -144,6 +144,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>include;$(VULKAN_SDK)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,6 +169,7 @@
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Mesh.cpp" />
+    <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\VulkanContext.cpp" />
     <ClCompile Include="Src\VulkanMemory.cpp" />
     <ClCompile Include="Src\VulkanRenderer.cpp" />
@@ -183,11 +185,11 @@
     <ClInclude Include="include\Imgui\imstb_truetype.h" />
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Input.h" />
-    <ClInclude Include="Src\Material.h" />
     <ClInclude Include="Src\Math.h" />
     <ClInclude Include="Src\Matrix4.h" />
     <ClInclude Include="Src\Mesh.h" />
     <ClInclude Include="Src\Quaternion.h" />
+    <ClInclude Include="Src\Texture.h" />
     <ClInclude Include="Src\VulkanRenderer.h" />
     <ClInclude Include="Src\Util.h" />
     <ClInclude Include="Src\Types.h" />

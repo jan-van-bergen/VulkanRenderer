@@ -14,12 +14,15 @@ static u32 screen_width  = 1280;
 static u32 screen_height = 720;
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
-	VulkanRenderer * renderer = reinterpret_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-	renderer->framebuffer_needs_resize = true;
+	reinterpret_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window))->framebuffer_needs_resize = true;
 }
 
 int main() {
-	glfwInit();
+	int init_result = glfwInit();
+	if (init_result == GLFW_FALSE) {
+		puts("ERROR: Unable to create GLFW context!");
+		abort();
+	}
 
 	// Init GLFW window
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);

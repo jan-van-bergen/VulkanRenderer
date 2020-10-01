@@ -13,6 +13,7 @@ u32 VulkanMemory::find_memory_type(u32 type_filter, VkMemoryPropertyFlags proper
 		}
 	}
 
+	printf("Unable to find memory type %i!\n", type_filter);
 	abort();
 }
 
@@ -76,11 +77,18 @@ void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * da
 void VulkanMemory::buffer_copy_direct(Buffer const & buffer_dst, void const * data_src, size_t size) {
 	VkDevice device = VulkanContext::get_device();
 
-	void * dst; vkMapMemory(device, buffer_dst.memory, 0, size, 0, &dst);
-
+	void * dst = buffer_map(buffer_dst, size);
 	memcpy(dst, data_src, size);
+	buffer_unmap(buffer_dst);
+}
 
-	vkUnmapMemory(device, buffer_dst.memory);
+void * VulkanMemory::buffer_map(Buffer const & buffer, size_t size) {
+	void * mapped; vkMapMemory(VulkanContext::get_device(), buffer.memory, 0, size, 0, &mapped);
+	return mapped;
+}
+
+void VulkanMemory::buffer_unmap(Buffer const & buffer) {
+	vkUnmapMemory(VulkanContext::get_device(), buffer.memory);
 }
 
 VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {

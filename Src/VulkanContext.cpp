@@ -24,6 +24,8 @@ static VkQueue queue_present;
 
 static VkCommandPool command_pool;
 
+static size_t min_uniform_buffer_alignment;
+
 #ifdef NDEBUG
 static constexpr bool validation_layers_enabled = false;
 #else
@@ -32,6 +34,7 @@ static constexpr bool validation_layers_enabled = true;
 
 std::vector<char const *> const validation_layers_names = {
 	"VK_LAYER_KHRONOS_validation",
+	"VK_LAYER_LUNARG_standard_validation"
 	//"VK_LAYER_RENDERDOC_Capture"
 };
 
@@ -75,7 +78,9 @@ static void init_instance() {
 				}
 			}
 
-			if (!available) __debugbreak();
+			if (!available) {
+				printf("WARNING: Validation Layer '%s' unavailable!\n", layer_name);
+			}
 		}
 
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // Additional debug extension
@@ -132,6 +137,8 @@ static void init_physical_device() {
 
 	VkPhysicalDeviceProperties properties; vkGetPhysicalDeviceProperties(physical_device, &properties);
 
+	min_uniform_buffer_alignment = properties.limits.minUniformBufferOffsetAlignment;
+
 	printf("Picked Device Name: %s\n", properties.deviceName);
 }
 
@@ -175,7 +182,7 @@ static void init_device() {
 	};
 	std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
 
-	for (u32 queue_family : unique_queue_families) {
+	for (auto queue_family : unique_queue_families) {
 		VkDeviceQueueCreateInfo queue_create_info = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
 		queue_create_info.queueFamilyIndex = queue_family;
 		queue_create_info.queueCount       = 1;
@@ -187,7 +194,7 @@ static void init_device() {
 	device_features.samplerAnisotropy = VK_TRUE;
 
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures dsf = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES };
-
+	
 	VkPhysicalDeviceFeatures2 query = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	query.pNext = &dsf;
 	vkGetPhysicalDeviceFeatures2(physical_device, &query);
@@ -308,3 +315,5 @@ VkQueue VulkanContext::get_queue_graphics() { return queue_graphics; }
 VkQueue VulkanContext::get_queue_present()  { return queue_present;  }
 
 VkCommandPool VulkanContext::get_command_pool() { return command_pool; }
+
+size_t VulkanContext::get_min_uniform_buffer_alignment() { return min_uniform_buffer_alignment; }

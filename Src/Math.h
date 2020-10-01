@@ -32,6 +32,14 @@ namespace Math {
 		return result;
 	}
 
+	template<typename T>
+	inline T round_up(T value, T multiple) {
+		T mod = value % multiple;
+		if (mod == 0) return value;
+
+		return value + multiple - mod;
+	}
+
 	// Calculates N-th power by repeated squaring. This only works when N is a power of 2
 	template<int N> inline float pow2(float value);
 

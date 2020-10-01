@@ -4,9 +4,6 @@
 
 #include <chrono>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image/stb_image.h>
-
 #include <Imgui/imgui.h>
 #include <Imgui/imgui_impl_glfw.h>
 #include <Imgui/imgui_impl_vulkan.h>
@@ -23,6 +20,10 @@
 struct PushConstants {
 	alignas(16) Matrix4 world;
 	alignas(16) Matrix4 wvp;
+};
+
+struct UniformBufferObject {
+	int texture_index;
 };
 
 static VkShaderModule shader_load(VkDevice device, std::string const & filename) {
@@ -48,17 +49,17 @@ static VkPipelineShaderStageCreateInfo shader_get_stage(VkShaderModule shader_mo
 
 VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 	semaphores_image_available(MAX_FRAMES_IN_FLIGHT),
-	semaphores_render_done(MAX_FRAMES_IN_FLIGHT),
-	inflight_fences(MAX_FRAMES_IN_FLIGHT),
-	camera(DEG_TO_RAD(110.0f), width, height
-) {
+	semaphores_render_done    (MAX_FRAMES_IN_FLIGHT),
+	inflight_fences           (MAX_FRAMES_IN_FLIGHT),
+	camera(DEG_TO_RAD(110.0f), width, height)
+{
 	this->width  = width;
 	this->height = height;
 
 	this->window = window;
 
-	renderables.push_back({ Mesh::load("data/monkey.obj"), nullptr, Matrix4::identity() });
-	renderables.push_back({ Mesh::load("data/cube.obj"),   nullptr, Matrix4::identity() });
+	renderables.push_back({ Mesh::load("data/monkey.obj"), 0, Matrix4::identity() });
+	renderables.push_back({ Mesh::load("data/cube.obj"),   1, Matrix4::identity() });
 	
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -81,10 +82,9 @@ VulkanRenderer::~VulkanRenderer() {
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
-	vkDestroySampler  (device, texture_sampler,      nullptr);
-	vkDestroyImageView(device, texture_image_view,   nullptr);
-	vkDestroyImage    (device, texture_image,        nullptr);
-	vkFreeMemory      (device, texture_image_memory, nullptr);
+	for (auto const & texture : textures) {
+		texture->free();
+	}
 
 	for (auto const & renderable : renderables) {
 		VulkanMemory::buffer_free(renderable.mesh->vertex_buffer);
@@ -105,12 +105,20 @@ void VulkanRenderer::create_descriptor_set_layout() {
 	VkDescriptorSetLayoutBinding layout_binding_sampler = { };
 	layout_binding_sampler.binding = 1;
 	layout_binding_sampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	layout_binding_sampler.descriptorCount = 1;
+	layout_binding_sampler.descriptorCount = 2;
 	layout_binding_sampler.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	layout_binding_sampler.pImmutableSamplers = nullptr;
 
+	VkDescriptorSetLayoutBinding layout_binding_ubo = { };
+	layout_binding_ubo.binding = 2;
+	layout_binding_ubo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	layout_binding_ubo.descriptorCount = 1;
+	layout_binding_ubo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	layout_binding_ubo.pImmutableSamplers = nullptr;
+
 	VkDescriptorSetLayoutBinding layout_bindings[] = {
-		layout_binding_sampler
+		layout_binding_sampler,
+		layout_binding_ubo
 	};
 
 	VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -123,8 +131,8 @@ void VulkanRenderer::create_descriptor_set_layout() {
 void VulkanRenderer::create_pipeline() {
 	auto device = VulkanContext::get_device();
 
-	auto shader_vert = shader_load(device, "Shaders\\vert.spv");
-	auto shader_frag = shader_load(device, "Shaders\\frag.spv");
+	auto shader_vert = shader_load(device, "Shaders/vert.spv");
+	auto shader_frag = shader_load(device, "Shaders/frag.spv");
 
 	VkPipelineShaderStageCreateInfo shader_stages[] = {
 		shader_get_stage(shader_vert, VK_SHADER_STAGE_VERTEX_BIT),
@@ -364,72 +372,29 @@ void VulkanRenderer::create_index_buffer() {
 	}
 }
 
-void VulkanRenderer::create_texture() {
-	int texture_width;
-	int texture_height;
-	int texture_channels;
+void VulkanRenderer::create_textures() {
+	textures.push_back(Texture::load("Data/bricks.png"));
+	textures.push_back(Texture::load("Data/bricks2.png"));
+}
 
-	auto pixels = stbi_load("Data\\bricks.png", &texture_width, &texture_height, &texture_channels, STBI_rgb_alpha);
-	if (!pixels) {
-		printf("ERROR: Unable to load Texture!\n");
-		abort();
-	}
+void VulkanRenderer::create_uniform_buffers() {
+	uniform_buffers.resize(image_views.size());
 
-	VkDeviceSize texture_size = texture_width * texture_height * 4;
-
-	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(texture_size,
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	);
-
-	VulkanMemory::buffer_copy_direct(staging_buffer, pixels, texture_size);
-
-	stbi_image_free(pixels);
-
-	VulkanMemory::create_image(
-		texture_width,
-		texture_height,
-		VK_FORMAT_R8G8B8A8_SRGB,
-		VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		texture_image,
-		texture_image_memory
-	);
-
-	VulkanMemory::transition_image_layout(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	VulkanMemory::buffer_copy_to_image(staging_buffer.buffer, texture_image, texture_width, texture_height);
-
-	VulkanMemory::transition_image_layout(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	auto device = VulkanContext::get_device();
-
-	VulkanMemory::buffer_free(staging_buffer);
-
-	texture_image_view = VulkanMemory::create_image_view(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+	auto aligned_size = Math::round_up(sizeof(UniformBufferObject), VulkanContext::get_min_uniform_buffer_alignment());
 	
-	VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	sampler_create_info.magFilter = VK_FILTER_LINEAR;
-	sampler_create_info.minFilter = VK_FILTER_LINEAR;
-	sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_create_info.anisotropyEnable = VK_TRUE;
-	sampler_create_info.maxAnisotropy    = 16.0f;
-	sampler_create_info.unnormalizedCoordinates = VK_FALSE;
-	sampler_create_info.compareEnable = VK_FALSE;
-	sampler_create_info.compareOp     = VK_COMPARE_OP_ALWAYS;
-	sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	sampler_create_info.mipLodBias = 0.0f;
-	sampler_create_info.minLod     = 0.0f;
-	sampler_create_info.maxLod     = 0.0f;
-
-	VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &texture_sampler));
+	for (int i = 0; i < image_views.size(); i++) {
+		uniform_buffers[i] = VulkanMemory::buffer_create(renderables.size() * aligned_size,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+	}
 }
 
 void VulkanRenderer::create_descriptor_pool() {
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_views.size() },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, image_views.size() },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, image_views.size() }
 	};
 
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
@@ -454,20 +419,36 @@ void VulkanRenderer::create_descriptor_sets() {
 	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
 
 	for (int i = 0; i < image_views.size(); i++) {
-		VkDescriptorImageInfo image_info = { };
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = texture_image_view;
-		image_info.sampler   = texture_sampler;
+		std::vector<VkDescriptorImageInfo> image_infos(textures.size());
 
-		VkWriteDescriptorSet write_descriptor_sets[1] = { };
+		for (int j = 0; j < textures.size(); j++) {
+			image_infos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			image_infos[j].imageView = textures[j]->image_view;
+			image_infos[j].sampler   = textures[j]->sampler;
+		}
+		
+		VkWriteDescriptorSet write_descriptor_sets[2] = { };
 
 		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor_sets[0].dstSet = descriptor_sets[i];
 		write_descriptor_sets[0].dstBinding = 1;
 		write_descriptor_sets[0].dstArrayElement = 0;
 		write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		write_descriptor_sets[0].descriptorCount = 1;
-		write_descriptor_sets[0].pImageInfo = &image_info;
+		write_descriptor_sets[0].descriptorCount = 2;
+		write_descriptor_sets[0].pImageInfo = image_infos.data();
+
+		VkDescriptorBufferInfo buffer_info = { };
+		buffer_info.buffer = uniform_buffers[i].buffer;
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(UniformBufferObject);
+
+		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_descriptor_sets[1].dstSet = descriptor_sets[i];
+		write_descriptor_sets[1].dstBinding = 2;
+		write_descriptor_sets[1].dstArrayElement = 0;
+		write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		write_descriptor_sets[1].descriptorCount = 1;
+		write_descriptor_sets[1].pBufferInfo = &buffer_info;
 
 		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
 	}
@@ -544,6 +525,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 	auto & command_buffer = command_buffers[image_index];
 	auto & frame_buffer   = frame_buffers  [image_index];
+	auto & uniform_buffer = uniform_buffers[image_index];
 	auto & descriptor_set = descriptor_sets[image_index];
 
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -567,8 +549,23 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+	
+	auto aligned_size = Math::round_up(sizeof(UniformBufferObject), VulkanContext::get_min_uniform_buffer_alignment());
 
-	for (auto const & renderable : renderables) {
+	std::vector<std::byte> buf(renderables.size() * aligned_size);
+
+	for (int i = 0; i < renderables.size(); i++) {
+		UniformBufferObject ubo;
+		ubo.texture_index = renderables[i].texture_index;
+
+		std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(UniformBufferObject));
+	}
+
+	VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
+	
+	for (int i = 0; i < renderables.size(); i++) {
+		auto const & renderable = renderables[i];
+
 		PushConstants push_constants;
 		push_constants.world = renderable.transform;
 		push_constants.wvp   = camera.get_view_projection() * renderable.transform;
@@ -581,7 +578,8 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 		vkCmdBindIndexBuffer(command_buffer, renderable.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
+		u32 offset = i * aligned_size;
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
 		vkCmdDrawIndexed(command_buffer, renderable.mesh->indices.size(), 1, 0, 0, 0);
 	}
@@ -631,7 +629,8 @@ void VulkanRenderer::create_swapchain() {
 	create_framebuffers();
 	create_vertex_buffer();
 	create_index_buffer();
-	create_texture();
+	create_textures();
+	create_uniform_buffers();
 	create_descriptor_pool();
 	create_descriptor_sets();
 	create_command_buffers();

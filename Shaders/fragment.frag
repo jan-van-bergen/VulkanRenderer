@@ -6,7 +6,11 @@ layout(location = 1) in vec3 in_normal;
 
 layout(location = 0) out vec4 out_colour;
 
-layout(binding = 1) uniform sampler2D texture_sampler;
+layout(binding = 1) uniform sampler2D texture_samplers[2];
+
+layout(binding = 2) uniform UBO {
+	int texture_index;
+};
 
 void main() {
 	const float ambient = 0.1f;
@@ -16,5 +20,5 @@ void main() {
 
 	light = ambient + (1.0f - ambient) * light;
 
-	out_colour = vec4(light.xxx, 1.0f) * texture(texture_sampler, in_texcoord);
+	out_colour = vec4(light.xxx, 1.0f) * texture(texture_samplers[texture_index], in_texcoord);
 }
