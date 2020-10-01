@@ -23,10 +23,10 @@ namespace VulkanMemory {
 	void * buffer_map  (Buffer const & buffer_dst, size_t size);
 	void   buffer_unmap(Buffer const & buffer_dst);
 
-	void        create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory);
-	VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_mask);
+	void        create_image(u32 width, u32 height, u32 mip_levels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory);
+	VkImageView create_image_view(VkImage image, u32 mip_levels, VkFormat format, VkImageAspectFlags aspect_mask);
 
-	void transition_image_layout(VkImage image, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new);
+	void transition_image_layout(VkImage image, u32 mip_levels, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new);
 
 	void buffer_copy_to_image(VkBuffer buffer, VkImage image, u32 width, u32 height);
 }

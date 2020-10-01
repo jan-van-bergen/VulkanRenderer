@@ -35,7 +35,7 @@ void Camera::on_resize(int width, int height) {
 
 void Camera::update(float delta) {
 	const float MOVEMENT_SPEED = 10.0f;
-	const float ROTATION_SPEED =  2.0f;
+	const float ROTATION_SPEED =  1.0f;
 
 	Vector3 right   = rotation * Vector3(1.0f, 0.0f,  0.0f);
 	Vector3 forward = rotation * Vector3(0.0f, 0.0f, -1.0f);

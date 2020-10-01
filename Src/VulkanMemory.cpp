@@ -123,13 +123,13 @@ void VulkanMemory::command_buffer_single_use_end(VkCommandBuffer command_buffer)
 	vkFreeCommandBuffers(VulkanContext::get_device(), VulkanContext::get_command_pool(), 1, &command_buffer);
 }
 
-void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory) {
+void VulkanMemory::create_image(u32 width, u32 height, u32 mip_levels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & image_memory) {
 	VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	image_create_info.imageType = VK_IMAGE_TYPE_2D;
 	image_create_info.extent.width  = width;
 	image_create_info.extent.height = height;
 	image_create_info.extent.depth  = 1;
-	image_create_info.mipLevels   = 1;
+	image_create_info.mipLevels   = mip_levels;
 	image_create_info.arrayLayers = 1;
 	image_create_info.format = format;
 	image_create_info.tiling = tiling;
@@ -155,7 +155,7 @@ void VulkanMemory::create_image(u32 width, u32 height, VkFormat format, VkImageT
 	VK_CHECK(vkBindImageMemory(device, image, image_memory, 0));
 }
 
-VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_mask) {
+VkImageView VulkanMemory::create_image_view(VkImage image, u32 mip_levels, VkFormat format, VkImageAspectFlags aspect_mask) {
 	VkImageViewCreateInfo image_view_create_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	image_view_create_info.image = image;
 	image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -168,7 +168,7 @@ VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkIm
 
 	image_view_create_info.subresourceRange.aspectMask = aspect_mask;
 	image_view_create_info.subresourceRange.baseMipLevel = 0;
-	image_view_create_info.subresourceRange.levelCount   = 1;
+	image_view_create_info.subresourceRange.levelCount   = mip_levels;
 	image_view_create_info.subresourceRange.baseArrayLayer = 0;
 	image_view_create_info.subresourceRange.layerCount     = 1;
 
@@ -178,7 +178,7 @@ VkImageView VulkanMemory::create_image_view(VkImage image, VkFormat format, VkIm
 	return image_view;
 }
 
-void VulkanMemory::transition_image_layout(VkImage image, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new) {
+void VulkanMemory::transition_image_layout(VkImage image, u32 mip_levels, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new) {
 	VkCommandBuffer command_buffer = command_buffer_single_use_begin();
 
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -189,7 +189,7 @@ void VulkanMemory::transition_image_layout(VkImage image, VkFormat format, VkIma
 	barrier.image = image;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount   = 1;
+	barrier.subresourceRange.levelCount   = mip_levels;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount     = 1;
 	barrier.srcAccessMask = 0;

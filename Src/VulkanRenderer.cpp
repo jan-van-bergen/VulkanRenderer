@@ -330,6 +330,7 @@ void VulkanRenderer::create_framebuffers() {
 void VulkanRenderer::create_depth_buffer() {
 	VulkanMemory::create_image(
 		width, height,
+		1,
 		VulkanContext::DEPTH_FORMAT,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -338,7 +339,7 @@ void VulkanRenderer::create_depth_buffer() {
 		depth_image_memory
 	);
 
-	depth_image_view = VulkanMemory::create_image_view(depth_image, VulkanContext::DEPTH_FORMAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+	depth_image_view = VulkanMemory::create_image_view(depth_image, 1, VulkanContext::DEPTH_FORMAT, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void VulkanRenderer::create_vertex_buffer() {
@@ -624,7 +625,7 @@ void VulkanRenderer::create_swapchain() {
 	image_views.resize(swapchain_image_count);
 
 	for (int i = 0; i < swapchain_image_count; i++) {
-		image_views[i] = VulkanMemory::create_image_view(swapchain_images[i], VulkanContext::FORMAT.format, VK_IMAGE_ASPECT_COLOR_BIT);
+		image_views[i] = VulkanMemory::create_image_view(swapchain_images[i], 1, VulkanContext::FORMAT.format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
 	create_descriptor_set_layout();
