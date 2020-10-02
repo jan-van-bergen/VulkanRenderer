@@ -6,6 +6,7 @@
 #include "VulkanMemory.h"
 
 #include "Math.h"
+#include "Util.h"
 
 static VkInstance instance;
 
@@ -127,7 +128,7 @@ static void init_instance() {
 static void init_physical_device() {
 	u32                           device_count = 0;      vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
 	std::vector<VkPhysicalDevice> devices(device_count); vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
-	
+
 	if (device_count == 0) {
 		printf("ERROR: No Physical Devices available!\n");
 		abort();
@@ -191,29 +192,24 @@ static void init_device() {
 	}
 	
 	VkPhysicalDeviceFeatures device_features = { };
-	device_features.samplerAnisotropy = VK_TRUE;
+	device_features.samplerAnisotropy = true;
 
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures dsf = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES };
-	
-	VkPhysicalDeviceFeatures2 query = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-	query.pNext = &dsf;
-	vkGetPhysicalDeviceFeatures2(physical_device, &query);
+	dsf.separateDepthStencilLayouts = true;
 
 	VkDeviceCreateInfo device_create_info = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	device_create_info.pQueueCreateInfos    = queue_create_infos.data();
 	device_create_info.queueCreateInfoCount = queue_create_infos.size();
+	device_create_info.pQueueCreateInfos    = queue_create_infos.data();
 	device_create_info.pEnabledFeatures = &device_features;
 	device_create_info.enabledExtensionCount   = device_extensions.size();
 	device_create_info.ppEnabledExtensionNames = device_extensions.data();
 	device_create_info.pNext = &dsf;
 
-	if (validation_layers_enabled) {
+	if constexpr (validation_layers_enabled) {
 		device_create_info.enabledLayerCount   = validation_layers_names.size();
 		device_create_info.ppEnabledLayerNames = validation_layers_names.data();
-	} else {
-		device_create_info.enabledLayerCount = 0;
 	}
-	
+
 	VK_CHECK(vkCreateDevice(physical_device, &device_create_info, nullptr, &device));
 }
 
@@ -299,6 +295,46 @@ VkSwapchainKHR VulkanContext::create_swapchain(u32 width, u32 height) {
 	VkSwapchainKHR swapchain; VK_CHECK(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &swapchain));
 
 	return swapchain;
+}
+
+std::optional<VkFormat> VulkanContext::get_supported_depth_format() {
+	VkFormat depth_formats[] = {
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D24_UNORM_S8_UINT,
+		VK_FORMAT_D16_UNORM_S8_UINT,
+		VK_FORMAT_D16_UNORM
+	};
+
+	for (auto const & format : depth_formats) {
+		VkFormatProperties properties; vkGetPhysicalDeviceFormatProperties(physical_device, format, &properties);
+
+		// Format must support depth stencil attachment for optimal tiling
+		if (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+			return format;
+		}
+	}
+
+	return std::nullopt;
+}
+
+VulkanContext::Shader VulkanContext::shader_load(std::string const & filename, VkShaderStageFlagBits stage) {
+	std::vector<char> spirv = Util::read_file(filename);
+
+	VkShaderModuleCreateInfo create_info = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+	create_info.codeSize = spirv.size();
+	create_info.pCode = reinterpret_cast<const u32 *>(spirv.data());
+
+	Shader shader;
+
+	VK_CHECK(vkCreateShaderModule(device, &create_info, nullptr, &shader.module));
+
+	shader.stage_create_info = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+	shader.stage_create_info.stage  = stage;
+	shader.stage_create_info.module = shader.module;
+	shader.stage_create_info.pName = "main";
+	
+	return shader;
 }
 
 VkInstance VulkanContext::get_instance() { return instance; }

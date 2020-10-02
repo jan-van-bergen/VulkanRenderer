@@ -166,6 +166,7 @@
     <ClCompile Include="include\Imgui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="include\Imgui\imgui_widgets.cpp" />
     <ClCompile Include="Src\Camera.cpp" />
+    <ClCompile Include="Src\GBuffer.cpp" />
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Mesh.cpp" />
@@ -184,11 +185,13 @@
     <ClInclude Include="include\Imgui\imstb_textedit.h" />
     <ClInclude Include="include\Imgui\imstb_truetype.h" />
     <ClInclude Include="Src\Camera.h" />
+    <ClInclude Include="Src\GBuffer.h" />
     <ClInclude Include="Src\Input.h" />
     <ClInclude Include="Src\Math.h" />
     <ClInclude Include="Src\Matrix4.h" />
     <ClInclude Include="Src\Mesh.h" />
     <ClInclude Include="Src\Quaternion.h" />
+    <ClInclude Include="Src\Renderable.h" />
     <ClInclude Include="Src\Texture.h" />
     <ClInclude Include="Src\VulkanRenderer.h" />
     <ClInclude Include="Src\Util.h" />

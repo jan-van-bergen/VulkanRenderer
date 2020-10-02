@@ -18,12 +18,12 @@ struct Mesh {
 		Vector3 normal;
 
 		static VkVertexInputBindingDescription get_binding_description() {
-			VkVertexInputBindingDescription bindingDescription = { };
-			bindingDescription.binding = 0;
-			bindingDescription.stride = sizeof(Vertex);
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+			VkVertexInputBindingDescription binding_description = { };
+			binding_description.binding = 0;
+			binding_description.stride = sizeof(Vertex);
+			binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-			return bindingDescription;
+			return binding_description;
 		}
 
 		static std::vector<VkVertexInputAttributeDescription> get_attribute_description() {

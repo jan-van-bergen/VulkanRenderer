@@ -1,5 +1,5 @@
 #pragma once
-#include <ctype.h>
+#include <cstdint>
 
 typedef int8_t  s8;
 typedef int16_t s16;

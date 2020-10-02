@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Src\Main.cpp" />
-    <ClCompile Include="Src\Camera.cpp" />
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\VulkanMemory.cpp">
       <Filter>Vulkan</Filter>
@@ -14,7 +13,7 @@
       <Filter>Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Src\Mesh.cpp">
-      <Filter>Assets</Filter>
+      <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="include\Imgui\imgui.cpp">
       <Filter>ImGui</Filter>
@@ -35,7 +34,13 @@
       <Filter>ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Src\Texture.cpp">
-      <Filter>Assets</Filter>
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Camera.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GBuffer.cpp">
+      <Filter>Rendering</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -56,7 +61,6 @@
     <ClInclude Include="Src\Vector3.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Input.h" />
     <ClInclude Include="Src\VulkanContext.h">
       <Filter>Vulkan</Filter>
@@ -71,7 +75,7 @@
       <Filter>Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Src\Mesh.h">
-      <Filter>Assets</Filter>
+      <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="include\Imgui\imconfig.h">
       <Filter>ImGui</Filter>
@@ -98,7 +102,16 @@
       <Filter>ImGui</Filter>
     </ClInclude>
     <ClInclude Include="Src\Texture.h">
-      <Filter>Assets</Filter>
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Camera.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GBuffer.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Renderable.h">
+      <Filter>Rendering</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -108,11 +121,11 @@
     <Filter Include="Vulkan">
       <UniqueIdentifier>{3a36d78c-fedc-4e5b-9443-90d28a351033}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Assets">
-      <UniqueIdentifier>{e4cf129a-4cc2-47f3-8c80-871ae0b1bddf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ImGui">
       <UniqueIdentifier>{85f3b247-bb87-4a26-8d30-28e71bf18bbf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering">
+      <UniqueIdentifier>{e4cf129a-4cc2-47f3-8c80-871ae0b1bddf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -5,6 +5,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader/tiny_obj_loader.h>
 
+#include "VulkanContext.h"
+#include "VulkanMemory.h"
+
+#include "Util.h"
+
 static std::unordered_map<std::string, std::unique_ptr<Mesh>> cache;
 
 Mesh * Mesh::load(std::string const & filename) {
@@ -75,9 +80,28 @@ Mesh * Mesh::load(std::string const & filename) {
 		}
 	}
 
+	// Upload Vertex and Index Buffer
+	auto vertex_buffer_size = Util::vector_size_in_bytes(mesh->vertices);
+	auto index_buffer_size  = Util::vector_size_in_bytes(mesh->indices);
+
+	mesh->vertex_buffer = VulkanMemory::buffer_create(vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	mesh->index_buffer  = VulkanMemory::buffer_create(index_buffer_size,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	VulkanMemory::buffer_copy_staged(mesh->vertex_buffer, mesh->vertices.data(), vertex_buffer_size);
+	VulkanMemory::buffer_copy_staged(mesh->index_buffer,  mesh->indices.data(),  index_buffer_size);
+
 	return mesh.get();
 }
 
 void Mesh::free() {
+	auto device = VulkanContext::get_device();
+
+	for (auto & kvp : cache) {
+		auto & mesh = kvp.second;
+
+		VulkanMemory::buffer_free(mesh->vertex_buffer);
+		VulkanMemory::buffer_free(mesh->index_buffer);
+	}
+
 	cache.clear();
 }

@@ -8,18 +8,9 @@
 #include "VulkanMemory.h"
 
 #include "Camera.h"
+#include "GBuffer.h"
 
-#include "Mesh.h"
-#include "Texture.h"
-
-#include "Types.h"
-
-struct Renderable {
-	Mesh * mesh;
-	u32 texture_index;
-	
-	Matrix4 transform;
-};
+#include "Renderable.h"
 
 class VulkanRenderer {
 	GLFWwindow * window;
@@ -42,19 +33,21 @@ class VulkanRenderer {
 	VkDeviceMemory depth_image_memory;
 	VkImageView    depth_image_view;
 
-	std::vector<VulkanMemory::Buffer> uniform_buffers;
-
 	VkDescriptorPool             descriptor_pool;
 	std::vector<VkDescriptorSet> descriptor_sets;
 
 	VkDescriptorPool descriptor_pool_gui;
 
 	std::vector<VkSemaphore> semaphores_image_available;
+	std::vector<VkSemaphore> semaphores_gbuffer_done;
 	std::vector<VkSemaphore> semaphores_render_done;
 	
 	std::vector<VkFence> inflight_fences;
 	std::vector<VkFence> images_in_flight;
 	
+	GBuffer   gbuffer;
+	VkSampler gbuffer_sampler;
+
 	int current_frame = 0;
 
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
@@ -68,25 +61,19 @@ class VulkanRenderer {
 	int frames_since_last_second = 0;
 	int fps = 0;
 
-	void create_swapchain();
+	void swapchain_create();
+	void swapchain_destroy();
 
 	void create_descriptor_set_layout();
 	void create_pipeline();
 	void create_depth_buffer();
-	void create_framebuffers();
-	void create_vertex_buffer();
-	void create_index_buffer();
-	void create_textures();
-	void create_uniform_buffers();
-	void create_descriptor_pool();
+	void create_frame_buffers();
 	void create_descriptor_sets();
-	void create_imgui();
 	void create_command_buffers();
 	void create_sync_primitives();
+	void create_imgui();
 
 	void record_command_buffer(u32 image_index);
-
-	void destroy_swapchain();
 
 public:
 	u32 width;
