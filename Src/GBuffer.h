@@ -4,7 +4,8 @@
 #include <vulkan/vulkan.h>
 
 #include "Camera.h"
-#include "Renderable.h"
+#include "Mesh.h"
+#include "Texture.h"
 
 class GBuffer {
 	int buffer_width, buffer_height;
@@ -41,8 +42,8 @@ public:
 	
 	std::vector<VkCommandBuffer> command_buffers;
 	
-	void init(int swapchain_image_count, int width, int height, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures);
+	void init(int swapchain_image_count, int width, int height, std::vector<MeshHandle> const & meshes);
 	void free();
 
-	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures);
+	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshHandle> const & meshes);
 };

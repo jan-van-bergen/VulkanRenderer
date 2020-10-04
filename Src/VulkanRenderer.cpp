@@ -47,13 +47,11 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
-	renderables.push_back({ Mesh::load("Data/Monkey.obj"),  0, Matrix4::identity() });
-	renderables.push_back({ Mesh::load("Data/Cube.obj"),    1, Matrix4::identity() });
-	renderables.push_back({ Mesh::load("Data/Terrain.obj"), 2, Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
+	meshes.push_back(Mesh::load("Data/Monkey.obj"));
+	meshes.push_back(Mesh::load("Data/Cube.obj"));
+	meshes.push_back(Mesh::load("Data/Sponza/sponza_lit.obj"));
 	
-	textures.push_back(Texture::load("Data/bricks.png"));
-	textures.push_back(Texture::load("Data/bricks2.png"));
-	textures.push_back(Texture::load("Data/grass.png"));
+	Mesh::meshes[meshes[2]].transform = Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f));
 
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
@@ -700,7 +698,7 @@ void VulkanRenderer::swapchain_create() {
 		image_views[i] = VulkanMemory::create_image_view(swapchain_images[i], 1, VulkanContext::FORMAT.format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
-	gbuffer.init(swapchain_image_count, width, height, renderables, textures);
+	gbuffer.init(swapchain_image_count, width, height, meshes);
 
 	create_light_render_pass();
 
@@ -737,8 +735,8 @@ void VulkanRenderer::update(float delta) {
 	static float time = 0.0f;
 	time += delta;
 
-	renderables[0].transform = Matrix4::create_scale(5.0f + std::sin(time));
-	renderables[1].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(10.0f, 0.0f, 0.0f));
+	if (meshes.size() > 0) Mesh::meshes[meshes[0]].transform = Matrix4::create_scale(5.0f + std::sin(time));
+	if (meshes.size() > 1) Mesh::meshes[meshes[1]].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(10.0f, 0.0f, 0.0f));
 
 	time_since_last_second += delta;
 	frames_since_last_second++;
@@ -773,7 +771,7 @@ void VulkanRenderer::render() {
 
 	VK_CHECK(vkResetFences(device, 1, &fence));
 
-	gbuffer.record_command_buffer(image_index, width, height, camera, renderables, textures);
+	gbuffer.record_command_buffer(image_index, width, height, camera, meshes);
 	record_command_buffer(image_index);
 
 	// Render to GBuffer

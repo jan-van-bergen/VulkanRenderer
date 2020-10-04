@@ -10,12 +10,12 @@
 
 #include "Util.h"
 
-static std::unordered_map<std::string, std::unique_ptr<Mesh>> cache;
+static std::unordered_map<std::string, MeshHandle> cache;
 
-Mesh const * Mesh::load(std::string const & filename) {
-	std::unique_ptr<Mesh> & mesh = cache[filename];
+MeshHandle Mesh::load(std::string const & filename) {
+	auto & mesh_handle = cache[filename];
 
-	if (mesh != nullptr) return mesh.get();
+	if (mesh_handle != 0 && meshes.size() > 0) return mesh_handle;
 
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t>    shapes;
@@ -32,8 +32,9 @@ Mesh const * Mesh::load(std::string const & filename) {
 		abort();
 	}
 
-	mesh = std::make_unique<Mesh>();
-	
+	mesh_handle = meshes.size();
+	auto & mesh = meshes.emplace_back();
+
 	struct IndexHash {
 		size_t operator()(tinyobj::index_t const & index) const {
 			size_t hash = 17;
@@ -54,12 +55,14 @@ Mesh const * Mesh::load(std::string const & filename) {
 		}
 	};
 	
-	std::vector<Vertex> vertices;
-	std::vector<int>    indices;
-
-	std::unordered_map<tinyobj::index_t, int, IndexHash, IndexCmp> vertex_cache;
-
 	for (auto const & shape : shapes) {
+		std::vector<Vertex> vertices;
+		std::vector<int>    indices;
+		
+		std::unordered_map<tinyobj::index_t, int, IndexHash, IndexCmp> vertex_cache;
+
+		auto & sub_mesh = mesh.sub_meshes.emplace_back();
+
 		for (size_t i = 0; i < shape.mesh.indices.size(); i++) {
 			auto const & index = shape.mesh.indices[i];
 
@@ -98,32 +101,44 @@ Mesh const * Mesh::load(std::string const & filename) {
 
 			indices.push_back(vertex_index);
 		}
+		
+		sub_mesh.index_count = indices.size();
+
+		// Upload Vertex and Index Buffer
+		auto vertex_buffer_size = Util::vector_size_in_bytes(vertices);
+		auto index_buffer_size  = Util::vector_size_in_bytes(indices);
+
+		sub_mesh.vertex_buffer = VulkanMemory::buffer_create(vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		sub_mesh.index_buffer  = VulkanMemory::buffer_create(index_buffer_size,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		VulkanMemory::buffer_copy_staged(sub_mesh.vertex_buffer, vertices.data(), vertex_buffer_size);
+		VulkanMemory::buffer_copy_staged(sub_mesh.index_buffer,  indices.data(),  index_buffer_size);
+
+		sub_mesh.texture = -1;
+
+		int material_id = shape.mesh.material_ids[0];
+		if (material_id != -1) {
+			auto const & material = materials[material_id];
+			
+			if (material.diffuse_texname.length() > 0) {
+				sub_mesh.texture = Texture::load(path + "/" + material.diffuse_texname);
+			}
+		}
+
+		if (sub_mesh.texture == -1) sub_mesh.texture = Texture::load("Data/bricks.png");
 	}
 
-	mesh->index_count = indices.size();
-
-	// Upload Vertex and Index Buffer
-	auto vertex_buffer_size = Util::vector_size_in_bytes(vertices);
-	auto index_buffer_size  = Util::vector_size_in_bytes(indices);
-
-	mesh->vertex_buffer = VulkanMemory::buffer_create(vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	mesh->index_buffer  = VulkanMemory::buffer_create(index_buffer_size,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VulkanMemory::buffer_copy_staged(mesh->vertex_buffer, vertices.data(), vertex_buffer_size);
-	VulkanMemory::buffer_copy_staged(mesh->index_buffer,  indices.data(),  index_buffer_size);
-
-	return mesh.get();
+	return mesh_handle;
 }
 
 void Mesh::free() {
-	auto device = VulkanContext::get_device();
-
-	for (auto & kvp : cache) {
-		auto & mesh = kvp.second;
-
-		VulkanMemory::buffer_free(mesh->vertex_buffer);
-		VulkanMemory::buffer_free(mesh->index_buffer);
+	for (auto & mesh : meshes) {
+		for (auto & sub_mesh : mesh.sub_meshes) {
+			VulkanMemory::buffer_free(sub_mesh.vertex_buffer);
+			VulkanMemory::buffer_free(sub_mesh.index_buffer);
+		}
 	}
 
+	meshes.clear();
 	cache.clear();
 }

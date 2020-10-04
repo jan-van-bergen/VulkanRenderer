@@ -7,12 +7,8 @@
 
 #include "VulkanMemory.h"
 
-#include "Camera.h"
 #include "GBuffer.h"
-
 #include "Lights.h"
-
-#include "Renderable.h"
 
 class VulkanRenderer {
 	GLFWwindow * window;
@@ -60,8 +56,7 @@ class VulkanRenderer {
 
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	
-	std::vector<Renderable> renderables;
-	std::vector<Texture *>  textures;
+	std::vector<MeshHandle> meshes;
 	
 	std::vector<DirectionalLight> directional_lights;
 	std::vector<PointLight>       point_lights;

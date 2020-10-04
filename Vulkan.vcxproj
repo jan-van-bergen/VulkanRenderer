@@ -193,7 +193,6 @@
     <ClInclude Include="Src\Mesh.h" />
     <ClInclude Include="Src\Lights.h" />
     <ClInclude Include="Src\Quaternion.h" />
-    <ClInclude Include="Src\Renderable.h" />
     <ClInclude Include="Src\Texture.h" />
     <ClInclude Include="Src\VulkanRenderer.h" />
     <ClInclude Include="Src\Util.h" />

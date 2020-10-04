@@ -83,7 +83,7 @@ void GBuffer::FrameBuffer::free() {
 	}
 }
 
-void GBuffer::init(int swapchain_image_count, int width, int height, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures) {
+void GBuffer::init(int swapchain_image_count, int width, int height, std::vector<MeshHandle> const & meshes) {
 	auto device = VulkanContext::get_device();
 
 	buffer_width  = 2048;
@@ -109,35 +109,34 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 	
 	// Create Descriptor Pool
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textures.size() }
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Texture::textures.size() }
 	};
 
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
-	pool_create_info.maxSets = textures.size();
+	pool_create_info.maxSets = Texture::textures.size();
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 
 	// Allocate and update Texture Descriptor Sets
-	for (int i = 0; i < textures.size(); i++) {
-		auto & texture        = textures[i];
-		auto & descriptor_set = textures[i]->descriptor_set;
+	for (int i = 0; i < Texture::textures.size(); i++) {
+		auto & texture = Texture::textures[i];
 
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		alloc_info.descriptorPool = descriptor_pool;
 		alloc_info.descriptorSetCount = 1;
 		alloc_info.pSetLayouts        = &descriptor_set_layout;
 
-		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, &descriptor_set));
+		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, &texture.descriptor_set));
 
 		VkDescriptorImageInfo image_info;
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = texture->image_view;
-		image_info.sampler   = texture->sampler;
+		image_info.imageView = texture.image_view;
+		image_info.sampler   = texture.sampler;
 
 		VkWriteDescriptorSet write_descriptor_set = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		write_descriptor_set.dstSet = descriptor_set;
+		write_descriptor_set.dstSet = texture.descriptor_set;
 		write_descriptor_set.dstBinding = 1;
 		write_descriptor_set.dstArrayElement = 0;
 		write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -419,7 +418,7 @@ void GBuffer::free() {
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
-void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures) {
+void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshHandle> const & meshes) {
 	auto & command_buffer = command_buffers[image_index];
 	auto & frame_buffer   = frame_buffers  [image_index];
 
@@ -454,24 +453,29 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 	// Render Renderables
-	for (int i = 0; i < renderables.size(); i++) {
-		auto const & renderable = renderables[i];
+	for (int i = 0; i < meshes.size(); i++) {
+		auto const & mesh = Mesh::meshes[meshes[i]];
 
 		GBufferPushConstants push_constants;
-		push_constants.world = renderable.transform;
-		push_constants.wvp   = camera.get_view_projection() * renderable.transform;
+		push_constants.world = mesh.transform;
+		push_constants.wvp   = camera.get_view_projection() * mesh.transform;
 
 		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
 
-		VkBuffer vertex_buffers[] = { renderable.mesh->vertex_buffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
+			auto const & sub_mesh = mesh.sub_meshes[j];
 
-		vkCmdBindIndexBuffer(command_buffer, renderable.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &textures[renderable.texture_index]->descriptor_set, 0, nullptr);
+			vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdDrawIndexed(command_buffer, renderable.mesh->index_count, 1, 0, 0, 0);
+			auto & texture = Texture::textures[sub_mesh.texture];
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &texture.descriptor_set, 0, nullptr);
+
+			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
+		}
 	}
 
 	vkCmdEndRenderPass(command_buffer);

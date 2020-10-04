@@ -1,7 +1,10 @@
 #pragma once
 #include <string>
+#include <vector>
 
 #include <vulkan/vulkan.h>
+
+typedef int TextureHandle;
 
 struct Texture {
 	VkImage        image;
@@ -11,7 +14,9 @@ struct Texture {
 
 	VkDescriptorSet descriptor_set;
 
-	static Texture * load(std::string const & filename);
+	static inline std::vector<Texture> textures;
+
+	static TextureHandle load(std::string const & filename);
 
 	static void free();
 };

@@ -113,9 +113,6 @@
     <ClInclude Include="Src\GBuffer.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Renderable.h">
-      <Filter>Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Src\Lights.h">
       <Filter>Rendering</Filter>
     </ClInclude>

@@ -10,6 +10,11 @@
 
 #include "Vector2.h"
 #include "Vector3.h"
+#include "Matrix4.h"
+
+#include "Texture.h"
+
+typedef int MeshHandle;
 
 struct Mesh {
 	struct Vertex {
@@ -51,12 +56,22 @@ struct Mesh {
 		}
 	};
 
-	int index_count;
+	struct SubMesh {
+		int index_count;
 
-	VulkanMemory::Buffer vertex_buffer;
-	VulkanMemory::Buffer index_buffer;
+		VulkanMemory::Buffer vertex_buffer;
+		VulkanMemory::Buffer index_buffer;
 
-	static Mesh const * load(std::string const & filename);
+		TextureHandle texture;
+	};
+
+	std::vector<SubMesh> sub_meshes;
+	
+	Matrix4 transform;
+
+	static inline std::vector<Mesh> meshes;
+
+	static MeshHandle load(std::string const & filename);
 
 	static void free();
 };
