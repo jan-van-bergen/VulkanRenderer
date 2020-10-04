@@ -42,8 +42,8 @@ public:
 	
 	std::vector<VkCommandBuffer> command_buffers;
 	
-	void init(int swapchain_image_count, int width, int height, std::vector<MeshHandle> const & meshes);
+	void init(int swapchain_image_count, int width, int height);
 	void free();
 
-	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshHandle> const & meshes);
+	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshInstance> const & meshes);
 };

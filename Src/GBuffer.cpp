@@ -83,7 +83,7 @@ void GBuffer::FrameBuffer::free() {
 	}
 }
 
-void GBuffer::init(int swapchain_image_count, int width, int height, std::vector<MeshHandle> const & meshes) {
+void GBuffer::init(int swapchain_image_count, int width, int height) {
 	auto device = VulkanContext::get_device();
 
 	buffer_width  = 2048;
@@ -418,7 +418,7 @@ void GBuffer::free() {
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
-void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshHandle> const & meshes) {
+void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshInstance> const & meshes) {
 	auto & command_buffer = command_buffers[image_index];
 	auto & frame_buffer   = frame_buffers  [image_index];
 
@@ -454,11 +454,12 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 
 	// Render Renderables
 	for (int i = 0; i < meshes.size(); i++) {
-		auto const & mesh = Mesh::meshes[meshes[i]];
+		auto const & mesh_instance = meshes[i];
+		auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
 		GBufferPushConstants push_constants;
-		push_constants.world = mesh.transform;
-		push_constants.wvp   = camera.get_view_projection() * mesh.transform;
+		push_constants.world =                                mesh_instance.transform;
+		push_constants.wvp   = camera.get_view_projection() * mesh_instance.transform;
 
 		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
 
@@ -471,7 +472,7 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 
 			vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			auto & texture = Texture::textures[sub_mesh.texture];
+			auto & texture = Texture::textures[sub_mesh.texture_handle];
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &texture.descriptor_set, 0, nullptr);
 
 			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);

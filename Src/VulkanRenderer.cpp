@@ -47,12 +47,11 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
-	meshes.push_back(Mesh::load("Data/Monkey.obj"));
-	meshes.push_back(Mesh::load("Data/Cube.obj"));
-	meshes.push_back(Mesh::load("Data/Sponza/sponza_lit.obj"));
+	meshes.push_back({ Mesh::load("Data/Monkey.obj"),            Matrix4::identity() });
+	meshes.push_back({ Mesh::load("Data/Cube.obj"),              Matrix4::identity() });
+	meshes.push_back({ Mesh::load("Data/Cube.obj"),              Matrix4::identity() });
+	meshes.push_back({ Mesh::load("Data/Sponza/sponza_lit.obj"), Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
 	
-	Mesh::meshes[meshes[2]].transform = Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f));
-
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
 	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f),  4.0f });
@@ -698,7 +697,7 @@ void VulkanRenderer::swapchain_create() {
 		image_views[i] = VulkanMemory::create_image_view(swapchain_images[i], 1, VulkanContext::FORMAT.format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
-	gbuffer.init(swapchain_image_count, width, height, meshes);
+	gbuffer.init(swapchain_image_count, width, height);
 
 	create_light_render_pass();
 
@@ -735,8 +734,9 @@ void VulkanRenderer::update(float delta) {
 	static float time = 0.0f;
 	time += delta;
 
-	if (meshes.size() > 0) Mesh::meshes[meshes[0]].transform = Matrix4::create_scale(5.0f + std::sin(time));
-	if (meshes.size() > 1) Mesh::meshes[meshes[1]].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(10.0f, 0.0f, 0.0f));
+	if (meshes.size() > 0) meshes[0].transform = Matrix4::create_scale(5.0f + std::sin(time));
+	if (meshes.size() > 1) meshes[1].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3( 10.0f, 0.0f, 0.0f));
+	if (meshes.size() > 2) meshes[2].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(-10.0f, 0.0f, 0.0f));
 
 	time_since_last_second += delta;
 	frames_since_last_second++;

@@ -114,18 +114,18 @@ MeshHandle Mesh::load(std::string const & filename) {
 		VulkanMemory::buffer_copy_staged(sub_mesh.vertex_buffer, vertices.data(), vertex_buffer_size);
 		VulkanMemory::buffer_copy_staged(sub_mesh.index_buffer,  indices.data(),  index_buffer_size);
 
-		sub_mesh.texture = -1;
+		sub_mesh.texture_handle = -1;
 
 		int material_id = shape.mesh.material_ids[0];
 		if (material_id != -1) {
 			auto const & material = materials[material_id];
 			
 			if (material.diffuse_texname.length() > 0) {
-				sub_mesh.texture = Texture::load(path + "/" + material.diffuse_texname);
+				sub_mesh.texture_handle = Texture::load(path + "/" + material.diffuse_texname);
 			}
 		}
 
-		if (sub_mesh.texture == -1) sub_mesh.texture = Texture::load("Data/bricks.png");
+		if (sub_mesh.texture_handle == -1) sub_mesh.texture_handle = Texture::load("Data/bricks.png");
 	}
 
 	return mesh_handle;

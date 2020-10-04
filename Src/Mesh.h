@@ -62,16 +62,19 @@ struct Mesh {
 		VulkanMemory::Buffer vertex_buffer;
 		VulkanMemory::Buffer index_buffer;
 
-		TextureHandle texture;
+		TextureHandle texture_handle;
 	};
 
 	std::vector<SubMesh> sub_meshes;
 	
-	Matrix4 transform;
-
 	static inline std::vector<Mesh> meshes;
 
 	static MeshHandle load(std::string const & filename);
 
 	static void free();
+};
+
+struct MeshInstance {
+	MeshHandle mesh_handle;
+	Matrix4 transform;
 };
