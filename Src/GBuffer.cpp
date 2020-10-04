@@ -119,24 +119,25 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 
-	// Allocate and update Descriptor Sets
-	std::vector<VkDescriptorSetLayout> layouts(textures.size(), descriptor_set_layout);
-
-	VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	alloc_info.descriptorPool = descriptor_pool;
-	alloc_info.descriptorSetCount = layouts.size();
-	alloc_info.pSetLayouts        = layouts.data();
-
-	descriptor_sets.resize(textures.size()); VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
-
+	// Allocate and update Texture Descriptor Sets
 	for (int i = 0; i < textures.size(); i++) {
+		auto & texture        = textures[i];
+		auto & descriptor_set = textures[i]->descriptor_set;
+
+		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		alloc_info.descriptorPool = descriptor_pool;
+		alloc_info.descriptorSetCount = 1;
+		alloc_info.pSetLayouts        = &descriptor_set_layout;
+
+		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, &descriptor_set));
+
 		VkDescriptorImageInfo image_info;
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = textures[i]->image_view;
-		image_info.sampler   = textures[i]->sampler;
+		image_info.imageView = texture->image_view;
+		image_info.sampler   = texture->sampler;
 
 		VkWriteDescriptorSet write_descriptor_set = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		write_descriptor_set.dstSet = descriptor_sets[i];
+		write_descriptor_set.dstSet = descriptor_set;
 		write_descriptor_set.dstBinding = 1;
 		write_descriptor_set.dstArrayElement = 0;
 		write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -418,7 +419,7 @@ void GBuffer::free() {
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
-void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables) {
+void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures) {
 	auto & command_buffer = command_buffers[image_index];
 	auto & frame_buffer   = frame_buffers  [image_index];
 
@@ -468,7 +469,7 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 
 		vkCmdBindIndexBuffer(command_buffer, renderable.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[renderable.texture_index], 0, nullptr);
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &textures[renderable.texture_index]->descriptor_set, 0, nullptr);
 
 		vkCmdDrawIndexed(command_buffer, renderable.mesh->index_count, 1, 0, 0, 0);
 	}

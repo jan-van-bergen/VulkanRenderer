@@ -16,10 +16,9 @@ class GBuffer {
 	VkPipeline       pipeline;
 	VkPipelineLayout pipeline_layout;
 	
-	VkDescriptorPool             descriptor_pool;
-	VkDescriptorSetLayout        descriptor_set_layout;
-	std::vector<VkDescriptorSet> descriptor_sets;
-
+	VkDescriptorPool      descriptor_pool;
+	VkDescriptorSetLayout descriptor_set_layout;
+	
 public:
 	struct FrameBuffer {
 		struct Attachment {
@@ -45,5 +44,5 @@ public:
 	void init(int swapchain_image_count, int width, int height, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures);
 	void free();
 
-	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables);
+	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables, std::vector<Texture *> const & textures);
 };

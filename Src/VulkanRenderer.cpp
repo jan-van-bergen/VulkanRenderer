@@ -773,7 +773,7 @@ void VulkanRenderer::render() {
 
 	VK_CHECK(vkResetFences(device, 1, &fence));
 
-	gbuffer.record_command_buffer(image_index, width, height, camera, renderables);
+	gbuffer.record_command_buffer(image_index, width, height, camera, renderables, textures);
 	record_command_buffer(image_index);
 
 	// Render to GBuffer
