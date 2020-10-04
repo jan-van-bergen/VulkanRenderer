@@ -51,13 +51,12 @@ struct Mesh {
 		}
 	};
 
-	std::vector<Vertex> vertices;
-	std::vector<u32>    indices;
+	int index_count;
 
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
 
-	static Mesh * load(std::string const & filename);
+	static Mesh const * load(std::string const & filename);
 
 	static void free();
 };

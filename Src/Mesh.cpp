@@ -12,7 +12,7 @@
 
 static std::unordered_map<std::string, std::unique_ptr<Mesh>> cache;
 
-Mesh * Mesh::load(std::string const & filename) {
+Mesh const * Mesh::load(std::string const & filename) {
 	std::unique_ptr<Mesh> & mesh = cache[filename];
 
 	if (mesh != nullptr) return mesh.get();
@@ -53,6 +53,9 @@ Mesh * Mesh::load(std::string const & filename) {
 				left.normal_index   == right.normal_index;
 		}
 	};
+	
+	std::vector<Vertex> vertices;
+	std::vector<int>    indices;
 
 	std::unordered_map<tinyobj::index_t, int, IndexHash, IndexCmp> vertex_cache;
 
@@ -66,29 +69,48 @@ Mesh * Mesh::load(std::string const & filename) {
 			if (vertex_cache.find(index) != vertex_cache.end()) {
 				vertex_index = vertex_cache[index];
 			} else {
-				vertex_index = mesh->vertices.size();
+				vertex_index = vertices.size();
 
 				vertex_cache.insert(std::make_pair(index, vertex_index));
 
-				auto & vertex = mesh->vertices.emplace_back();
-				vertex.position = Vector3(&attrib.vertices[index.vertex_index*3]);
-				vertex.texcoord = Vector2(attrib.texcoords[index.texcoord_index*2], 1.0f - attrib.texcoords[index.texcoord_index*2 + 1]);
-				vertex.normal   = Vector3(&attrib.normals [index.normal_index*3]);
+				int index_pos = index.vertex_index   * 3;
+				int index_tex = index.texcoord_index * 2;
+				int index_nor = index.normal_index   * 3;
+
+				auto & vertex = vertices.emplace_back();
+				vertex.position = Vector3(
+					attrib.vertices[index_pos],
+					attrib.vertices[index_pos + 1],
+					attrib.vertices[index_pos + 2]
+				);
+				
+				if (index_tex >= 0) vertex.texcoord = Vector2(
+					attrib.texcoords[index_tex], 
+					1.0f - attrib.texcoords[index_tex + 1]
+				);
+
+				if (index_nor >= 0) vertex.normal = Vector3(
+					attrib.normals[index_nor],
+					attrib.normals[index_nor + 1],
+					attrib.normals[index_nor + 2]
+				);
 			}
 
-			mesh->indices.push_back(vertex_index);
+			indices.push_back(vertex_index);
 		}
 	}
 
+	mesh->index_count = indices.size();
+
 	// Upload Vertex and Index Buffer
-	auto vertex_buffer_size = Util::vector_size_in_bytes(mesh->vertices);
-	auto index_buffer_size  = Util::vector_size_in_bytes(mesh->indices);
+	auto vertex_buffer_size = Util::vector_size_in_bytes(vertices);
+	auto index_buffer_size  = Util::vector_size_in_bytes(indices);
 
 	mesh->vertex_buffer = VulkanMemory::buffer_create(vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	mesh->index_buffer  = VulkanMemory::buffer_create(index_buffer_size,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	VulkanMemory::buffer_copy_staged(mesh->vertex_buffer, mesh->vertices.data(), vertex_buffer_size);
-	VulkanMemory::buffer_copy_staged(mesh->index_buffer,  mesh->indices.data(),  index_buffer_size);
+	VulkanMemory::buffer_copy_staged(mesh->vertex_buffer, vertices.data(), vertex_buffer_size);
+	VulkanMemory::buffer_copy_staged(mesh->index_buffer,  indices.data(),  index_buffer_size);
 
 	return mesh.get();
 }

@@ -5,7 +5,7 @@
 #include "Matrix4.h"
 
 struct Renderable {
-	Mesh * mesh;
+	Mesh const * mesh;
 	u32 texture_index;
 	
 	Matrix4 transform;

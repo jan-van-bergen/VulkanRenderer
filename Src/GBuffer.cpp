@@ -8,12 +8,12 @@
 
 #include "Util.h"
 
-struct PushConstants {
+struct GBufferPushConstants {
 	alignas(16) Matrix4 world;
 	alignas(16) Matrix4 wvp;
 };
 
-struct UniformBufferObject {
+struct GBufferUBO {
 	int texture_index;
 };
 
@@ -136,7 +136,7 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 	// Create Uniform Buffers
 	uniform_buffers.resize(swapchain_image_count);
 
-	auto aligned_size = Math::round_up(sizeof(UniformBufferObject), VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size = Math::round_up(sizeof(GBufferUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	
 	for (int i = 0; i < swapchain_image_count; i++) {
 		uniform_buffers[i] = VulkanMemory::buffer_create(renderables.size() * aligned_size,
@@ -177,7 +177,7 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 		VkDescriptorBufferInfo buffer_info = { };
 		buffer_info.buffer = uniform_buffers[i].buffer;
 		buffer_info.offset = 0;
-		buffer_info.range = sizeof(UniformBufferObject);
+		buffer_info.range = sizeof(GBufferUBO);
 
 		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor_sets[1].dstSet = descriptor_sets[i];
@@ -278,7 +278,7 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 
 	VkPushConstantRange push_constants;
 	push_constants.offset = 0;
-	push_constants.size = sizeof(PushConstants);
+	push_constants.size = sizeof(GBufferPushConstants);
 	push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VkPipelineLayoutCreateInfo pipeline_layout_create_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -501,15 +501,15 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
 	// Upload UBO
-	auto aligned_size = Math::round_up(sizeof(UniformBufferObject), VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size = Math::round_up(sizeof(GBufferUBO), VulkanContext::get_min_uniform_buffer_alignment());
 
 	std::vector<std::byte> buf(renderables.size() * aligned_size);
 
 	for (int i = 0; i < renderables.size(); i++) {
-		UniformBufferObject ubo = { };
+		GBufferUBO ubo = { };
 		ubo.texture_index = renderables[i].texture_index;
 
-		std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(UniformBufferObject));
+		std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(GBufferUBO));
 	}
 
 	VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
@@ -518,11 +518,11 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 	for (int i = 0; i < renderables.size(); i++) {
 		auto const & renderable = renderables[i];
 
-		PushConstants push_constants;
+		GBufferPushConstants push_constants;
 		push_constants.world = renderable.transform;
 		push_constants.wvp   = camera.get_view_projection() * renderable.transform;
 
-		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
+		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
 
 		VkBuffer vertex_buffers[] = { renderable.mesh->vertex_buffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
@@ -533,7 +533,7 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 		u32 offset = i * aligned_size;
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
-		vkCmdDrawIndexed(command_buffer, renderable.mesh->indices.size(), 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffer, renderable.mesh->index_count, 1, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(command_buffer);

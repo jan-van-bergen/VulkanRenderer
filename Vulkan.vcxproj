@@ -170,6 +170,7 @@
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Mesh.cpp" />
+    <ClCompile Include="Src\Lights.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\VulkanContext.cpp" />
     <ClCompile Include="Src\VulkanMemory.cpp" />
@@ -190,6 +191,7 @@
     <ClInclude Include="Src\Math.h" />
     <ClInclude Include="Src\Matrix4.h" />
     <ClInclude Include="Src\Mesh.h" />
+    <ClInclude Include="Src\Lights.h" />
     <ClInclude Include="Src\Quaternion.h" />
     <ClInclude Include="Src\Renderable.h" />
     <ClInclude Include="Src\Texture.h" />

@@ -10,6 +10,8 @@
 #include "Camera.h"
 #include "GBuffer.h"
 
+#include "Lights.h"
+
 #include "Renderable.h"
 
 class VulkanRenderer {
@@ -18,24 +20,30 @@ class VulkanRenderer {
 	VkSwapchainKHR           swapchain;
 	std::vector<VkImageView> image_views;
 	
-	VkRenderPass render_pass;
+	struct LightPass {
+		VkPipelineLayout pipeline_layout;
+		VkPipeline       pipeline;
 	
-	VkPipelineLayout pipeline_layout;
-	VkPipeline       pipeline;
+		std::vector<VkDescriptorSet>      descriptor_sets;
+		std::vector<VulkanMemory::Buffer> uniform_buffers;
+
+		void free();
+	};
 	
-	VkDescriptorSetLayout descriptor_set_layout;
-
-	std::vector<VkFramebuffer> frame_buffers;
-
+	VkDescriptorSetLayout light_descriptor_set_layout;
+	VkRenderPass          light_render_pass;
+	
+	LightPass light_pass_directional;
+	LightPass light_pass_point;
+	
 	std::vector<VkCommandBuffer> command_buffers;
+	std::vector<VkFramebuffer>   frame_buffers;
 
 	VkImage        depth_image;
 	VkDeviceMemory depth_image_memory;
 	VkImageView    depth_image_view;
 
-	VkDescriptorPool             descriptor_pool;
-	std::vector<VkDescriptorSet> descriptor_sets;
-
+	VkDescriptorPool descriptor_pool;
 	VkDescriptorPool descriptor_pool_gui;
 
 	std::vector<VkSemaphore> semaphores_image_available;
@@ -54,6 +62,9 @@ class VulkanRenderer {
 	
 	std::vector<Renderable> renderables;
 	std::vector<Texture *>  textures;
+	
+	std::vector<DirectionalLight> directional_lights;
+	std::vector<PointLight>       point_lights;
 
 	// Timing
 	float frame_delta;
@@ -64,11 +75,18 @@ class VulkanRenderer {
 	void swapchain_create();
 	void swapchain_destroy();
 
-	void create_descriptor_set_layout();
-	void create_pipeline();
-	void create_depth_buffer();
+	void create_light_render_pass();
+
+	LightPass create_light_pass(
+		std::vector<VkVertexInputBindingDescription>   const & vertex_bindings,
+		std::vector<VkVertexInputAttributeDescription> const & vertex_attributes,
+		std::string const & filename_shader_vertex,
+		std::string const & filename_shader_fragment,
+		size_t push_constants_size,
+		size_t ubo_size
+	);
+
 	void create_frame_buffers();
-	void create_descriptor_sets();
 	void create_command_buffers();
 	void create_sync_primitives();
 	void create_imgui();
