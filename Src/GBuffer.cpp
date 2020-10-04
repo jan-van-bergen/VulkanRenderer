@@ -13,10 +13,6 @@ struct GBufferPushConstants {
 	alignas(16) Matrix4 wvp;
 };
 
-struct GBufferUBO {
-	int texture_index;
-};
-
 void GBuffer::FrameBuffer::init(int swapchain_image_count, int width, int height, VkFormat format, VkImageUsageFlagBits usage) {
 	VkImageAspectFlags image_aspect_mask = 0;
 	VkImageLayout      image_layout;
@@ -97,20 +93,12 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 	VkDescriptorSetLayoutBinding layout_binding_sampler = { };
 	layout_binding_sampler.binding = 1;
 	layout_binding_sampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	layout_binding_sampler.descriptorCount = 2;
+	layout_binding_sampler.descriptorCount = 1;
 	layout_binding_sampler.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	layout_binding_sampler.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding layout_binding_ubo = { };
-	layout_binding_ubo.binding = 2;
-	layout_binding_ubo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	layout_binding_ubo.descriptorCount = 1;
-	layout_binding_ubo.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_binding_ubo.pImmutableSamplers = nullptr;
-
 	VkDescriptorSetLayoutBinding layout_bindings[] = {
-		layout_binding_sampler,
-		layout_binding_ubo
+		layout_binding_sampler
 	};
 
 	VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -121,73 +109,41 @@ void GBuffer::init(int swapchain_image_count, int width, int height, std::vector
 	
 	// Create Descriptor Pool
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, swapchain_image_count },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, swapchain_image_count },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, swapchain_image_count }
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, textures.size() }
 	};
 
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
-	pool_create_info.maxSets = swapchain_image_count;
+	pool_create_info.maxSets = textures.size();
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 
-	// Create Uniform Buffers
-	uniform_buffers.resize(swapchain_image_count);
-
-	auto aligned_size = Math::round_up(sizeof(GBufferUBO), VulkanContext::get_min_uniform_buffer_alignment());
-	
-	for (int i = 0; i < swapchain_image_count; i++) {
-		uniform_buffers[i] = VulkanMemory::buffer_create(renderables.size() * aligned_size,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-	}
-
 	// Allocate and update Descriptor Sets
-	std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layout);
+	std::vector<VkDescriptorSetLayout> layouts(textures.size(), descriptor_set_layout);
 
 	VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	alloc_info.descriptorPool = descriptor_pool;
 	alloc_info.descriptorSetCount = layouts.size();
 	alloc_info.pSetLayouts        = layouts.data();
 
-	descriptor_sets.resize(swapchain_image_count); VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
+	descriptor_sets.resize(textures.size()); VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.data()));
 
-	for (int i = 0; i < swapchain_image_count; i++) {
-		std::vector<VkDescriptorImageInfo> image_infos(textures.size());
+	for (int i = 0; i < textures.size(); i++) {
+		VkDescriptorImageInfo image_info;
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = textures[i]->image_view;
+		image_info.sampler   = textures[i]->sampler;
 
-		for (int j = 0; j < textures.size(); j++) {
-			image_infos[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			image_infos[j].imageView = textures[j]->image_view;
-			image_infos[j].sampler   = textures[j]->sampler;
-		}
-		
-		VkWriteDescriptorSet write_descriptor_sets[2] = { };
+		VkWriteDescriptorSet write_descriptor_set = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		write_descriptor_set.dstSet = descriptor_sets[i];
+		write_descriptor_set.dstBinding = 1;
+		write_descriptor_set.dstArrayElement = 0;
+		write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write_descriptor_set.descriptorCount = 1;
+		write_descriptor_set.pImageInfo      = &image_info;
 
-		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		write_descriptor_sets[0].dstSet = descriptor_sets[i];
-		write_descriptor_sets[0].dstBinding = 1;
-		write_descriptor_sets[0].dstArrayElement = 0;
-		write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		write_descriptor_sets[0].descriptorCount = 2;
-		write_descriptor_sets[0].pImageInfo = image_infos.data();
-
-		VkDescriptorBufferInfo buffer_info = { };
-		buffer_info.buffer = uniform_buffers[i].buffer;
-		buffer_info.offset = 0;
-		buffer_info.range = sizeof(GBufferUBO);
-
-		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		write_descriptor_sets[1].dstSet = descriptor_sets[i];
-		write_descriptor_sets[1].dstBinding = 2;
-		write_descriptor_sets[1].dstArrayElement = 0;
-		write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-		write_descriptor_sets[1].descriptorCount = 1;
-		write_descriptor_sets[1].pBufferInfo = &buffer_info;
-
-		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
+		vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
 	}
 
 	// Create Pipeline Layout
@@ -444,8 +400,6 @@ void GBuffer::free() {
 
 	for (int i = 0; i < swapchain_image_count; i++) {
 		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
-		
-		VulkanMemory::buffer_free(uniform_buffers[i]);
 	}
 
 	frame_buffer_albedo  .free();
@@ -467,8 +421,6 @@ void GBuffer::free() {
 void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<Renderable> const & renderables) {
 	auto & command_buffer = command_buffers[image_index];
 	auto & frame_buffer   = frame_buffers  [image_index];
-	auto & uniform_buffer = uniform_buffers[image_index];
-    auto & descriptor_set = descriptor_sets[image_index];
 
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 
@@ -500,20 +452,6 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-	// Upload UBO
-	auto aligned_size = Math::round_up(sizeof(GBufferUBO), VulkanContext::get_min_uniform_buffer_alignment());
-
-	std::vector<std::byte> buf(renderables.size() * aligned_size);
-
-	for (int i = 0; i < renderables.size(); i++) {
-		GBufferUBO ubo = { };
-		ubo.texture_index = renderables[i].texture_index;
-
-		std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(GBufferUBO));
-	}
-
-	VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
-	
 	// Render Renderables
 	for (int i = 0; i < renderables.size(); i++) {
 		auto const & renderable = renderables[i];
@@ -530,8 +468,7 @@ void GBuffer::record_command_buffer(int image_index, int width, int height, Came
 
 		vkCmdBindIndexBuffer(command_buffer, renderable.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		u32 offset = i * aligned_size;
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[renderable.texture_index], 0, nullptr);
 
 		vkCmdDrawIndexed(command_buffer, renderable.mesh->index_count, 1, 0, 0, 0);
 	}

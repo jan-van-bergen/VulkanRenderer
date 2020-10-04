@@ -13,8 +13,6 @@ class GBuffer {
 	
 	VkRenderPass render_pass;
 	
-	std::vector<VulkanMemory::Buffer> uniform_buffers;
-	
 	VkPipeline       pipeline;
 	VkPipelineLayout pipeline_layout;
 	

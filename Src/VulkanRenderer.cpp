@@ -49,10 +49,11 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 
 	renderables.push_back({ Mesh::load("Data/Monkey.obj"),  0, Matrix4::identity() });
 	renderables.push_back({ Mesh::load("Data/Cube.obj"),    1, Matrix4::identity() });
-	renderables.push_back({ Mesh::load("Data/Terrain.obj"), 0, Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
+	renderables.push_back({ Mesh::load("Data/Terrain.obj"), 2, Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
 	
 	textures.push_back(Texture::load("Data/bricks.png"));
 	textures.push_back(Texture::load("Data/bricks2.png"));
+	textures.push_back(Texture::load("Data/grass.png"));
 
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 

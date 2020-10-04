@@ -9,14 +9,10 @@ layout(location = 0) out vec4 out_albedo;
 layout(location = 1) out vec4 out_position;
 layout(location = 2) out vec4 out_normal;
 
-layout(binding = 1) uniform sampler2D texture_samplers[2];
-
-layout(binding = 2) uniform UBO {
-	int texture_index;
-};
+layout(binding = 1) uniform sampler2D sampler_diffuse;
 
 void main() {
-	out_albedo   = texture(texture_samplers[texture_index], in_texcoord);
+	out_albedo   = texture(sampler_diffuse, in_texcoord);
 	out_position = vec4(in_position, 0.0f);
 	out_normal   = vec4(in_normal,   0.0f);
 }
