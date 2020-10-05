@@ -8,7 +8,7 @@ Camera::Camera(float fov, int width, int height, float near, float far) {
 	this->near = near;
 	this->far  = far;
 
-	set_locked(true);
+	set_locked(false);
 	
 	angle_x = 0.0f;
 	angle_y = 0.0f;

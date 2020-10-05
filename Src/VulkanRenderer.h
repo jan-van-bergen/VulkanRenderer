@@ -83,7 +83,6 @@ class VulkanRenderer {
 
 	void create_frame_buffers();
 	void create_command_buffers();
-	void create_sync_primitives();
 	void create_imgui();
 
 	void record_command_buffer(u32 image_index);

@@ -86,8 +86,8 @@ void GBuffer::FrameBuffer::free() {
 void GBuffer::init(int swapchain_image_count, int width, int height) {
 	auto device = VulkanContext::get_device();
 
-	buffer_width  = 2048;
-	buffer_height = 2048;
+	this->width  = width;
+	this->height = height;
 
 	// Create Descriptor Set Layout
 	VkDescriptorSetLayoutBinding layout_binding_sampler = { };
@@ -418,7 +418,7 @@ void GBuffer::free() {
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
-void GBuffer::record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshInstance> const & meshes) {
+void GBuffer::record_command_buffer(int image_index, Camera const & camera, std::vector<MeshInstance> const & meshes) {
 	auto & command_buffer = command_buffers[image_index];
 	auto & frame_buffer   = frame_buffers  [image_index];
 

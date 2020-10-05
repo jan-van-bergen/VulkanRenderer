@@ -42,19 +42,21 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 	inflight_fences           (MAX_FRAMES_IN_FLIGHT),
 	camera(DEG_TO_RAD(110.0f), width, height)
 {
+	auto device = VulkanContext::get_device();
+
 	this->width  = width;
 	this->height = height;
 
 	this->window = window;
 
-	meshes.push_back({ Mesh::load("Data/Monkey.obj"),            Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Cube.obj"),              Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Cube.obj"),              Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Sponza/sponza_lit.obj"), Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
+	meshes.push_back({ Mesh::load("Data/Monkey.obj"),        Matrix4::identity() });
+	meshes.push_back({ Mesh::load("Data/Cube.obj"),          Matrix4::identity() });
+	meshes.push_back({ Mesh::load("Data/Cube.obj"),          Matrix4::identity() });
+	meshes.push_back({ Mesh::load("Data/Terrain.obj"), Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
 	
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
-	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f),  4.0f });
+	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
 	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3( 6.0f, 0.0f, 0.0f), 16.0f });
 
 	PointLight::init_sphere();
@@ -65,6 +67,21 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 	ImGui::StyleColorsDark();
 
 	swapchain_create();
+
+	VkSemaphoreCreateInfo semaphore_create_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+
+	VkFenceCreateInfo fence_create_info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_image_available[i]));
+		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_gbuffer_done   [i]));
+		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
+
+		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &inflight_fences[i]));
+	}
+
+	images_in_flight.resize(image_views.size(), VK_NULL_HANDLE);
 }
 
 VulkanRenderer::~VulkanRenderer() {
@@ -72,13 +89,7 @@ VulkanRenderer::~VulkanRenderer() {
 
 	swapchain_destroy();
 
-	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-
-	gbuffer.free();
-
-	vkDestroyDescriptorPool(device, descriptor_pool_gui, nullptr);
 
 	PointLight::free_sphere();
 
@@ -664,25 +675,6 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	VK_CHECK(vkEndCommandBuffer(command_buffer));
 }
 
-void VulkanRenderer::create_sync_primitives() {
-	auto device = VulkanContext::get_device();
-
-	VkSemaphoreCreateInfo semaphore_create_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-
-	VkFenceCreateInfo fence_create_info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_image_available[i]));
-		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_gbuffer_done   [i]));
-		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
-
-		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &inflight_fences[i]));
-	}
-
-	images_in_flight.resize(image_views.size(), VK_NULL_HANDLE);
-}
-
 void VulkanRenderer::swapchain_create() {
 	swapchain = VulkanContext::create_swapchain(width, height);
 
@@ -722,7 +714,6 @@ void VulkanRenderer::swapchain_create() {
 	create_frame_buffers();
 
 	create_command_buffers();
-	create_sync_primitives();
 	create_imgui();	
 }
 
@@ -771,7 +762,7 @@ void VulkanRenderer::render() {
 
 	VK_CHECK(vkResetFences(device, 1, &fence));
 
-	gbuffer.record_command_buffer(image_index, width, height, camera, meshes);
+	gbuffer.record_command_buffer(image_index, camera, meshes);
 	record_command_buffer(image_index);
 
 	// Render to GBuffer
@@ -860,6 +851,8 @@ void VulkanRenderer::render() {
 void VulkanRenderer::swapchain_destroy() {
 	auto device       = VulkanContext::get_device();
 	auto command_pool = VulkanContext::get_command_pool();
+	
+	gbuffer.free();
 
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);
@@ -870,7 +863,7 @@ void VulkanRenderer::swapchain_destroy() {
 	light_pass_directional.free();
 	light_pass_point      .free();
 
-	vkDestroyDescriptorPool     (device, descriptor_pool,       nullptr);
+	vkDestroyDescriptorPool     (device, descriptor_pool,             nullptr);
 	vkDestroyDescriptorSetLayout(device, light_descriptor_set_layout, nullptr);
 
 	vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
@@ -880,8 +873,12 @@ void VulkanRenderer::swapchain_destroy() {
 	for (int i = 0; i < image_views.size(); i++) {
 		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
 		vkDestroyImageView  (device, image_views  [i], nullptr);
-
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);
+	
+	vkDestroyDescriptorPool(device, descriptor_pool_gui, nullptr);
+
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
 }

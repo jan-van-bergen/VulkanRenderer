@@ -8,7 +8,7 @@
 #include "Texture.h"
 
 class GBuffer {
-	int buffer_width, buffer_height;
+	int width, height;
 
 	std::vector<VkFramebuffer> frame_buffers;
 	
@@ -45,5 +45,5 @@ public:
 	void init(int swapchain_image_count, int width, int height);
 	void free();
 
-	void record_command_buffer(int image_index, int width, int height, Camera const & camera, std::vector<MeshInstance> const & meshes);
+	void record_command_buffer(int image_index, Camera const & camera, std::vector<MeshInstance> const & meshes);
 };
