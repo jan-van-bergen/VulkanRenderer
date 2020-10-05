@@ -814,8 +814,6 @@ void VulkanRenderer::render() {
 	present_info.pResults = nullptr;
 
 	auto result = vkQueuePresentKHR(queue_present, &present_info);
-	
-	VK_CHECK(vkDeviceWaitIdle(device));
 
 	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_needs_resize) {
 		int w, h;
