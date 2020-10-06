@@ -549,6 +549,9 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 	ImGui::Begin("Vulkan Renderer");
 	ImGui::Text("Delta: %.2f ms", 1000.0f * frame_delta);
+	ImGui::Text("Avg:   %.2f ms", 1000.0f * frame_avg);
+	ImGui::Text("Min:   %.2f ms", 1000.0f * frame_min);
+	ImGui::Text("Max:   %.2f ms", 1000.0f * frame_max);
 	ImGui::Text("FPS:   %d", fps);
 	ImGui::End();
 
@@ -714,8 +717,6 @@ void VulkanRenderer::swapchain_create() {
 }
 
 void VulkanRenderer::update(float delta) {
-	frame_delta = delta;
-
 	camera.update(delta);
 
 	static float time = 0.0f;
@@ -724,6 +725,27 @@ void VulkanRenderer::update(float delta) {
 	if (meshes.size() > 0) meshes[0].transform = Matrix4::create_scale(5.0f + std::sin(time));
 	if (meshes.size() > 1) meshes[1].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3( 10.0f, 0.0f, 0.0f));
 	if (meshes.size() > 2) meshes[2].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(-10.0f, 0.0f, 0.0f));
+	
+	frame_delta = delta;
+
+	constexpr int FRAME_HISTORY_LENGTH = 100;
+
+	if (frame_times.size() < 100) {
+		frame_times.push_back(frame_delta);
+	} else {
+		frame_times[frame_index++ % FRAME_HISTORY_LENGTH] = frame_delta;
+	}
+	
+	frame_avg = 0.0f;
+	frame_min = INFINITY;
+	frame_max = 0.0f;
+
+	for (int i = 0; i < frame_times.size(); i++) {
+		frame_avg += frame_times[i];
+		frame_min = std::min(frame_min, frame_times[i]);
+		frame_max = std::max(frame_max, frame_times[i]);
+	}
+	frame_avg /= float(frame_times.size());
 
 	time_since_last_second += delta;
 	frames_since_last_second++;

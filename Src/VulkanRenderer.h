@@ -62,9 +62,16 @@ class VulkanRenderer {
 
 	// Timing
 	float frame_delta;
+	float frame_avg;
+	float frame_min;
+	float frame_max;
+
 	float time_since_last_second = 0.0f;
 	int frames_since_last_second = 0;
 	int fps = 0;
+
+	int frame_index = 0;
+	std::vector<float> frame_times;
 
 	void swapchain_create();
 	void swapchain_destroy();
