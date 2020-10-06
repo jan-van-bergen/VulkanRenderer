@@ -35,13 +35,7 @@ struct PointLightUBO {
 	alignas(16) Vector3 camera_position;
 };
 
-VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
-	semaphores_image_available(MAX_FRAMES_IN_FLIGHT),
-	semaphores_gbuffer_done   (MAX_FRAMES_IN_FLIGHT),
-	semaphores_render_done    (MAX_FRAMES_IN_FLIGHT),
-	inflight_fences           (MAX_FRAMES_IN_FLIGHT),
-	camera(DEG_TO_RAD(110.0f), width, height)
-{
+VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : camera(DEG_TO_RAD(110.0f), width, height) {
 	auto device = VulkanContext::get_device();
 
 	this->width  = width;
@@ -52,12 +46,16 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 	meshes.push_back({ Mesh::load("Data/Monkey.obj"),        Matrix4::identity() });
 	meshes.push_back({ Mesh::load("Data/Cube.obj"),          Matrix4::identity() });
 	meshes.push_back({ Mesh::load("Data/Cube.obj"),          Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Terrain.obj"), Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
+	meshes.push_back({ Mesh::load("Data/Sponza/sponza.obj"), Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
 	
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
 	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
 	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3( 6.0f, 0.0f, 0.0f), 16.0f });
+	
+	/*for (int i = 0; i < 100; i++) {
+		point_lights.push_back({ Vector3(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX)), Vector3(100.0f * rand() / float(RAND_MAX) - 50.0f, -6.0f, 20.0f * rand() / float(RAND_MAX) - 10.0f), 4.0f });
+	}*/
 
 	PointLight::init_sphere();
 
@@ -78,10 +76,8 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) :
 		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_gbuffer_done   [i]));
 		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
 
-		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &inflight_fences[i]));
+		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &fences_inflight[i]));
 	}
-
-	images_in_flight.resize(image_views.size(), VK_NULL_HANDLE);
 }
 
 VulkanRenderer::~VulkanRenderer() {
@@ -101,7 +97,7 @@ VulkanRenderer::~VulkanRenderer() {
 		vkDestroySemaphore(device, semaphores_gbuffer_done   [i], nullptr);
 		vkDestroySemaphore(device, semaphores_render_done    [i], nullptr);
 
-		vkDestroyFence(device, inflight_fences[i], nullptr);
+		vkDestroyFence(device, fences_inflight[i], nullptr);
 	}
 }
 
@@ -749,18 +745,12 @@ void VulkanRenderer::render() {
 	auto const & semaphore_gbuffer_done    = semaphores_gbuffer_done   [current_frame];
 	auto const & semaphore_render_done     = semaphores_render_done    [current_frame];
 
-	auto const & fence = inflight_fences[current_frame];
+	auto const & fence = fences_inflight[current_frame];
 
 	VK_CHECK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+	VK_CHECK(vkResetFences(device, 1, &fence));
 
 	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
-
-	if (images_in_flight[image_index] != VK_NULL_HANDLE) {
-		vkWaitForFences(device, 1, &images_in_flight[image_index], VK_TRUE, UINT64_MAX);
-	}
-	images_in_flight[image_index] = fence;
-
-	VK_CHECK(vkResetFences(device, 1, &fence));
 
 	gbuffer.record_command_buffer(image_index, camera, meshes);
 	record_command_buffer(image_index);
@@ -808,7 +798,7 @@ void VulkanRenderer::render() {
 	VkPresentInfoKHR present_info =  { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	present_info.waitSemaphoreCount = 1;
 	present_info.pWaitSemaphores    = &semaphore_render_done;
-	present_info.swapchainCount = 1;
+	present_info.swapchainCount = Util::array_element_count(swapchains);
 	present_info.pSwapchains    = swapchains;
 	present_info.pImageIndices  = &image_index;
 	present_info.pResults = nullptr;

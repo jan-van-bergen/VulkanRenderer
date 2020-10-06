@@ -59,5 +59,5 @@ void main() {
 	vec3 position = texture(sampler_position, in_uv).xyz;
 	vec3 normal   = texture(sampler_normal,   in_uv).xyz;
 
-	out_colour = /*vec4(albedo * 0.1f, 0.0f) +*/ vec4(albedo, 1.0f) * calc_point_light(position, normal);
+	out_colour = vec4(albedo, 1.0f) * calc_point_light(position, normal);
 }

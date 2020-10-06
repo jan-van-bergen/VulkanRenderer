@@ -41,21 +41,20 @@ class VulkanRenderer {
 
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorPool descriptor_pool_gui;
-
-	std::vector<VkSemaphore> semaphores_image_available;
-	std::vector<VkSemaphore> semaphores_gbuffer_done;
-	std::vector<VkSemaphore> semaphores_render_done;
 	
-	std::vector<VkFence> inflight_fences;
-	std::vector<VkFence> images_in_flight;
+	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+	
+	VkSemaphore semaphores_image_available[MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore semaphores_gbuffer_done   [MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore semaphores_render_done    [MAX_FRAMES_IN_FLIGHT];
+	
+	VkFence fences_inflight[MAX_FRAMES_IN_FLIGHT];
 	
 	GBuffer   gbuffer;
 	VkSampler gbuffer_sampler;
 
 	int current_frame = 0;
 
-	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-	
 	std::vector<MeshInstance> meshes;
 	
 	std::vector<DirectionalLight> directional_lights;

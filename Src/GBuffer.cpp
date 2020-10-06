@@ -452,6 +452,8 @@ void GBuffer::record_command_buffer(int image_index, Camera const & camera, std:
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+	auto last_texture_handle = -1;
+
 	// Render Renderables
 	for (int i = 0; i < meshes.size(); i++) {
 		auto const & mesh_instance = meshes[i];
@@ -472,8 +474,12 @@ void GBuffer::record_command_buffer(int image_index, Camera const & camera, std:
 
 			vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			auto & texture = Texture::textures[sub_mesh.texture_handle];
-			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &texture.descriptor_set, 0, nullptr);
+			if (sub_mesh.texture_handle != last_texture_handle) {
+				auto & texture = Texture::textures[sub_mesh.texture_handle];
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &texture.descriptor_set, 0, nullptr);
+
+				last_texture_handle = sub_mesh.texture_handle;
+			}
 
 			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
 		}
