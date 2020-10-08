@@ -16,21 +16,18 @@
 
 #include "Util.h"
 
-struct PointLightPushConstants {
-	alignas(16) Matrix4 wvp;
-};
-
 struct DirectionalLightUBO {
-	alignas(16) Vector3 light_colour;
-	alignas(16) Vector3 light_direction;
+	DirectionalLight directional_light;
 
 	alignas(16) Vector3 camera_position; 
 };
 
+struct PointLightPushConstants {
+	alignas(16) Matrix4 wvp;
+};
+
 struct PointLightUBO {
-	alignas(16) Vector3 light_colour;
-	alignas(16) Vector3 light_position;
-	alignas(4)  float   light_radius;
+	PointLight point_light;
 
 	alignas(16) Vector3 camera_position;
 };
@@ -608,9 +605,8 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			auto const & directional_light = directional_lights[i];
 
 			DirectionalLightUBO ubo = { };
-			ubo.light_colour    = directional_light.colour;
-			ubo.light_direction = directional_light.direction;
-			ubo.camera_position = camera.position;
+			ubo.directional_light = directional_light;
+			ubo.camera_position   = camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
 		}
@@ -644,9 +640,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			auto const & point_light = point_lights[i];
 
 			PointLightUBO ubo = { };
-			ubo.light_colour   = point_light.colour;
-			ubo.light_position = point_light.position;
-			ubo.light_radius   = point_light.radius;
+			ubo.point_light     = point_light;
 			ubo.camera_position = camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(PointLightUBO));

@@ -3,13 +3,18 @@
 
 #include "VulkanMemory.h"
 
-struct DirectionalLight {
-	Vector3 colour;
-
-	Vector3 direction;
+struct Light {
+	alignas(16) Vector3 colour;
 };
 
-struct PointLight {
+struct DirectionalLight : Light {
+	alignas(16) Vector3 direction;
+};
+
+struct PointLight : Light {
+	alignas(16) Vector3 position;
+	alignas(4)  float   radius;
+
 	inline static struct Sphere {
 		VulkanMemory::Buffer vertex_buffer;
 		VulkanMemory::Buffer index_buffer;
@@ -20,8 +25,4 @@ struct PointLight {
 	static void init_sphere();
 	static void free_sphere();
 
-	Vector3 colour;
-
-	Vector3 position;
-	float   radius;
 };
