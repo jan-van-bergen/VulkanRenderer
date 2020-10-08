@@ -17,6 +17,19 @@ layout(binding = 3) uniform UniformBuffer {
 	vec3 camera_position;
 };
 
+// Based on: https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+vec3 unpack_normal(vec2 f) {
+	f = f * 2.0f - 1.0f;
+
+	vec3 n = vec3(f.x, f.y, 1.0f - abs(f.x) - abs(f.y));
+
+	float t = clamp(-n.z, 0.0f, 1.0f);
+	n.x += n.x >= 0.0 ? -t : t;
+	n.y += n.y >= 0.0 ? -t : t;
+
+	return normalize(n);
+}
+
 vec4 calc_light(vec3 world_position, vec3 direction, vec3 normal) {
     vec4 result = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	
@@ -55,9 +68,11 @@ vec4 calc_point_light(vec3 world_position, vec3 normal) {
 }
 
 void main() {
-	vec3 albedo   = texture(sampler_albedo,   in_uv).xyz;
-	vec3 position = texture(sampler_position, in_uv).xyz;
-	vec3 normal   = texture(sampler_normal,   in_uv).xyz;
+	vec3 albedo        = texture(sampler_albedo,   in_uv).xyz;
+	vec3 position      = texture(sampler_position, in_uv).xyz;
+	vec2 packed_normal = texture(sampler_normal,   in_uv).xy;
+
+	vec3 normal = unpack_normal(packed_normal);
 
 	out_colour = vec4(albedo, 1.0f) * calc_point_light(position, normal);
 }
