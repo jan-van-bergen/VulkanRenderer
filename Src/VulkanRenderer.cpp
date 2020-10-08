@@ -52,11 +52,20 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : cam
 
 	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
 	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3( 6.0f, 0.0f, 0.0f), 16.0f });
-	
-	/*for (int i = 0; i < 100; i++) {
-		point_lights.push_back({ Vector3(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX)), Vector3(100.0f * rand() / float(RAND_MAX) - 50.0f, -6.0f, 20.0f * rand() / float(RAND_MAX) - 10.0f), 4.0f });
-	}*/
 
+	constexpr float point_lights_width  = 150.0f;
+	constexpr float point_lights_height =  25.0f;
+
+	auto rand_float = [](float min = 0.0f, float max = 1.0f) { return min + (max - min) * rand() / float(RAND_MAX); };
+
+	for (int i = 0; i < 1000; i++) {
+		point_lights.push_back({ 
+			10.0f * Vector3(rand_float(), rand_float(), rand_float()),
+			Vector3(rand_float(-point_lights_width, point_lights_width), -7.0f, rand_float(-point_lights_height, point_lights_height)),
+			rand_float(0.5f, 10.0f)
+		});
+	}
+	
 	PointLight::init_sphere();
 
 	// Setup Dear ImGui context
