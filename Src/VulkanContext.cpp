@@ -297,7 +297,7 @@ VkSwapchainKHR VulkanContext::create_swapchain(u32 width, u32 height) {
 	return swapchain;
 }
 
-std::optional<VkFormat> VulkanContext::get_supported_depth_format() {
+VkFormat VulkanContext::get_supported_depth_format() {
 	VkFormat depth_formats[] = {
 		VK_FORMAT_D32_SFLOAT_S8_UINT,
 		VK_FORMAT_D32_SFLOAT,
@@ -315,7 +315,8 @@ std::optional<VkFormat> VulkanContext::get_supported_depth_format() {
 		}
 	}
 
-	return std::nullopt;
+	puts("ERROR: No suitable depth format was found!");
+	abort();
 }
 
 VulkanContext::Shader VulkanContext::shader_load(std::string const & filename, VkShaderStageFlagBits stage) {

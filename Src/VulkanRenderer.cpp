@@ -192,7 +192,7 @@ void VulkanRenderer::create_light_render_pass() {
 	attachment_ref_colour.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentDescription attachment_depth = { };
-	attachment_depth.format = VulkanContext::DEPTH_FORMAT;
+	attachment_depth.format = VulkanContext::get_supported_depth_format();
 	attachment_depth.samples = VK_SAMPLE_COUNT_1_BIT;
 	attachment_depth.loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachment_depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -460,17 +460,19 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 }
 
 void VulkanRenderer::create_frame_buffers() {
+	auto depth_format = VulkanContext::get_supported_depth_format();
+
 	// Create Depth Buffer
 	VulkanMemory::create_image(
 		width, height, 1,
-		VulkanContext::DEPTH_FORMAT,
+		depth_format,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		depth_image, depth_image_memory
 	);
 
-	depth_image_view = VulkanMemory::create_image_view(depth_image, 1, VulkanContext::DEPTH_FORMAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+	depth_image_view = VulkanMemory::create_image_view(depth_image, 1, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	// Create Frame Buffers
 	frame_buffers.resize(image_views.size());

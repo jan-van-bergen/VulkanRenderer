@@ -246,17 +246,10 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	VK_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout));
 
 	// Initialize FrameBuffers and their attachments
-	frame_buffer_albedo  .init(swapchain_image_count, width, height, VK_FORMAT_R8G8B8A8_UNORM,      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	frame_buffer_position.init(swapchain_image_count, width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	frame_buffer_normal  .init(swapchain_image_count, width, height, VK_FORMAT_R16G16_SFLOAT,       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-
-	auto depth_format = VulkanContext::get_supported_depth_format();
-	if (!depth_format.has_value()) {
-		puts("ERROR: Unable to create GBuffer because no supported depth format was found!");
-		abort();
-	}
-
-	frame_buffer_depth.init(swapchain_image_count, width, height, depth_format.value(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	frame_buffer_albedo  .init(swapchain_image_count, width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	frame_buffer_position.init(swapchain_image_count, width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	frame_buffer_normal  .init(swapchain_image_count, width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	frame_buffer_depth   .init(swapchain_image_count, width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 	// Create Renderpass
 	VkAttachmentDescription attachments[4] = { };
