@@ -33,54 +33,48 @@ void GBuffer::FrameBuffer::init(int swapchain_image_count, int width, int height
 	
 	auto device = VulkanContext::get_device();
 
-	attachments.resize(swapchain_image_count);
+	VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	image_create_info.imageType = VK_IMAGE_TYPE_2D;
+	image_create_info.format = format;
+	image_create_info.extent = { u32(width), u32(height), 1 };
+	image_create_info.mipLevels = 1;
+	image_create_info.arrayLayers = 1;
+	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+	image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+	image_create_info.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-	for (auto & attachment : attachments) {
-		VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-		image_create_info.imageType = VK_IMAGE_TYPE_2D;
-		image_create_info.format = format;
-		image_create_info.extent = { u32(width), u32(height), 1 };
-		image_create_info.mipLevels = 1;
-		image_create_info.arrayLayers = 1;
-		image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-		image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image_create_info.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+	VK_CHECK(vkCreateImage(device, &image_create_info, nullptr, &image));
 
-		VK_CHECK(vkCreateImage(device, &image_create_info, nullptr, &attachment.image));
+	VkMemoryRequirements memory_requirements; vkGetImageMemoryRequirements(device, image, &memory_requirements);
 
-		VkMemoryRequirements memory_requirements; vkGetImageMemoryRequirements(device, attachment.image, &memory_requirements);
-
-		VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-		alloc_info.allocationSize = memory_requirements.size;
-		alloc_info.memoryTypeIndex = VulkanMemory::find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	alloc_info.allocationSize = memory_requirements.size;
+	alloc_info.memoryTypeIndex = VulkanMemory::find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	
-		VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &attachment.memory));
+	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &memory));
 
-		VK_CHECK(vkBindImageMemory(device, attachment.image, attachment.memory, 0));
+	VK_CHECK(vkBindImageMemory(device, image, memory, 0));
 
-		VkImageViewCreateInfo image_view_create_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		image_view_create_info.format = format;
-		image_view_create_info.subresourceRange = { };
-		image_view_create_info.subresourceRange.aspectMask = image_aspect_mask;
-		image_view_create_info.subresourceRange.baseMipLevel = 0;
-		image_view_create_info.subresourceRange.levelCount   = 1;
-		image_view_create_info.subresourceRange.baseArrayLayer = 0;
-		image_view_create_info.subresourceRange.layerCount     = 1;
-		image_view_create_info.image = attachment.image;
+	VkImageViewCreateInfo image_view_create_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	image_view_create_info.format = format;
+	image_view_create_info.subresourceRange = { };
+	image_view_create_info.subresourceRange.aspectMask = image_aspect_mask;
+	image_view_create_info.subresourceRange.baseMipLevel = 0;
+	image_view_create_info.subresourceRange.levelCount   = 1;
+	image_view_create_info.subresourceRange.baseArrayLayer = 0;
+	image_view_create_info.subresourceRange.layerCount     = 1;
+	image_view_create_info.image = image;
 
-		VK_CHECK(vkCreateImageView(device, &image_view_create_info, nullptr, &attachment.image_view));
-	}
+	VK_CHECK(vkCreateImageView(device, &image_view_create_info, nullptr, &image_view));
 }
 
 void GBuffer::FrameBuffer::free() {
 	auto device = VulkanContext::get_device();
 
-	for (auto & attachment : attachments) {
-		vkDestroyImage    (device, attachment.image,      nullptr);
-		vkDestroyImageView(device, attachment.image_view, nullptr);
-		vkFreeMemory      (device, attachment.memory,     nullptr);
-	}
+	vkDestroyImage    (device, image,      nullptr);
+	vkDestroyImageView(device, image_view, nullptr);
+	vkFreeMemory      (device, memory,     nullptr);
 }
 
 void GBuffer::init(int swapchain_image_count, int width, int height) {
@@ -315,29 +309,25 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 
 	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &render_pass));
 	
-	// Create FrameBuffers
-	frame_buffers.resize(swapchain_image_count);
+	// Create Frame Buffer
+	VkImageView attachment_views[4] = {
+		frame_buffer_albedo  .image_view,
+		frame_buffer_position.image_view,
+		frame_buffer_normal  .image_view,
+		frame_buffer_depth   .image_view,
+	};
 
-	for (int i = 0; i < swapchain_image_count; i++) {
-		VkImageView attachments[4] = {
-			frame_buffer_albedo  .attachments[i].image_view,
-			frame_buffer_position.attachments[i].image_view,
-			frame_buffer_normal  .attachments[i].image_view,
-			frame_buffer_depth   .attachments[i].image_view,
-		};
+	VkFramebufferCreateInfo frame_buffer_create_info = { };
+	frame_buffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	frame_buffer_create_info.pNext = NULL;
+	frame_buffer_create_info.renderPass = render_pass;
+	frame_buffer_create_info.attachmentCount = Util::array_element_count(attachment_views);
+	frame_buffer_create_info.pAttachments    = attachment_views;
+	frame_buffer_create_info.width  = width;
+	frame_buffer_create_info.height = height;
+	frame_buffer_create_info.layers = 1;
 
-		VkFramebufferCreateInfo frame_buffer_create_info = { };
-		frame_buffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		frame_buffer_create_info.pNext = NULL;
-		frame_buffer_create_info.renderPass = render_pass;
-		frame_buffer_create_info.attachmentCount = Util::array_element_count(attachments);
-		frame_buffer_create_info.pAttachments    = attachments;
-		frame_buffer_create_info.width  = width;
-		frame_buffer_create_info.height = height;
-		frame_buffer_create_info.layers = 1;
-
-		VK_CHECK(vkCreateFramebuffer(device, &frame_buffer_create_info, nullptr, &frame_buffers[i]));
-	}
+	VK_CHECK(vkCreateFramebuffer(device, &frame_buffer_create_info, nullptr, &frame_buffer));
 
 	// Create Pipeline
 	VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
@@ -376,7 +366,7 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	vkDestroyShaderModule(device, shader_frag.module, nullptr);
 
 	// Create Command Buffers
-	command_buffers.resize(frame_buffers.size());
+	command_buffers.resize(swapchain_image_count);
 
 	VkCommandBufferAllocateInfo command_buffer_alloc_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	command_buffer_alloc_info.commandPool = VulkanContext::get_command_pool();
@@ -389,11 +379,7 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 void GBuffer::free() {
 	auto device = VulkanContext::get_device();
 
-	int swapchain_image_count = frame_buffers.size();
-
-	for (int i = 0; i < swapchain_image_count; i++) {
-		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
-	}
+	vkDestroyFramebuffer(device, frame_buffer, nullptr);
 
 	frame_buffer_albedo  .free();
 	frame_buffer_position.free();
@@ -413,7 +399,6 @@ void GBuffer::free() {
 
 void GBuffer::record_command_buffer(int image_index, Camera const & camera, std::vector<MeshInstance> const & meshes) {
 	auto & command_buffer = command_buffers[image_index];
-	auto & frame_buffer   = frame_buffers  [image_index];
 
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 
@@ -426,7 +411,7 @@ void GBuffer::record_command_buffer(int image_index, Camera const & camera, std:
 
 	VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	render_pass_begin_info.renderPass =  render_pass;
-	render_pass_begin_info.framebuffer = frame_buffers[image_index];
+	render_pass_begin_info.framebuffer = frame_buffer;
 	render_pass_begin_info.renderArea.extent.width  = width;
 	render_pass_begin_info.renderArea.extent.height = height;
 	render_pass_begin_info.clearValueCount = Util::array_element_count(clear_values);
