@@ -7,3 +7,6 @@
 
 %VULKAN_SDK%\Bin\glslc.exe Shaders/light_point.vert -o Shaders/light_point.vert.spv
 %VULKAN_SDK%\Bin\glslc.exe Shaders/light_point.frag -o Shaders/light_point.frag.spv
+
+%VULKAN_SDK%\Bin\glslc.exe Shaders/post_process.vert -o Shaders/post_process.vert.spv
+%VULKAN_SDK%\Bin\glslc.exe Shaders/post_process.frag -o Shaders/post_process.frag.spv
