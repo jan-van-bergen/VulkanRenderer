@@ -10,7 +10,7 @@
 class GBuffer {
 	int width, height;
 
-	std::vector<VkFramebuffer> frame_buffers;
+	VkFramebuffer frame_buffer;
 	
 	VkRenderPass render_pass;
 	
@@ -22,14 +22,10 @@ class GBuffer {
 	
 public:
 	struct FrameBuffer {
-		struct Attachment {
-			VkImage        image;
-			VkImageView    image_view;
-			VkDeviceMemory memory;
-		};
-
-		std::vector<Attachment> attachments;
-		VkFormat                format;
+		VkImage        image;
+		VkImageView    image_view;
+		VkDeviceMemory memory;
+		VkFormat       format;
 
 		void init(int swapchain_image_count, int width, int height, VkFormat format, VkImageUsageFlagBits usage);
 		void free();

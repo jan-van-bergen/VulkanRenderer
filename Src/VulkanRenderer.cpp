@@ -396,7 +396,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 		// Write Descriptor for Albedo target
 		VkDescriptorImageInfo descriptor_image_albedo = { };
 		descriptor_image_albedo.sampler     = gbuffer_sampler;
-		descriptor_image_albedo.imageView   = gbuffer.frame_buffer_albedo.attachments[i].image_view;
+		descriptor_image_albedo.imageView   = gbuffer.frame_buffer_albedo.image_view;
 		descriptor_image_albedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -410,7 +410,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 		// Write Descriptor for Position target
 		VkDescriptorImageInfo descriptor_image_position = { };
 		descriptor_image_position.sampler     = gbuffer_sampler;
-		descriptor_image_position.imageView   = gbuffer.frame_buffer_position.attachments[i].image_view;
+		descriptor_image_position.imageView   = gbuffer.frame_buffer_position.image_view;
 		descriptor_image_position.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -424,7 +424,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 		// Write Descriptor for Normal target
 		VkDescriptorImageInfo descriptor_image_normal = { };
 		descriptor_image_normal.sampler     = gbuffer_sampler;
-		descriptor_image_normal.imageView   = gbuffer.frame_buffer_normal.attachments[i].image_view;
+		descriptor_image_normal.imageView   = gbuffer.frame_buffer_normal.image_view;
 		descriptor_image_normal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
