@@ -13,70 +13,6 @@ struct GBufferPushConstants {
 	alignas(16) Matrix4 wvp;
 };
 
-void GBuffer::FrameBuffer::init(int swapchain_image_count, int width, int height, VkFormat format, VkImageUsageFlagBits usage) {
-	VkImageAspectFlags image_aspect_mask = 0;
-	VkImageLayout      image_layout;
-
-	this->format = format;
-
-	if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
-		image_aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
-		image_layout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	}
-
-	if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-		image_aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		image_layout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	}
-
-	assert(image_aspect_mask != 0);
-	
-	auto device = VulkanContext::get_device();
-
-	VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	image_create_info.imageType = VK_IMAGE_TYPE_2D;
-	image_create_info.format = format;
-	image_create_info.extent = { u32(width), u32(height), 1 };
-	image_create_info.mipLevels = 1;
-	image_create_info.arrayLayers = 1;
-	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-	image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-	image_create_info.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	VK_CHECK(vkCreateImage(device, &image_create_info, nullptr, &image));
-
-	VkMemoryRequirements memory_requirements; vkGetImageMemoryRequirements(device, image, &memory_requirements);
-
-	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	alloc_info.allocationSize = memory_requirements.size;
-	alloc_info.memoryTypeIndex = VulkanMemory::find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	
-	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &memory));
-
-	VK_CHECK(vkBindImageMemory(device, image, memory, 0));
-
-	VkImageViewCreateInfo image_view_create_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	image_view_create_info.format = format;
-	image_view_create_info.subresourceRange = { };
-	image_view_create_info.subresourceRange.aspectMask = image_aspect_mask;
-	image_view_create_info.subresourceRange.baseMipLevel = 0;
-	image_view_create_info.subresourceRange.levelCount   = 1;
-	image_view_create_info.subresourceRange.baseArrayLayer = 0;
-	image_view_create_info.subresourceRange.layerCount     = 1;
-	image_view_create_info.image = image;
-
-	VK_CHECK(vkCreateImageView(device, &image_view_create_info, nullptr, &image_view));
-}
-
-void GBuffer::FrameBuffer::free() {
-	auto device = VulkanContext::get_device();
-
-	vkDestroyImage    (device, image,      nullptr);
-	vkDestroyImageView(device, image_view, nullptr);
-	vkFreeMemory      (device, memory,     nullptr);
-}
-
 void GBuffer::init(int swapchain_image_count, int width, int height) {
 	auto device = VulkanContext::get_device();
 
@@ -240,17 +176,17 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	VK_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout));
 
 	// Initialize FrameBuffers and their attachments
-	frame_buffer_albedo  .init(swapchain_image_count, width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	frame_buffer_position.init(swapchain_image_count, width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	frame_buffer_normal  .init(swapchain_image_count, width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	frame_buffer_depth   .init(swapchain_image_count, width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	render_target_albedo  .init(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	render_target_position.init(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	render_target_normal  .init(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	render_target_depth   .init(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 	// Create Renderpass
 	VkAttachmentDescription attachments[4] = { };
-	attachments[0].format = frame_buffer_albedo  .format;
-	attachments[1].format = frame_buffer_position.format;
-	attachments[2].format = frame_buffer_normal  .format;
-	attachments[3].format = frame_buffer_depth   .format;
+	attachments[0].format = render_target_albedo  .format;
+	attachments[1].format = render_target_position.format;
+	attachments[2].format = render_target_normal  .format;
+	attachments[3].format = render_target_depth   .format;
 
 	for (int i = 0; i < 4; i++) {
 		attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -311,15 +247,13 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	
 	// Create Frame Buffer
 	VkImageView attachment_views[4] = {
-		frame_buffer_albedo  .image_view,
-		frame_buffer_position.image_view,
-		frame_buffer_normal  .image_view,
-		frame_buffer_depth   .image_view,
+		render_target_albedo  .image_view,
+		render_target_position.image_view,
+		render_target_normal  .image_view,
+		render_target_depth   .image_view,
 	};
 
-	VkFramebufferCreateInfo frame_buffer_create_info = { };
-	frame_buffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	frame_buffer_create_info.pNext = NULL;
+	VkFramebufferCreateInfo frame_buffer_create_info = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	frame_buffer_create_info.renderPass = render_pass;
 	frame_buffer_create_info.attachmentCount = Util::array_element_count(attachment_views);
 	frame_buffer_create_info.pAttachments    = attachment_views;
@@ -381,10 +315,10 @@ void GBuffer::free() {
 
 	vkDestroyFramebuffer(device, frame_buffer, nullptr);
 
-	frame_buffer_albedo  .free();
-	frame_buffer_position.free();
-	frame_buffer_normal  .free();
-	frame_buffer_depth   .free();
+	render_target_albedo  .free();
+	render_target_position.free();
+	render_target_normal  .free();
+	render_target_depth   .free();
 	
 	vkDestroyDescriptorPool     (device, descriptor_pool,       nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);

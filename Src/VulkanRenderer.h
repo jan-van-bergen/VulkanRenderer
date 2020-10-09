@@ -14,7 +14,23 @@ class VulkanRenderer {
 	GLFWwindow * window;
 
 	VkSwapchainKHR           swapchain;
-	std::vector<VkImageView> image_views;
+	std::vector<VkImageView> swapchain_views;
+
+	struct {
+		RenderTarget render_target_colour;
+		RenderTarget render_target_depth;
+
+		VkDescriptorSetLayout        descriptor_set_layout;
+		std::vector<VkDescriptorSet> descriptor_sets;
+
+		VkRenderPass render_pass;
+
+		VkPipelineLayout pipeline_layout;
+		VkPipeline       pipeline;
+
+		VkFramebuffer frame_buffer;
+		VkSampler sampler;
+	} post_process;
 	
 	struct LightPass {
 		VkPipelineLayout pipeline_layout;
@@ -86,6 +102,8 @@ class VulkanRenderer {
 		size_t push_constants_size,
 		size_t ubo_size
 	);
+
+	void create_post_process();
 
 	void create_frame_buffers();
 	void create_command_buffers();

@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Mesh.h"
 #include "Texture.h"
+#include "RenderTarget.h"
 
 class GBuffer {
 	int width, height;
@@ -21,20 +22,10 @@ class GBuffer {
 	VkDescriptorSetLayout descriptor_set_layout;
 	
 public:
-	struct FrameBuffer {
-		VkImage        image;
-		VkImageView    image_view;
-		VkDeviceMemory memory;
-		VkFormat       format;
-
-		void init(int swapchain_image_count, int width, int height, VkFormat format, VkImageUsageFlagBits usage);
-		void free();
-	};
-	
-	FrameBuffer frame_buffer_albedo;
-	FrameBuffer frame_buffer_position;
-	FrameBuffer frame_buffer_normal;
-	FrameBuffer frame_buffer_depth;
+	RenderTarget render_target_albedo;
+	RenderTarget render_target_position;
+	RenderTarget render_target_normal;
+	RenderTarget render_target_depth;
 	
 	std::vector<VkCommandBuffer> command_buffers;
 	
