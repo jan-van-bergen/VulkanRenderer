@@ -338,6 +338,118 @@ VulkanContext::Shader VulkanContext::shader_load(std::string const & filename, V
 	return shader;
 }
 
+VkPipelineLayout VulkanContext::create_pipeline_layout(PipelineLayoutDetails const & details) {
+	VkPipelineLayoutCreateInfo pipeline_layout_create_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipeline_layout_create_info.setLayoutCount = 1;
+	pipeline_layout_create_info.pSetLayouts    = &details.descriptor_set_layout;
+	pipeline_layout_create_info.pushConstantRangeCount = details.push_constants.size();
+	pipeline_layout_create_info.pPushConstantRanges    = details.push_constants.data();
+
+	VkPipelineLayout pipeline_layout; VK_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout));
+
+	return pipeline_layout;
+}
+
+VkPipeline VulkanContext::create_pipeline(PipelineDetails const & details) {
+	// Create Pipeline Layout
+	VkPipelineVertexInputStateCreateInfo vertex_input_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+	vertex_input_create_info.vertexBindingDescriptionCount = details.vertex_bindings.size();
+	vertex_input_create_info.pVertexBindingDescriptions    = details.vertex_bindings.data();
+	vertex_input_create_info.vertexAttributeDescriptionCount = details.vertex_attributes.size();
+	vertex_input_create_info.pVertexAttributeDescriptions    = details.vertex_attributes.data();
+
+	VkPipelineInputAssemblyStateCreateInfo input_asm_create_info = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+	input_asm_create_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	input_asm_create_info.primitiveRestartEnable = VK_FALSE;
+
+	VkViewport viewport = { 0.0f, 0.0f, float(details.width), float(details.height), 0.0f, 1.0f };
+
+	VkRect2D scissor = { 0, 0, details.width, details.height };
+	
+	VkPipelineViewportStateCreateInfo viewport_state_create_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+	viewport_state_create_info.viewportCount = 1;
+	viewport_state_create_info.pViewports    = &viewport;
+	viewport_state_create_info.scissorCount = 1;
+	viewport_state_create_info.pScissors    = &scissor;
+
+	VkPipelineRasterizationStateCreateInfo rasterizer_create_info = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+	rasterizer_create_info.depthClampEnable = VK_FALSE;
+	rasterizer_create_info.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer_create_info.lineWidth   = 1.0f;
+	rasterizer_create_info.depthBiasEnable         = VK_FALSE;
+	rasterizer_create_info.depthBiasConstantFactor = 0.0f;
+	rasterizer_create_info.depthBiasClamp          = 0.0f;
+	rasterizer_create_info.depthBiasSlopeFactor    = 0.0f;
+	rasterizer_create_info.cullMode  = details.cull_mode;
+	rasterizer_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+	VkPipelineMultisampleStateCreateInfo multisample_create_info = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+	multisample_create_info.sampleShadingEnable = VK_FALSE;
+	multisample_create_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisample_create_info.minSampleShading = 1.0f;
+	multisample_create_info.pSampleMask      = nullptr;
+	multisample_create_info.alphaToCoverageEnable = VK_FALSE;
+	multisample_create_info.alphaToOneEnable      = VK_FALSE;
+
+	VkPipelineColorBlendStateCreateInfo blend_state_create_info = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+	blend_state_create_info.logicOpEnable = VK_FALSE;
+	blend_state_create_info.logicOp       = VK_LOGIC_OP_COPY;
+	blend_state_create_info.attachmentCount = details.blends.size();
+	blend_state_create_info.pAttachments    = details.blends.data();
+	
+	auto shader_vert = VulkanContext::shader_load(details.filename_shader_vertex,   VK_SHADER_STAGE_VERTEX_BIT);
+	auto shader_frag = VulkanContext::shader_load(details.filename_shader_fragment, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	VkPipelineShaderStageCreateInfo shader_stages[] = { shader_vert.stage_create_info, shader_frag.stage_create_info };
+
+	VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+	depth_stencil_create_info.depthTestEnable  = details.enable_depth_test;
+	depth_stencil_create_info.depthWriteEnable = details.enable_depth_write;
+	depth_stencil_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
+	depth_stencil_create_info.depthBoundsTestEnable = VK_FALSE;
+	depth_stencil_create_info.minDepthBounds = 0.0f;
+	depth_stencil_create_info.maxDepthBounds = 1.0f;
+	depth_stencil_create_info.stencilTestEnable = VK_FALSE;
+
+	VkGraphicsPipelineCreateInfo pipeline_create_info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+	pipeline_create_info.stageCount = Util::array_element_count(shader_stages);
+	pipeline_create_info.pStages    = shader_stages;
+	pipeline_create_info.pVertexInputState   = &vertex_input_create_info;
+	pipeline_create_info.pInputAssemblyState = &input_asm_create_info;
+	pipeline_create_info.pViewportState      = &viewport_state_create_info;
+	pipeline_create_info.pRasterizationState = &rasterizer_create_info;
+	pipeline_create_info.pMultisampleState   = &multisample_create_info;
+	pipeline_create_info.pDepthStencilState  = &depth_stencil_create_info;
+	pipeline_create_info.pColorBlendState    = &blend_state_create_info;
+	pipeline_create_info.pDynamicState       = nullptr;
+	pipeline_create_info.layout     = details.pipeline_layout;
+	pipeline_create_info.renderPass = details.render_pass;
+	pipeline_create_info.subpass    = 0;
+	pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
+	pipeline_create_info.basePipelineIndex  = -1;
+
+	VkPipeline pipeline; VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline));
+
+	vkDestroyShaderModule(device, shader_vert.module, nullptr);
+	vkDestroyShaderModule(device, shader_frag.module, nullptr);
+
+	return pipeline;
+}
+
+VkFramebuffer VulkanContext::create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments) {
+	VkFramebufferCreateInfo framebuffer_create_info = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+	framebuffer_create_info.renderPass = render_pass;
+	framebuffer_create_info.attachmentCount = attachments.size();
+	framebuffer_create_info.pAttachments    = attachments.data();
+	framebuffer_create_info.width  = width;
+	framebuffer_create_info.height = height;
+	framebuffer_create_info.layers = 1;
+
+	VkFramebuffer frame_buffer; VK_CHECK(vkCreateFramebuffer(device, &framebuffer_create_info, nullptr, &frame_buffer));
+
+	return frame_buffer;
+}
+
 VkInstance VulkanContext::get_instance() { return instance; }
 
 VkPhysicalDevice VulkanContext::get_physical_device() { return physical_device; }

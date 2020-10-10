@@ -28,6 +28,61 @@ namespace VulkanContext {
 
 	Shader shader_load(std::string const & filename, VkShaderStageFlagBits stage);
 	
+	struct PipelineLayoutDetails {
+		VkDescriptorSetLayout descriptor_set_layout;
+
+		std::vector<VkPushConstantRange> push_constants;
+	};
+
+	VkPipelineLayout create_pipeline_layout(PipelineLayoutDetails const & details);
+
+	struct PipelineDetails {
+		std::vector<VkVertexInputBindingDescription>   vertex_bindings;
+		std::vector<VkVertexInputAttributeDescription> vertex_attributes;
+
+		int width;
+		int height;
+
+		VkCullModeFlagBits cull_mode = VK_CULL_MODE_BACK_BIT;
+
+		inline static VkPipelineColorBlendAttachmentState const BLEND_NONE = {
+			VK_FALSE,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_FACTOR_ZERO,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_FACTOR_ZERO,
+			VK_BLEND_OP_ADD,
+			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		inline static VkPipelineColorBlendAttachmentState const BLEND_ADDITIVE = {
+			VK_TRUE,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE,
+			VK_BLEND_OP_ADD,
+			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		std::vector<VkPipelineColorBlendAttachmentState> blends;
+
+		std::string filename_shader_vertex;
+		std::string filename_shader_fragment;
+
+		bool enable_depth_test  = true;
+		bool enable_depth_write = true;
+
+		VkPipelineLayout pipeline_layout;
+		VkRenderPass     render_pass;
+	};
+
+	VkPipeline create_pipeline(PipelineDetails const & details);
+
+	VkFramebuffer create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments);
+
 	VkInstance get_instance();
 
 	VkPhysicalDevice get_physical_device();

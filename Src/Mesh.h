@@ -22,16 +22,17 @@ struct Mesh {
 		Vector2 texcoord;
 		Vector3 normal;
 
-		static VkVertexInputBindingDescription get_binding_description() {
-			VkVertexInputBindingDescription binding_description = { };
-			binding_description.binding = 0;
-			binding_description.stride = sizeof(Vertex);
-			binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		static std::vector<VkVertexInputBindingDescription> get_binding_descriptions() {
+			std::vector<VkVertexInputBindingDescription> binding_descriptions(1);
 
-			return binding_description;
+			binding_descriptions[0].binding = 0;
+			binding_descriptions[0].stride = sizeof(Vertex);
+			binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			return binding_descriptions;
 		}
 
-		static std::vector<VkVertexInputAttributeDescription> get_attribute_description() {
+		static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions() {
 			std::vector<VkVertexInputAttributeDescription> attribute_descriptions(3);
 
 			// Position
