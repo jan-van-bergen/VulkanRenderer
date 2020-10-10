@@ -1,12 +1,8 @@
 @echo off
-%VULKAN_SDK%\Bin\glslc.exe Shaders/geometry.vert -o Shaders/geometry.vert.spv
-%VULKAN_SDK%\Bin\glslc.exe Shaders/geometry.frag -o Shaders/geometry.frag.spv
 
-%VULKAN_SDK%\Bin\glslc.exe Shaders/light_directional.vert -o Shaders/light_directional.vert.spv
-%VULKAN_SDK%\Bin\glslc.exe Shaders/light_directional.frag -o Shaders/light_directional.frag.spv
+set shaders=geometry light_directional light_point light_spot post_process
 
-%VULKAN_SDK%\Bin\glslc.exe Shaders/light_point.vert -o Shaders/light_point.vert.spv
-%VULKAN_SDK%\Bin\glslc.exe Shaders/light_point.frag -o Shaders/light_point.frag.spv
-
-%VULKAN_SDK%\Bin\glslc.exe Shaders/post_process.vert -o Shaders/post_process.vert.spv
-%VULKAN_SDK%\Bin\glslc.exe Shaders/post_process.frag -o Shaders/post_process.frag.spv
+for %%s in (%shaders%) do (
+	%VULKAN_SDK%/Bin/glslc.exe Shaders/%%s.vert -o Shaders/%%s.vert.spv
+	%VULKAN_SDK%/Bin/glslc.exe Shaders/%%s.frag -o Shaders/%%s.frag.spv
+)

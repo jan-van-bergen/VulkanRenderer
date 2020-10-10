@@ -47,6 +47,7 @@ class VulkanRenderer {
 	
 	LightPass light_pass_directional;
 	LightPass light_pass_point;
+	LightPass light_pass_spot;
 	
 	std::vector<VkCommandBuffer> command_buffers;
 	std::vector<VkFramebuffer>   frame_buffers;
@@ -75,6 +76,7 @@ class VulkanRenderer {
 	
 	std::vector<DirectionalLight> directional_lights;
 	std::vector<PointLight>       point_lights;
+	std::vector<SpotLight>        spot_lights;
 
 	// Timing
 	float frame_delta;

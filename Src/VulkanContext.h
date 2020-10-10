@@ -45,7 +45,7 @@ namespace VulkanContext {
 
 		VkCullModeFlagBits cull_mode = VK_CULL_MODE_BACK_BIT;
 
-		inline static VkPipelineColorBlendAttachmentState const BLEND_NONE = {
+		inline static VkPipelineColorBlendAttachmentState constexpr BLEND_NONE = {
 			VK_FALSE,
 			VK_BLEND_FACTOR_ONE,
 			VK_BLEND_FACTOR_ZERO,
@@ -56,7 +56,7 @@ namespace VulkanContext {
 			VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
-		inline static VkPipelineColorBlendAttachmentState const BLEND_ADDITIVE = {
+		inline static VkPipelineColorBlendAttachmentState constexpr BLEND_ADDITIVE = {
 			VK_TRUE,
 			VK_BLEND_FACTOR_SRC_ALPHA,
 			VK_BLEND_FACTOR_ONE,

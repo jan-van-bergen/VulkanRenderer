@@ -17,8 +17,12 @@
 #include "Util.h"
 
 struct DirectionalLightUBO {
-	DirectionalLight directional_light;
+	struct {
+		alignas(16) Vector3 colour;
 
+		alignas(16) Vector3 direction;
+	} directional_light;
+	
 	alignas(16) Vector3 camera_position; 
 };
 
@@ -27,8 +31,28 @@ struct PointLightPushConstants {
 };
 
 struct PointLightUBO {
-	PointLight point_light;
+	struct {
+		alignas(16) Vector3 colour;
 
+		alignas(16) Vector3 position;
+		alignas(4)  float   one_over_radius_squared;
+	} point_light;
+
+	alignas(16) Vector3 camera_position;
+};
+
+struct SpotLightUBO {
+	struct {
+		alignas(16) Vector3 colour;
+
+		alignas(16) Vector3 position;
+		alignas(4)  float   one_over_radius_squared;
+
+		alignas(16) Vector3 direction;
+		alignas(4)  float   cutoff_inner;
+		alignas(4)  float   cutoff_outer;
+	} spot_light;
+	
 	alignas(16) Vector3 camera_position;
 };
 
@@ -48,7 +72,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : cam
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
 	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
-	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3( 6.0f, 0.0f, 0.0f), 16.0f });
+	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3(+6.0f, 0.0f, 0.0f), 16.0f });
 
 	constexpr float point_lights_width  = 150.0f;
 	constexpr float point_lights_height =  60.0f;
@@ -62,6 +86,9 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : cam
 			rand_float(0.5f, 10.0f)
 		});
 	}
+
+	spot_lights.push_back({ Vector3(10.0f,  0.0f, 10.0f), Vector3(-4.0f, -7.45f, 10.0f), 20.0f, Vector3(0.0f, 0.0f, -1.0f), DEG_TO_RAD(75.0f), DEG_TO_RAD(90.0f) });
+	spot_lights.push_back({ Vector3( 0.0f, 10.0f,  0.0f), Vector3(+4.0f, -7.45f, 10.0f), 20.0f, Vector3(0.0f, 0.0f, -1.0f), DEG_TO_RAD(40.0f), DEG_TO_RAD(45.0f) });
 	
 	PointLight::init_sphere();
 
@@ -123,14 +150,14 @@ void VulkanRenderer::create_light_render_pass() {
 	
 	// Create Descriptor Pool
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, swapchain_views.size() * 6 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, swapchain_views.size() * 3 }
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, swapchain_views.size() * 4 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, swapchain_views.size() * 4 }
 	};
 
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
-	pool_create_info.maxSets = 3 * swapchain_views.size();
+	pool_create_info.maxSets = 4 * swapchain_views.size();
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 	
@@ -671,8 +698,9 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			auto const & directional_light = directional_lights[i];
 
 			DirectionalLightUBO ubo = { };
-			ubo.directional_light = directional_light;
-			ubo.camera_position   = camera.position;
+			ubo.directional_light.colour    = directional_light.colour;
+			ubo.directional_light.direction = directional_light.direction;
+			ubo.camera_position = camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
 		}
@@ -706,7 +734,9 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			auto const & point_light = point_lights[i];
 
 			PointLightUBO ubo = { };
-			ubo.point_light     = point_light;
+			ubo.point_light.colour   = point_light.colour;
+			ubo.point_light.position = point_light.position;
+			ubo.point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
 			ubo.camera_position = camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(PointLightUBO));
@@ -714,14 +744,14 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
 	
-		// Bind Sphere to render PointLights
+		// Bind Sphere to render Point Lights
 		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		// For each PointLight render a sphere with the appropriate radius and position
+		// For each Point Light render a sphere with the appropriate radius and position
 		for (int i = 0; i < point_lights.size(); i++) {
 			auto const & point_light = point_lights[i];
 
@@ -732,6 +762,58 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 			u32 offset = i * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_point.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
+
+			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
+		}
+	}
+	
+	// Render Spot Lights
+	if (spot_lights.size() > 0) {
+		auto & uniform_buffer = light_pass_spot.uniform_buffers[image_index];
+		auto & descriptor_set = light_pass_spot.descriptor_sets[image_index];
+
+		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_spot.pipeline);
+
+		// Upload Uniform Buffer
+		auto aligned_size = Math::round_up(sizeof(SpotLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
+
+		std::vector<std::byte> buf(spot_lights.size() * aligned_size);
+
+		for (int i = 0; i < spot_lights.size(); i++) {
+			auto const & spot_light = spot_lights[i];
+
+			SpotLightUBO ubo = { };
+			ubo.spot_light.colour    = spot_light.colour;
+			ubo.spot_light.position  = spot_light.position;
+			ubo.spot_light.direction = spot_light.direction;
+			ubo.spot_light.one_over_radius_squared = 1.0f / (spot_light.radius * spot_light.radius);
+			ubo.spot_light.cutoff_inner = std::cos(0.5f * spot_light.cutoff_inner);
+			ubo.spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
+			ubo.camera_position = camera.position;
+
+			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(SpotLightUBO));
+		}
+
+		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
+	
+		// Bind Sphere to render Spot Lights
+		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		// For each Spot Light render a sphere with the appropriate radius and position
+		for (int i = 0; i < spot_lights.size(); i++) {
+			auto const & spot_light = spot_lights[i];
+
+			PointLightPushConstants push_constants = { };
+			push_constants.wvp = camera.get_view_projection() * Matrix4::create_translation(spot_light.position) * Matrix4::create_scale(spot_light.radius);
+
+			vkCmdPushConstants(command_buffer, light_pass_spot.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PointLightPushConstants), &push_constants);
+
+			u32 offset = i * aligned_size;
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_spot.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
 			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
 		}
@@ -794,6 +876,15 @@ void VulkanRenderer::swapchain_create() {
 		"Shaders/light_point.frag.spv",
 		sizeof(PointLightPushConstants),
 		sizeof(PointLightUBO)
+	);
+
+	light_pass_spot = create_light_pass(
+		{ { 0, sizeof(Vector3), VK_VERTEX_INPUT_RATE_VERTEX } },
+		{ { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 } },
+		"Shaders/light_spot.vert.spv",
+		"Shaders/light_spot.frag.spv",
+		sizeof(PointLightPushConstants),
+		sizeof(SpotLightUBO)
 	);
 
 	create_post_process();
@@ -960,6 +1051,7 @@ void VulkanRenderer::swapchain_destroy() {
 	
 	light_pass_directional.free();
 	light_pass_point      .free();
+	light_pass_spot       .free();
 
 	vkDestroyDescriptorPool     (device, descriptor_pool,                    nullptr);
 	vkDestroyDescriptorSetLayout(device, light_descriptor_set_layout,        nullptr);
