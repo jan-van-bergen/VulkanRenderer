@@ -5,7 +5,12 @@
 #include "Vector3.h"
 
 struct Quaternion {
-	float x, y, z, w;
+	union {
+		struct {
+			float x, y, z, w;
+		};
+		float data[4];
+	};
 
 	inline Quaternion() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) { }
 	inline Quaternion(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) { }

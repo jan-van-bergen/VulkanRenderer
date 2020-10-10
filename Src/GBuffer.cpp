@@ -258,9 +258,11 @@ void GBuffer::record_command_buffer(int image_index, Camera const & camera, std:
 		auto const & mesh_instance = meshes[i];
 		auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
+		auto transform = mesh_instance.transform.get_matrix();
+
 		GBufferPushConstants push_constants;
-		push_constants.world =                                mesh_instance.transform;
-		push_constants.wvp   = camera.get_view_projection() * mesh_instance.transform;
+		push_constants.world = transform;
+		push_constants.wvp   = camera.get_view_projection() * transform;
 
 		vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
 

@@ -64,11 +64,11 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : cam
 
 	this->window = window;
 
-	meshes.push_back({ Mesh::load("Data/Monkey.obj"),        Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Cube.obj"),          Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Cube.obj"),          Matrix4::identity() });
-	meshes.push_back({ Mesh::load("Data/Sponza/sponza.obj"), Matrix4::create_translation(Vector3(0.0f, -7.5f, 0.0f)) });
-	
+	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
+	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), Vector3( 10.0f, 0.0f, 0.0f) });
+	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), Vector3(-10.0f, 0.0f, 0.0f) });
+	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), Vector3(0.0f, -7.5f, 0.0f) });
+
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
 	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
@@ -585,7 +585,7 @@ void VulkanRenderer::create_frame_buffers() {
 void VulkanRenderer::create_imgui() {
 	auto device = VulkanContext::get_device();
 
-	ImGui_ImplGlfw_InitForVulkan(window, false);
+	ImGui_ImplGlfw_InitForVulkan(window, true);
 
 	VkDescriptorPoolSize pool_sizes[] = {
 		{ VK_DESCRIPTOR_TYPE_SAMPLER,                1000 },
@@ -654,6 +654,24 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	ImGui::Text("Min:   %.2f ms", 1000.0f * frame_min);
 	ImGui::Text("Max:   %.2f ms", 1000.0f * frame_max);
 	ImGui::Text("FPS:   %d", fps);
+	ImGui::End();
+
+	static MeshInstance * selected_mesh = nullptr;
+
+	ImGui::Begin("Scene");
+	for (auto & mesh : meshes) {
+		if (ImGui::Button(mesh.name.c_str())) {
+			selected_mesh = &mesh;
+		}
+	}
+	
+	if (selected_mesh) {
+		ImGui::Text("Selected Mesh: %s", selected_mesh->name.c_str());
+		ImGui::SliderFloat3("Position", selected_mesh->transform.position.data, -10.0f, 10.0f);
+		ImGui::SliderFloat4("Rotation", selected_mesh->transform.rotation.data,  -1.0f, -1.0f);
+		ImGui::SliderFloat ("Scale",   &selected_mesh->transform.scale, 0.0f, 10.0f);
+	}
+
 	ImGui::End();
 
 	ImGui::Render();
@@ -901,10 +919,10 @@ void VulkanRenderer::update(float delta) {
 	static float time = 0.0f;
 	time += delta;
 
-	if (meshes.size() > 0) meshes[0].transform = Matrix4::create_scale(5.0f + std::sin(time));
-	if (meshes.size() > 1) meshes[1].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3( 10.0f, 0.0f, 0.0f));
-	if (meshes.size() > 2) meshes[2].transform = Matrix4::create_rotation(Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), time)) * Matrix4::create_translation(Vector3(-10.0f, 0.0f, 0.0f));
-	
+	if (meshes.size() > 0) meshes[0].transform.scale = 5.0f + std::sin(time);
+	if (meshes.size() > 1) meshes[1].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[1].transform.rotation;
+	if (meshes.size() > 2) meshes[2].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[2].transform.rotation;
+
 	frame_delta = delta;
 
 	constexpr int FRAME_HISTORY_LENGTH = 100;

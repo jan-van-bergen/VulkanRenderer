@@ -9,8 +9,7 @@
 #include "Types.h"
 
 #include "Vector2.h"
-#include "Vector3.h"
-#include "Matrix4.h"
+#include "Transform.h"
 
 #include "Texture.h"
 
@@ -76,6 +75,9 @@ struct Mesh {
 };
 
 struct MeshInstance {
+	std::string name;
+
 	MeshHandle mesh_handle;
-	Matrix4 transform;
+
+	Transform transform;
 };

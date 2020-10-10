@@ -122,6 +122,9 @@
     <ClInclude Include="Src\RenderTarget.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Transform.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">

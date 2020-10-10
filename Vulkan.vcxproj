@@ -201,6 +201,7 @@
     <ClInclude Include="Src\Quaternion.h" />
     <ClInclude Include="Src\RenderTarget.h" />
     <ClInclude Include="Src\Texture.h" />
+    <ClInclude Include="Src\Transform.h" />
     <ClInclude Include="Src\VulkanRenderer.h" />
     <ClInclude Include="Src\Util.h" />
     <ClInclude Include="Src\Types.h" />
