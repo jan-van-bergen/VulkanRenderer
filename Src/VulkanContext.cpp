@@ -193,6 +193,7 @@ static void init_device() {
 	
 	VkPhysicalDeviceFeatures device_features = { };
 	device_features.samplerAnisotropy = true;
+	device_features.independentBlend = true;
 
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures dsf = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES };
 	dsf.separateDepthStencilLayouts = true;
@@ -405,7 +406,7 @@ VkPipeline VulkanContext::create_pipeline(PipelineDetails const & details) {
 	VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 	depth_stencil_create_info.depthTestEnable  = details.enable_depth_test;
 	depth_stencil_create_info.depthWriteEnable = details.enable_depth_write;
-	depth_stencil_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
+	depth_stencil_create_info.depthCompareOp = details.depth_compare;
 	depth_stencil_create_info.depthBoundsTestEnable = VK_FALSE;
 	depth_stencil_create_info.minDepthBounds = 0.0f;
 	depth_stencil_create_info.maxDepthBounds = 1.0f;

@@ -21,16 +21,18 @@ void Camera::set_locked(bool locked) {
 
 	Input::set_mouse_enabled(!locked);
 
-	if (mouse_locked) {
-		int mouse_x, mouse_y; Input::get_mouse_pos(mouse_x, mouse_y);
-
-		mouse_prev_x = mouse_x;
-		mouse_prev_y = mouse_y;
-	}
+	if (locked) Input::get_mouse_pos(mouse_prev_x, mouse_prev_y);
 }
 
 void Camera::on_resize(int width, int height) {
 	projection = Matrix4::perspective(fov, static_cast<float>(width) / static_cast<float>(height), near, far);
+
+	float half_width  = 0.5f * float(width);
+	float half_height = 0.5f * float(height);
+
+	float tan_half_fov = tanf(0.5f * fov);
+
+	top_left_corner = Vector3(-half_width, half_height, -half_height / tan_half_fov);
 }
 
 void Camera::update(float delta) {

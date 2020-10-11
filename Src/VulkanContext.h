@@ -75,6 +75,8 @@ namespace VulkanContext {
 		bool enable_depth_test  = true;
 		bool enable_depth_write = true;
 
+		VkCompareOp depth_compare = VK_COMPARE_OP_LESS;
+
 		VkPipelineLayout pipeline_layout;
 		VkRenderPass     render_pass;
 	};

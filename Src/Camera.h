@@ -24,6 +24,8 @@ public:
 	Vector3    position;
 	Quaternion rotation;
 	
+	Vector3 top_left_corner;
+
 	Camera(float fov, int width, int height, float near = 0.1f, float far = 500.0f);
 	
 	void on_resize(int width, int height);

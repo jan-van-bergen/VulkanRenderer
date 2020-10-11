@@ -67,7 +67,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : cam
 	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
 	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), Vector3( 10.0f, 0.0f, 0.0f) });
 	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), Vector3(-10.0f, 0.0f, 0.0f) });
-	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), Vector3(0.0f, -7.5f, 0.0f) });
+	meshes.push_back({ "Sponza", Mesh::load("Data/Terrain.obj"), Vector3(0.0f, -7.5f, 0.0f) });
 
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
 
@@ -923,6 +923,8 @@ void VulkanRenderer::update(float delta) {
 	if (meshes.size() > 1) meshes[1].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[1].transform.rotation;
 	if (meshes.size() > 2) meshes[2].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[2].transform.rotation;
 
+	if (directional_lights.size() > 0) directional_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 0.0f, -1.0f), 0.2f * delta) * directional_lights[0].direction;
+
 	frame_delta = delta;
 
 	constexpr int FRAME_HISTORY_LENGTH = 100;
@@ -971,7 +973,7 @@ void VulkanRenderer::render() {
 
 	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
 
-	gbuffer.record_command_buffer(image_index, camera, meshes);
+	gbuffer.record_command_buffer(image_index, camera, meshes, directional_lights[0].direction);
 	record_command_buffer(image_index);
 
 	// Render to GBuffer
