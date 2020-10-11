@@ -177,6 +177,7 @@
     <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\Lights.cpp" />
     <ClCompile Include="Src\RenderTarget.cpp" />
+    <ClCompile Include="Src\Scene.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\VulkanContext.cpp" />
     <ClCompile Include="Src\VulkanMemory.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Src\Lights.h" />
     <ClInclude Include="Src\Quaternion.h" />
     <ClInclude Include="Src\RenderTarget.h" />
+    <ClInclude Include="Src\Scene.h" />
     <ClInclude Include="Src\Texture.h" />
     <ClInclude Include="Src\Transform.h" />
     <ClInclude Include="Src\VulkanRenderer.h" />

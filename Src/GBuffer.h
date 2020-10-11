@@ -3,9 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Camera.h"
-#include "Mesh.h"
-#include "Texture.h"
+#include "Scene.h"
 #include "RenderTarget.h"
 
 class GBuffer {
@@ -46,5 +44,5 @@ public:
 	void init(int swapchain_image_count, int width, int height);
 	void free();
 
-	void record_command_buffer(int image_index, Camera const & camera, std::vector<MeshInstance> const & meshes, Vector3 const & sun_direction);
+	void record_command_buffer(int image_index, Scene const & scene);
 };

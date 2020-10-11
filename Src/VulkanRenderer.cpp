@@ -56,7 +56,7 @@ struct SpotLightUBO {
 	alignas(16) Vector3 camera_position;
 };
 
-VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : camera(DEG_TO_RAD(110.0f), width, height) {
+VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) {
 	auto device = VulkanContext::get_device();
 
 	this->width  = width;
@@ -64,32 +64,8 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : cam
 
 	this->window = window;
 
-	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
-	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), Vector3( 10.0f, 0.0f, 0.0f) });
-	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), Vector3(-10.0f, 0.0f, 0.0f) });
-	meshes.push_back({ "Sponza", Mesh::load("Data/Terrain.obj"), Vector3(0.0f, -7.5f, 0.0f) });
+	scene.init(width, height);
 
-	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
-
-	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
-	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3(+6.0f, 0.0f, 0.0f), 16.0f });
-
-	constexpr float point_lights_width  = 150.0f;
-	constexpr float point_lights_height =  60.0f;
-
-	auto rand_float = [](float min = 0.0f, float max = 1.0f) { return min + (max - min) * rand() / float(RAND_MAX); };
-
-	for (int i = 0; i < 1000; i++) {
-		point_lights.push_back({ 
-			10.0f * Vector3(rand_float(), rand_float(), rand_float()),
-			Vector3(rand_float(-point_lights_width, point_lights_width), -7.0f, rand_float(-point_lights_height, point_lights_height)),
-			rand_float(0.5f, 10.0f)
-		});
-	}
-
-	spot_lights.push_back({ Vector3(10.0f,  0.0f, 10.0f), Vector3(-4.0f, -7.45f, 10.0f), 20.0f, Vector3(0.0f, 0.0f, -1.0f), DEG_TO_RAD(75.0f), DEG_TO_RAD(90.0f) });
-	spot_lights.push_back({ Vector3( 0.0f, 10.0f,  0.0f), Vector3(+4.0f, -7.45f, 10.0f), 20.0f, Vector3(0.0f, 0.0f, -1.0f), DEG_TO_RAD(40.0f), DEG_TO_RAD(45.0f) });
-	
 	PointLight::init_sphere();
 
 	// Setup Dear ImGui context
@@ -331,7 +307,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 	auto aligned_size = Math::round_up(sizeof(PointLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	
 	for (int i = 0; i < swapchain_views.size(); i++) {
-		light_pass.uniform_buffers[i] = VulkanMemory::buffer_create(point_lights.size() * aligned_size,
+		light_pass.uniform_buffers[i] = VulkanMemory::buffer_create(scene.point_lights.size() * aligned_size,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
@@ -659,7 +635,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	static MeshInstance * selected_mesh = nullptr;
 
 	ImGui::Begin("Scene");
-	for (auto & mesh : meshes) {
+	for (auto & mesh : scene.meshes) {
 		if (ImGui::Button(mesh.name.c_str())) {
 			selected_mesh = &mesh;
 		}
@@ -701,7 +677,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Render Directional Lights
-	if (directional_lights.size() > 0) {
+	if (scene.directional_lights.size() > 0) {
 		auto & uniform_buffer = light_pass_directional.uniform_buffers[image_index];
 		auto & descriptor_set = light_pass_directional.descriptor_sets[image_index];
 
@@ -710,15 +686,15 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		// Upload Uniform Buffer
 		auto aligned_size = Math::round_up(sizeof(DirectionalLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
 		
-		std::vector<std::byte> buf(directional_lights.size() * aligned_size);
+		std::vector<std::byte> buf(scene.directional_lights.size() * aligned_size);
 
-		for (int i = 0; i < directional_lights.size(); i++) {
-			auto const & directional_light = directional_lights[i];
+		for (int i = 0; i < scene.directional_lights.size(); i++) {
+			auto const & directional_light = scene.directional_lights[i];
 
 			DirectionalLightUBO ubo = { };
 			ubo.directional_light.colour    = directional_light.colour;
 			ubo.directional_light.direction = directional_light.direction;
-			ubo.camera_position = camera.position;
+			ubo.camera_position = scene.camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
 		}
@@ -726,8 +702,8 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
 	
 		// For each Directional Light render a full sqreen quad
-		for (int i = 0; i < directional_lights.size(); i++) {
-			auto const & directional_light = directional_lights[i];
+		for (int i = 0; i < scene.directional_lights.size(); i++) {
+			auto const & directional_light = scene.directional_lights[i];
 
 			u32 offset = i * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
@@ -737,7 +713,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	}
 
 	// Render Point Lights
-	if (point_lights.size() > 0) {
+	if (scene.point_lights.size() > 0) {
 		auto & uniform_buffer = light_pass_point.uniform_buffers[image_index];
 		auto & descriptor_set = light_pass_point.descriptor_sets[image_index];
 
@@ -746,16 +722,16 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		// Upload Uniform Buffer
 		auto aligned_size = Math::round_up(sizeof(PointLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
 
-		std::vector<std::byte> buf(point_lights.size() * aligned_size);
+		std::vector<std::byte> buf(scene.point_lights.size() * aligned_size);
 
-		for (int i = 0; i < point_lights.size(); i++) {
-			auto const & point_light = point_lights[i];
+		for (int i = 0; i < scene.point_lights.size(); i++) {
+			auto const & point_light = scene.point_lights[i];
 
 			PointLightUBO ubo = { };
 			ubo.point_light.colour   = point_light.colour;
 			ubo.point_light.position = point_light.position;
 			ubo.point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
-			ubo.camera_position = camera.position;
+			ubo.camera_position = scene.camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(PointLightUBO));
 		}
@@ -770,11 +746,11 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// For each Point Light render a sphere with the appropriate radius and position
-		for (int i = 0; i < point_lights.size(); i++) {
-			auto const & point_light = point_lights[i];
+		for (int i = 0; i < scene.point_lights.size(); i++) {
+			auto const & point_light = scene.point_lights[i];
 
 			PointLightPushConstants push_constants = { };
-			push_constants.wvp = camera.get_view_projection() * Matrix4::create_translation(point_light.position) * Matrix4::create_scale(point_light.radius);
+			push_constants.wvp = scene.camera.get_view_projection() * Matrix4::create_translation(point_light.position) * Matrix4::create_scale(point_light.radius);
 
 			vkCmdPushConstants(command_buffer, light_pass_point.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PointLightPushConstants), &push_constants);
 
@@ -786,7 +762,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	}
 	
 	// Render Spot Lights
-	if (spot_lights.size() > 0) {
+	if (scene.spot_lights.size() > 0) {
 		auto & uniform_buffer = light_pass_spot.uniform_buffers[image_index];
 		auto & descriptor_set = light_pass_spot.descriptor_sets[image_index];
 
@@ -795,10 +771,10 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		// Upload Uniform Buffer
 		auto aligned_size = Math::round_up(sizeof(SpotLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
 
-		std::vector<std::byte> buf(spot_lights.size() * aligned_size);
+		std::vector<std::byte> buf(scene.spot_lights.size() * aligned_size);
 
-		for (int i = 0; i < spot_lights.size(); i++) {
-			auto const & spot_light = spot_lights[i];
+		for (int i = 0; i < scene.spot_lights.size(); i++) {
+			auto const & spot_light = scene.spot_lights[i];
 
 			SpotLightUBO ubo = { };
 			ubo.spot_light.colour    = spot_light.colour;
@@ -807,7 +783,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			ubo.spot_light.one_over_radius_squared = 1.0f / (spot_light.radius * spot_light.radius);
 			ubo.spot_light.cutoff_inner = std::cos(0.5f * spot_light.cutoff_inner);
 			ubo.spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
-			ubo.camera_position = camera.position;
+			ubo.camera_position = scene.camera.position;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(SpotLightUBO));
 		}
@@ -822,11 +798,11 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// For each Spot Light render a sphere with the appropriate radius and position
-		for (int i = 0; i < spot_lights.size(); i++) {
-			auto const & spot_light = spot_lights[i];
+		for (int i = 0; i < scene.spot_lights.size(); i++) {
+			auto const & spot_light = scene.spot_lights[i];
 
 			PointLightPushConstants push_constants = { };
-			push_constants.wvp = camera.get_view_projection() * Matrix4::create_translation(spot_light.position) * Matrix4::create_scale(spot_light.radius);
+			push_constants.wvp = scene.camera.get_view_projection() * Matrix4::create_translation(spot_light.position) * Matrix4::create_scale(spot_light.radius);
 
 			vkCmdPushConstants(command_buffer, light_pass_spot.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PointLightPushConstants), &push_constants);
 
@@ -914,16 +890,7 @@ void VulkanRenderer::swapchain_create() {
 }
 
 void VulkanRenderer::update(float delta) {
-	camera.update(delta);
-
-	static float time = 0.0f;
-	time += delta;
-
-	if (meshes.size() > 0) meshes[0].transform.scale = 5.0f + std::sin(time);
-	if (meshes.size() > 1) meshes[1].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[1].transform.rotation;
-	if (meshes.size() > 2) meshes[2].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[2].transform.rotation;
-
-	if (directional_lights.size() > 0) directional_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 0.0f, -1.0f), 0.2f * delta) * directional_lights[0].direction;
+	scene.update(delta);
 
 	frame_delta = delta;
 
@@ -973,7 +940,7 @@ void VulkanRenderer::render() {
 
 	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
 
-	gbuffer.record_command_buffer(image_index, camera, meshes, directional_lights[0].direction);
+	gbuffer.record_command_buffer(image_index, scene);
 	record_command_buffer(image_index);
 
 	// Render to GBuffer
@@ -1047,7 +1014,7 @@ void VulkanRenderer::render() {
 
 		printf("Recreated SwapChain!\n");
 
-		camera.on_resize(width, height);
+		scene.camera.on_resize(width, height);
 
 		framebuffer_needs_resize = false;
 	} else {

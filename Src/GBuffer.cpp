@@ -302,7 +302,7 @@ void GBuffer::free() {
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
-void GBuffer::record_command_buffer(int image_index, Camera const & camera, std::vector<MeshInstance> const & meshes, Vector3 const & sun_direction) {
+void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 	auto & command_buffer = command_buffers[image_index];
 
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -338,15 +338,15 @@ void GBuffer::record_command_buffer(int image_index, Camera const & camera, std:
 	auto last_texture_handle = -1;
 
 	// Render Renderables
-	for (int i = 0; i < meshes.size(); i++) {
-		auto const & mesh_instance = meshes[i];
+	for (int i = 0; i < scene.meshes.size(); i++) {
+		auto const & mesh_instance = scene.meshes[i];
 		auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
 		auto transform = mesh_instance.transform.get_matrix();
 
 		GBufferPushConstants push_constants;
 		push_constants.world = transform;
-		push_constants.wvp   = camera.get_view_projection() * transform;
+		push_constants.wvp   = scene.camera.get_view_projection() * transform;
 
 		vkCmdPushConstants(command_buffer, pipeline_layouts.geometry, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
 
@@ -377,10 +377,10 @@ void GBuffer::record_command_buffer(int image_index, Camera const & camera, std:
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.sky);
 
 	SkyUBO sky_ubo = { };
-	sky_ubo.camera_top_left_corner = camera.rotation * camera.top_left_corner;
-	sky_ubo.camera_x               = camera.rotation * Vector3(float(width), 0.0f, 0.0f);
-	sky_ubo.camera_y               = camera.rotation * Vector3(0.0f, -float(height), 0.0f);
-	sky_ubo.sun_direction = -sun_direction;
+	sky_ubo.camera_top_left_corner = scene.camera.rotation * scene.camera.top_left_corner;
+	sky_ubo.camera_x               = scene.camera.rotation * Vector3(float(width), 0.0f, 0.0f);
+	sky_ubo.camera_y               = scene.camera.rotation * Vector3(0.0f, -float(height), 0.0f);
+	sky_ubo.sun_direction = -scene.directional_lights[0].direction;
 
 	VulkanMemory::buffer_copy_direct(uniform_buffer, &sky_ubo, sizeof(sky_ubo));
 

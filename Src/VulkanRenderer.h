@@ -72,12 +72,6 @@ class VulkanRenderer {
 
 	int current_frame = 0;
 
-	std::vector<MeshInstance> meshes;
-	
-	std::vector<DirectionalLight> directional_lights;
-	std::vector<PointLight>       point_lights;
-	std::vector<SpotLight>        spot_lights;
-
 	// Timing
 	float frame_delta;
 	float frame_avg;
@@ -118,9 +112,9 @@ public:
 	u32 height;
 	
 	bool framebuffer_needs_resize;
-
-	Camera camera;
 	
+	Scene scene;
+
 	VulkanRenderer(GLFWwindow * window, u32 width, u32 height);
 	~VulkanRenderer();
 

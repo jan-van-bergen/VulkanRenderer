@@ -40,7 +40,7 @@ int main() {
 	VulkanContext::init(window);
 	{
 		VulkanRenderer renderer(window, screen_width, screen_height);
-		renderer.camera.position.z = 12.0f;
+		renderer.scene.camera.position.z = 12.0f;
 	
 		glfwSetWindowUserPointer(window, &renderer);
 		
