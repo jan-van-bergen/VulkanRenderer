@@ -24,15 +24,43 @@ void Camera::set_locked(bool locked) {
 	if (locked) Input::get_mouse_pos(mouse_prev_x, mouse_prev_y);
 }
 
+void Camera::Frustum::from_view_projection(Matrix4 const & view_projection) {
+	// Based on: "Fast Extraction of Viewing Frustum Planes from the World-View-Projection Matrix" by Gil Gribb and Klaus Hartmann
+	auto calc_plane = [&](Plane * plane, int row_0, int row_1, bool neg) {
+		float A = (neg ? -1.0f : +1.0f) * view_projection(row_0, 0) + view_projection(row_1, 0);
+		float B = (neg ? -1.0f : +1.0f) * view_projection(row_0, 1) + view_projection(row_1, 1);
+		float C = (neg ? -1.0f : +1.0f) * view_projection(row_0, 2) + view_projection(row_1, 2);
+		float D = (neg ? -1.0f : +1.0f) * view_projection(row_0, 3) + view_projection(row_1, 3);
+
+		float normalization_factor = 1.0f / sqrtf(A*A + B*B + C*C);
+
+		plane->n = normalization_factor * Vector3(A, B, C);
+		plane->d = normalization_factor * D;
+	};
+
+	calc_plane(&planes[0], 2, 3, false); // Near
+	calc_plane(&planes[1], 2, 3, true);  // Far
+	calc_plane(&planes[2], 1, 3, false); // Bottom
+	calc_plane(&planes[3], 1, 3, true);  // Top
+	calc_plane(&planes[4], 0, 3, false); // Left
+	calc_plane(&planes[5], 0, 3, true);  // Right
+}
+
+Camera::Frustum::IntersectionType Camera::Frustum::intersect_sphere(Vector3 const & center, float radius) {
+	for (int i = 0; i < 6; i++) {
+		float distance = Vector3::dot(planes[i].n, center) + planes[i].d;
+
+		if (distance < -radius) return IntersectionType::FULLY_OUTSIDE;
+		if (distance <  radius) return IntersectionType::INTERSECTING;
+	}
+
+	return IntersectionType::FULLY_INSIDE;
+}
+
 void Camera::on_resize(int width, int height) {
 	projection = Matrix4::perspective(fov, static_cast<float>(width) / static_cast<float>(height), near, far);
 
-	float half_width  = 0.5f * float(width);
-	float half_height = 0.5f * float(height);
-
-	float tan_half_fov = tanf(0.5f * fov);
-
-	top_left_corner = Vector3(-half_width, half_height, -half_height / tan_half_fov);
+	top_left_corner = Vector3(-0.5f * float(width),  0.5f * float(height), -far);
 }
 
 void Camera::update(float delta) {
@@ -81,4 +109,6 @@ void Camera::update(float delta) {
 		projection *
 		Matrix4::create_rotation(Quaternion::conjugate(rotation)) *
 		Matrix4::create_translation(-position);
+
+	frustum.from_view_projection(view_projection);
 }

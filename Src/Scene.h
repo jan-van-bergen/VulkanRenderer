@@ -15,7 +15,6 @@ struct Scene {
 	std::vector<SpotLight>        spot_lights;
 
 	void init(int width, int height);
-	void free();
 
 	void update(float delta);
 };

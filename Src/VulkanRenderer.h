@@ -65,8 +65,9 @@ class VulkanRenderer {
 	VkSemaphore semaphores_gbuffer_done   [MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore semaphores_render_done    [MAX_FRAMES_IN_FLIGHT];
 	
-	VkFence fences_inflight[MAX_FRAMES_IN_FLIGHT];
-	
+	VkFence              fences[MAX_FRAMES_IN_FLIGHT];
+	std::vector<VkFence> fences_in_flight;
+
 	GBuffer   gbuffer;
 	VkSampler gbuffer_sampler;
 

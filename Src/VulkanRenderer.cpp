@@ -85,7 +85,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) {
 		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_gbuffer_done   [i]));
 		VK_CHECK(vkCreateSemaphore(device, &semaphore_create_info, nullptr, &semaphores_render_done    [i]));
 
-		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &fences_inflight[i]));
+		VK_CHECK(vkCreateFence(device, &fence_create_info, nullptr, &fences[i]));
 	}
 }
 
@@ -106,7 +106,7 @@ VulkanRenderer::~VulkanRenderer() {
 		vkDestroySemaphore(device, semaphores_gbuffer_done   [i], nullptr);
 		vkDestroySemaphore(device, semaphores_render_done    [i], nullptr);
 
-		vkDestroyFence(device, fences_inflight[i], nullptr);
+		vkDestroyFence(device, fences[i], nullptr);
 	}
 }
 
@@ -724,41 +724,45 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 		std::vector<std::byte> buf(scene.point_lights.size() * aligned_size);
 
-		for (int i = 0; i < scene.point_lights.size(); i++) {
-			auto const & point_light = scene.point_lights[i];
-
-			PointLightUBO ubo = { };
-			ubo.point_light.colour   = point_light.colour;
-			ubo.point_light.position = point_light.position;
-			ubo.point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
-			ubo.camera_position = scene.camera.position;
-
-			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(PointLightUBO));
-		}
-
-		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
-	
 		// Bind Sphere to render Point Lights
 		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		
+		int num_unculled_lights = 0;
 
 		// For each Point Light render a sphere with the appropriate radius and position
 		for (int i = 0; i < scene.point_lights.size(); i++) {
 			auto const & point_light = scene.point_lights[i];
 
+			if (scene.camera.frustum.intersect_sphere(point_light.position, point_light.radius) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
+			
+			// Upload UBO
+			PointLightUBO ubo = { };
+			ubo.point_light.colour   = point_light.colour;
+			ubo.point_light.position = point_light.position;
+			ubo.point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
+			ubo.camera_position = scene.camera.position;
+
+			std::memcpy(buf.data() + num_unculled_lights * aligned_size, &ubo, sizeof(PointLightUBO));
+
+			// Draw Sphere
 			PointLightPushConstants push_constants = { };
 			push_constants.wvp = scene.camera.get_view_projection() * Matrix4::create_translation(point_light.position) * Matrix4::create_scale(point_light.radius);
 
 			vkCmdPushConstants(command_buffer, light_pass_point.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PointLightPushConstants), &push_constants);
 
-			u32 offset = i * aligned_size;
+			u32 offset = num_unculled_lights * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_point.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
 			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
+
+			num_unculled_lights++;
 		}
+		
+		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
 	}
 	
 	// Render Spot Lights
@@ -773,9 +777,21 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 
 		std::vector<std::byte> buf(scene.spot_lights.size() * aligned_size);
 
+		// Bind Sphere to render Spot Lights
+		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		
+		int num_unculled_lights = 0;
+
+		// For each Spot Light render a sphere with the appropriate radius and position
 		for (int i = 0; i < scene.spot_lights.size(); i++) {
 			auto const & spot_light = scene.spot_lights[i];
-
+			
+			if (scene.camera.frustum.intersect_sphere(spot_light.position, spot_light.radius) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
+			
 			SpotLightUBO ubo = { };
 			ubo.spot_light.colour    = spot_light.colour;
 			ubo.spot_light.position  = spot_light.position;
@@ -785,32 +801,22 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			ubo.spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
 			ubo.camera_position = scene.camera.position;
 
-			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(SpotLightUBO));
-		}
-
-		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
-	
-		// Bind Sphere to render Spot Lights
-		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-
-		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		// For each Spot Light render a sphere with the appropriate radius and position
-		for (int i = 0; i < scene.spot_lights.size(); i++) {
-			auto const & spot_light = scene.spot_lights[i];
+			std::memcpy(buf.data() + num_unculled_lights * aligned_size, &ubo, sizeof(SpotLightUBO));
 
 			PointLightPushConstants push_constants = { };
 			push_constants.wvp = scene.camera.get_view_projection() * Matrix4::create_translation(spot_light.position) * Matrix4::create_scale(spot_light.radius);
 
 			vkCmdPushConstants(command_buffer, light_pass_spot.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PointLightPushConstants), &push_constants);
 
-			u32 offset = i * aligned_size;
+			u32 offset = num_unculled_lights * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_spot.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
 			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
+
+			num_unculled_lights++;
 		}
+		
+		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
 	}
 
 	vkCmdEndRenderPass(command_buffer);
@@ -844,7 +850,8 @@ void VulkanRenderer::swapchain_create() {
 	u32                  swapchain_image_count;                   vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
 	std::vector<VkImage> swapchain_images(swapchain_image_count); vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images.data());
 
-	swapchain_views.resize(swapchain_image_count);
+	swapchain_views .resize(swapchain_image_count);
+	fences_in_flight.resize(swapchain_image_count, nullptr);
 
 	for (int i = 0; i < swapchain_image_count; i++) {
 		swapchain_views[i] = VulkanMemory::create_image_view(swapchain_images[i], 1, VulkanContext::FORMAT.format, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -929,16 +936,20 @@ void VulkanRenderer::render() {
 	auto queue_graphics = VulkanContext::get_queue_graphics();
 	auto queue_present  = VulkanContext::get_queue_present();
 
-	auto const & semaphore_image_available = semaphores_image_available[current_frame];
-	auto const & semaphore_gbuffer_done    = semaphores_gbuffer_done   [current_frame];
-	auto const & semaphore_render_done     = semaphores_render_done    [current_frame];
+	auto semaphore_image_available = semaphores_image_available[current_frame];
+	auto semaphore_gbuffer_done    = semaphores_gbuffer_done   [current_frame];
+	auto semaphore_render_done     = semaphores_render_done    [current_frame];
 
-	auto const & fence = fences_inflight[current_frame];
+	auto fence = fences[current_frame];
 
 	VK_CHECK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-	VK_CHECK(vkResetFences(device, 1, &fence));
-
+	
 	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
+
+	if (fences_in_flight[image_index] != nullptr) {
+		VK_CHECK(vkWaitForFences(device, 1, &fences_in_flight[image_index], VK_TRUE, UINT64_MAX));
+	}
+	fences_in_flight[image_index] = fence;
 
 	gbuffer.record_command_buffer(image_index, scene);
 	record_command_buffer(image_index);
@@ -978,6 +989,7 @@ void VulkanRenderer::render() {
 		submit_info.signalSemaphoreCount = Util::array_element_count(signal_semaphores);
 		submit_info.pSignalSemaphores    = signal_semaphores;
 
+		VK_CHECK(vkResetFences(device, 1, &fence));
 		VK_CHECK(vkQueueSubmit(queue_graphics, 1, &submit_info, fence));
 	}
 
