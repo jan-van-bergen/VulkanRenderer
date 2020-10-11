@@ -56,15 +56,13 @@ struct SpotLightUBO {
 	alignas(16) Vector3 camera_position;
 };
 
-VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) {
+VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : scene(width, height) {
 	auto device = VulkanContext::get_device();
 
 	this->width  = width;
 	this->height = height;
 
 	this->window = window;
-
-	scene.init(width, height);
 
 	PointLight::init_sphere();
 

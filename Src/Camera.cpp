@@ -2,7 +2,7 @@
 
 #include "Input.h"
 
-void Camera::init(float fov, int width, int height, float near, float far) {
+Camera::Camera(float fov, int width, int height, float near, float far) {
 	this->fov = fov;
 
 	this->near = near;

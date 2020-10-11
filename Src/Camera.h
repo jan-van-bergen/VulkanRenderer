@@ -43,7 +43,7 @@ public:
 		IntersectionType intersect_sphere(Vector3 const & center, float radius);
 	} frustum;
 
-	void init(float fov, int width, int height, float near = 0.1f, float far = 500.0f);
+	Camera(float fov, int width, int height, float near = 0.1f, float far = 500.0f);
 	
 	void on_resize(int width, int height);
 

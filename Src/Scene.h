@@ -14,7 +14,7 @@ struct Scene {
 	std::vector<PointLight>       point_lights;
 	std::vector<SpotLight>        spot_lights;
 
-	void init(int width, int height);
+	Scene(int width, int height);
 
 	void update(float delta);
 };
