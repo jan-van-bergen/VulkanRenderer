@@ -36,11 +36,16 @@ public:
 		struct Plane {
 			Vector3 n;
 			float   d;
+
+			inline float distance(Vector3 const & point) const {
+				return Vector3::dot(n, point) + d;
+			}
 		} planes[6];
 
 		void from_view_projection(Matrix4 const & view_projection);
 
-		IntersectionType intersect_sphere(Vector3 const & center, float radius);
+		IntersectionType intersect_aabb(Vector3 const & min, Vector3 const & max) const;
+		IntersectionType intersect_sphere(Vector3 const & center, float radius) const;
 	} frustum;
 
 	Camera(float fov, int width, int height, float near = 0.1f, float far = 500.0f);

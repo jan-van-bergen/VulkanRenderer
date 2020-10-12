@@ -342,7 +342,8 @@ void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 		auto const & mesh_instance = scene.meshes[i];
 		auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
-		auto transform = mesh_instance.transform.get_matrix();
+		auto     transform = mesh_instance.transform.get_matrix();
+		auto abs_transform = Matrix4::abs(transform);
 
 		GBufferPushConstants push_constants;
 		push_constants.world = transform;
@@ -352,6 +353,18 @@ void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 
 		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
 			auto const & sub_mesh = mesh.sub_meshes[j];
+
+			// Transform AABB into world space for culling
+			Vector3 center = 0.5f * (sub_mesh.aabb.min + sub_mesh.aabb.max);
+			Vector3 extent = 0.5f * (sub_mesh.aabb.max - sub_mesh.aabb.min);
+
+			Vector3 new_center = Matrix4::transform_position (    transform, center);
+			Vector3 new_extent = Matrix4::transform_direction(abs_transform, extent);
+
+			Vector3 aabb_world_min = new_center - new_extent;
+			Vector3 aabb_world_max = new_center + new_extent;
+
+			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 
 			VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
 			VkDeviceSize offsets[] = { 0 };

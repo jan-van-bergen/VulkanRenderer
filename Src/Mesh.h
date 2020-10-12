@@ -62,6 +62,11 @@ struct Mesh {
 		VulkanMemory::Buffer vertex_buffer;
 		VulkanMemory::Buffer index_buffer;
 
+		struct AABB {
+			Vector3 min;
+			Vector3 max;
+		} aabb;
+
 		TextureHandle texture_handle;
 	};
 

@@ -46,9 +46,45 @@ void Camera::Frustum::from_view_projection(Matrix4 const & view_projection) {
 	calc_plane(&planes[5], 0, 3, true);  // Right
 }
 
-Camera::Frustum::IntersectionType Camera::Frustum::intersect_sphere(Vector3 const & center, float radius) {
+Camera::Frustum::IntersectionType Camera::Frustum::intersect_aabb(Vector3 const & min, Vector3 const & max) const {
+	Vector3 corners[8] = {
+		Vector3(min.x, min.y, min.z),
+		Vector3(min.x, min.y, max.z),
+		Vector3(max.x, min.y, max.z),
+		Vector3(max.x, min.y, min.z),
+		Vector3(min.x, max.y, min.z),
+		Vector3(min.x, max.y, max.z),
+		Vector3(max.x, max.y, max.z),
+		Vector3(max.x, max.y, min.z)
+	};
+
+	int num_valid_planes = 0;
+
+	// For each plane, test all 8 corners of the AABB
+	for (int p = 0; p < 6; p++) {
+		int num_inside = 0;
+		
+		for (int i = 0; i < 8; i++) {
+			if (planes[p].distance(corners[i]) > 0.0f) {
+				num_inside++;
+			}
+		}
+
+		// If all 8 corners were outside the current plane, we are fully outside the frustum
+		if (num_inside == 0) return IntersectionType::FULLY_OUTSIDE;
+
+		num_valid_planes += (num_inside == 8);
+	}
+
+	// If all planes were valid, we are fully inside the frustum
+	if (num_valid_planes == 6) return IntersectionType::FULLY_INSIDE;
+
+	return IntersectionType::INTERSECTING;
+}
+
+Camera::Frustum::IntersectionType Camera::Frustum::intersect_sphere(Vector3 const & center, float radius) const {
 	for (int i = 0; i < 6; i++) {
-		float distance = Vector3::dot(planes[i].n, center) + planes[i].d;
+		float distance = planes[i].distance(center);
 
 		if (distance < -radius) return IntersectionType::FULLY_OUTSIDE;
 		if (distance <  radius) return IntersectionType::INTERSECTING;

@@ -760,7 +760,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			num_unculled_lights++;
 		}
 		
-		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
+		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
 	}
 	
 	// Render Spot Lights
@@ -814,7 +814,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 			num_unculled_lights++;
 		}
 		
-		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
+		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
 	}
 
 	vkCmdEndRenderPass(command_buffer);

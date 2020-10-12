@@ -1,5 +1,6 @@
 #include "Mesh.h"
 
+#include <algorithm>
 #include <unordered_map>
 
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -63,6 +64,9 @@ MeshHandle Mesh::load(std::string const & filename) {
 
 		auto & sub_mesh = mesh.sub_meshes.emplace_back();
 
+		sub_mesh.aabb.min = Vector3(+INFINITY);
+		sub_mesh.aabb.max = Vector3(-INFINITY);
+
 		for (size_t i = 0; i < shape.mesh.indices.size(); i++) {
 			auto const & index = shape.mesh.indices[i];
 
@@ -97,6 +101,9 @@ MeshHandle Mesh::load(std::string const & filename) {
 					attrib.normals[index_nor + 1],
 					attrib.normals[index_nor + 2]
 				);
+
+				sub_mesh.aabb.min = Vector3::min(sub_mesh.aabb.min, vertex.position);
+				sub_mesh.aabb.max = Vector3::max(sub_mesh.aabb.max, vertex.position);
 			}
 
 			indices.push_back(vertex_index);
@@ -127,6 +134,11 @@ MeshHandle Mesh::load(std::string const & filename) {
 
 		if (sub_mesh.texture_handle == -1) sub_mesh.texture_handle = Texture::load("Data/bricks.png");
 	}
+
+	// Sort Submeshes so that Submeshes with the same Texture are consecutive
+	std::sort(mesh.sub_meshes.begin(), mesh.sub_meshes.end(), [](auto const & a, auto const & b) {
+		return a.texture_handle < b.texture_handle;
+	});
 
 	return mesh_handle;
 }
