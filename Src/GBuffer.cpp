@@ -345,11 +345,7 @@ void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 		auto     transform = mesh_instance.transform.get_matrix();
 		auto abs_transform = Matrix4::abs(transform);
 
-		GBufferPushConstants push_constants;
-		push_constants.world = transform;
-		push_constants.wvp   = scene.camera.get_view_projection() * transform;
-
-		vkCmdPushConstants(command_buffer, pipeline_layouts.geometry, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
+		bool first_sub_mesh = true;
 
 		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
 			auto const & sub_mesh = mesh.sub_meshes[j];
@@ -365,6 +361,17 @@ void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 			Vector3 aabb_world_max = new_center + new_extent;
 
 			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
+
+			// The first unculled Submesh must set the Push Constants
+			if (first_sub_mesh) {		
+				first_sub_mesh = false;
+
+				GBufferPushConstants push_constants;
+				push_constants.world = transform;
+				push_constants.wvp   = scene.camera.get_view_projection() * transform;
+
+				vkCmdPushConstants(command_buffer, pipeline_layouts.geometry, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
+			}
 
 			VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
 			VkDeviceSize offsets[] = { 0 };
