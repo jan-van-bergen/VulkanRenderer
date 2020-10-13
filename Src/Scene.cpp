@@ -4,9 +4,11 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
 	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), Vector3( 10.0f, 0.0f, 0.0f) });
 	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), Vector3(-10.0f, 0.0f, 0.0f) });
+#ifdef NDEBUG
 	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), Vector3(0.0f, -7.5f, 0.0f) });
+#endif
 
-	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -1.0f, 0.0f)) });
+	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -10.0f, 0.0f)) });
 
 	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
 	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3(+6.0f, 0.0f, 0.0f), 16.0f });
@@ -38,7 +40,7 @@ void Scene::update(float delta) {
 	if (meshes.size() > 1) meshes[1].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[1].transform.rotation;
 	if (meshes.size() > 2) meshes[2].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[2].transform.rotation;
 
-	if (directional_lights.size() > 0) directional_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 0.0f, -1.0f), 0.2f * delta) * directional_lights[0].direction;
+	if (directional_lights.size() > 0) directional_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), 0.2f * delta) * directional_lights[0].direction;
 
 	if (spot_lights.size() > 0) spot_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), 0.5f * delta) * spot_lights[0].direction;
 	if (spot_lights.size() > 1) spot_lights[1].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f),       -delta) * spot_lights[1].direction;

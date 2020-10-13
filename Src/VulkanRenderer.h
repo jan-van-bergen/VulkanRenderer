@@ -17,6 +17,18 @@ class VulkanRenderer {
 	std::vector<VkImageView> swapchain_views;
 
 	struct {
+		inline static constexpr int WIDTH  = 2048;
+		inline static constexpr int HEIGHT = 2048;
+
+		VkDescriptorSetLayout descriptor_set_layout;
+
+		VkPipelineLayout pipeline_layout;
+		VkPipeline       pipeline;
+
+		VkRenderPass render_pass;
+	} shadow;
+
+	struct {
 		RenderTarget render_target_colour;
 		RenderTarget render_target_depth;
 
@@ -43,8 +55,9 @@ class VulkanRenderer {
 	};
 	
 	VkDescriptorSetLayout light_descriptor_set_layout;
+	VkDescriptorSetLayout shadow_descriptor_set_layout;
 	VkRenderPass          light_render_pass;
-	
+
 	LightPass light_pass_directional;
 	LightPass light_pass_point;
 	LightPass light_pass_spot;
@@ -83,12 +96,15 @@ class VulkanRenderer {
 	int frames_since_last_second = 0;
 	int fps = 0;
 
-	int frame_index = 0;
+	int                frame_index = 0;
 	std::vector<float> frame_times;
 
 	void swapchain_create();
 	void swapchain_destroy();
 
+	void create_descriptor_pool();
+
+	void create_shadow_render_pass();
 	void create_light_render_pass();
 
 	LightPass create_light_pass(

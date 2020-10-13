@@ -8,10 +8,9 @@
 
 class GBuffer {
 	int width, height;
-
-	VkFramebuffer frame_buffer;
 	
-	VkRenderPass render_pass;
+	VkRenderPass  render_pass;
+	VkFramebuffer frame_buffer;
 	
 	struct {
 		VkPipeline geometry;
@@ -44,5 +43,5 @@ public:
 	void init(int swapchain_image_count, int width, int height);
 	void free();
 
-	void record_command_buffer(int image_index, Scene const & scene);
+	void record_command_buffer(int image_index, VkCommandBuffer command_buffer, Scene const & scene);
 };

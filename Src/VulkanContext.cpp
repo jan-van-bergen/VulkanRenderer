@@ -194,6 +194,7 @@ static void init_device() {
 	VkPhysicalDeviceFeatures device_features = { };
 	device_features.samplerAnisotropy = true;
 	device_features.independentBlend = true;
+	device_features.depthBiasClamp = true;
 
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures dsf = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES };
 	dsf.separateDepthStencilLayouts = true;
@@ -341,8 +342,8 @@ VulkanContext::Shader VulkanContext::shader_load(std::string const & filename, V
 
 VkPipelineLayout VulkanContext::create_pipeline_layout(PipelineLayoutDetails const & details) {
 	VkPipelineLayoutCreateInfo pipeline_layout_create_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipeline_layout_create_info.setLayoutCount = 1;
-	pipeline_layout_create_info.pSetLayouts    = &details.descriptor_set_layout;
+	pipeline_layout_create_info.setLayoutCount = details.descriptor_set_layouts.size();
+	pipeline_layout_create_info.pSetLayouts    = details.descriptor_set_layouts.data();;
 	pipeline_layout_create_info.pushConstantRangeCount = details.push_constants.size();
 	pipeline_layout_create_info.pPushConstantRanges    = details.push_constants.data();
 
@@ -398,10 +399,15 @@ VkPipeline VulkanContext::create_pipeline(PipelineDetails const & details) {
 	blend_state_create_info.attachmentCount = details.blends.size();
 	blend_state_create_info.pAttachments    = details.blends.data();
 
-	auto shader_vert = VulkanContext::shader_load(details.filename_shader_vertex,   VK_SHADER_STAGE_VERTEX_BIT);
-	auto shader_frag = VulkanContext::shader_load(details.filename_shader_fragment, VK_SHADER_STAGE_FRAGMENT_BIT);
+	std::vector<Shader>                          shaders(details.shaders.size());
+	std::vector<VkPipelineShaderStageCreateInfo> stages (details.shaders.size());
 
-	VkPipelineShaderStageCreateInfo shader_stages[] = { shader_vert.stage_create_info, shader_frag.stage_create_info };
+	for (int i = 0; i < details.shaders.size(); i++) {
+		auto [filename, stage] = details.shaders[i];
+
+		shaders[i] = VulkanContext::shader_load(filename, stage);
+		stages [i] = shaders[i].stage_create_info;
+	}
 
 	VkPipelineDepthStencilStateCreateInfo depth_stencil_create_info = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 	depth_stencil_create_info.depthTestEnable  = details.enable_depth_test;
@@ -413,8 +419,8 @@ VkPipeline VulkanContext::create_pipeline(PipelineDetails const & details) {
 	depth_stencil_create_info.stencilTestEnable = VK_FALSE;
 
 	VkGraphicsPipelineCreateInfo pipeline_create_info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-	pipeline_create_info.stageCount = Util::array_element_count(shader_stages);
-	pipeline_create_info.pStages    = shader_stages;
+	pipeline_create_info.stageCount = stages.size();
+	pipeline_create_info.pStages    = stages.data();
 	pipeline_create_info.pVertexInputState   = &vertex_input_create_info;
 	pipeline_create_info.pInputAssemblyState = &input_asm_create_info;
 	pipeline_create_info.pViewportState      = &viewport_state_create_info;
@@ -431,8 +437,9 @@ VkPipeline VulkanContext::create_pipeline(PipelineDetails const & details) {
 
 	VkPipeline pipeline; VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline));
 
-	vkDestroyShaderModule(device, shader_vert.module, nullptr);
-	vkDestroyShaderModule(device, shader_frag.module, nullptr);
+	for (auto & shader : shaders) {
+		vkDestroyShaderModule(device, shader.module, nullptr);
+	}
 
 	return pipeline;
 }

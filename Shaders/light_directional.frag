@@ -10,11 +10,13 @@ layout(binding = 0) uniform sampler2D sampler_albedo;
 layout(binding = 1) uniform sampler2D sampler_position;
 layout(binding = 2) uniform sampler2D sampler_normal;
 
-layout(binding = 3) uniform UniformBuffer {
+layout(binding = 3, row_major) uniform UniformBuffer {
 	DirectionalLight directional_light;
 	
 	vec3 camera_position;
 };
+
+layout(set = 1, binding = 0) uniform sampler2D sampler_shadow_map;
 
 void main() {
 	vec3 albedo        = texture(sampler_albedo,   in_uv).xyz;
@@ -23,7 +25,7 @@ void main() {
 
 	vec3 normal = unpack_normal(packed_normal);
 
-	const float ambient = 0.1f;
+	const float ambient = 0.2f;
 
-	out_colour = vec4(albedo, 1.0f) * (ambient + (1.0f - ambient) * calc_directional_light(directional_light, position, normal, camera_position));
+	out_colour = vec4(albedo + vec3(ambient), 1.0f) * (calc_directional_light(directional_light, position, normal, camera_position, sampler_shadow_map));
 }

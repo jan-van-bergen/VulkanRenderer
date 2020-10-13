@@ -29,7 +29,7 @@ namespace VulkanContext {
 	Shader shader_load(std::string const & filename, VkShaderStageFlagBits stage);
 	
 	struct PipelineLayoutDetails {
-		VkDescriptorSetLayout descriptor_set_layout;
+		std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
 
 		std::vector<VkPushConstantRange> push_constants;
 	};
@@ -69,8 +69,7 @@ namespace VulkanContext {
 
 		std::vector<VkPipelineColorBlendAttachmentState> blends;
 
-		std::string filename_shader_vertex;
-		std::string filename_shader_fragment;
+		std::vector<std::pair<std::string, VkShaderStageFlagBits>> shaders;
 
 		bool enable_depth_test  = true;
 		bool enable_depth_write = true;

@@ -6,6 +6,8 @@ struct DirectionalLight {
 	Light base;
 	
 	vec3 direction;
+	
+	mat4 light_matrix;
 };
 
 struct PointLight {
@@ -23,6 +25,30 @@ struct SpotLight {
 	float cutoff_inner;
 	float cutoff_outer;
 };
+
+float calc_shadow(sampler2D shadow_map, mat4 light_matrix, vec3 world_position) {
+	vec2 texel_size = 1.0f / textureSize(shadow_map, 0).xy;
+
+	vec4 shadow_map_coords = light_matrix * vec4(world_position, 1.0f);
+	
+	shadow_map_coords /= shadow_map_coords.w;
+	shadow_map_coords.xy = shadow_map_coords.xy * 0.5f + 0.5f;
+	
+	const int range = 1;
+	const int total = (2 * range + 1) * (2 * range + 1); // Normalization factor
+
+	float result = 1.0f;
+
+	for (int y = -range; y <= range; y++) {
+		for (int x = -range; x <= range; x++) {
+			float depth = texture(shadow_map, shadow_map_coords.xy + vec2(x, y) * texel_size).x;
+	
+			if (depth < shadow_map_coords.z - 0.001f) result -= 1.0f / total;
+		}
+	}
+
+	return result;
+}
 
 vec4 calc_light(Light light, vec3 position, vec3 direction, vec3 normal, vec3 camera_position) {
     vec4 result = vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -48,8 +74,10 @@ vec4 calc_light(Light light, vec3 position, vec3 direction, vec3 normal, vec3 ca
     return result;
 }
 
-vec4 calc_directional_light(DirectionalLight directional_light, vec3 position, vec3 normal, vec3 camera_position) {
-    return calc_light(directional_light.base, position, directional_light.direction, normal, camera_position);
+vec4 calc_directional_light(DirectionalLight directional_light, vec3 position, vec3 normal, vec3 camera_position, sampler2D shadow_map) {
+    return 
+		calc_shadow(shadow_map, directional_light.light_matrix, position) *
+		calc_light(directional_light.base, position, directional_light.direction, normal, camera_position);
 }
 
 vec4 calc_point_light(PointLight point_light, vec3 position, vec3 normal, vec3 camera_position) {

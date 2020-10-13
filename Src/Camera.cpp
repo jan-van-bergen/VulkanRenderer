@@ -149,7 +149,7 @@ Camera::Frustum::IntersectionType Camera::Frustum::intersect_sphere(Vector3 cons
 
 void Camera::on_resize(int width, int height) {
 	projection = Matrix4::perspective(fov, static_cast<float>(width) / static_cast<float>(height), near, far);
-
+	
 	top_left_corner = Vector3(-0.5f * float(width),  0.5f * float(height), -far);
 }
 

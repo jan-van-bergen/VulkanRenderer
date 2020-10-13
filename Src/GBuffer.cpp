@@ -169,12 +169,12 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details;
-	pipeline_layout_details.descriptor_set_layout = descriptor_set_layouts.geometry;
+	pipeline_layout_details.descriptor_set_layouts = { descriptor_set_layouts.geometry };
 	pipeline_layout_details.push_constants = { push_constants };
 
 	pipeline_layouts.geometry = VulkanContext::create_pipeline_layout(pipeline_layout_details);
 
-	pipeline_layout_details.descriptor_set_layout = descriptor_set_layouts.sky;
+	pipeline_layout_details.descriptor_set_layouts = { descriptor_set_layouts.sky };
 	pipeline_layout_details.push_constants = { };
 
 	pipeline_layouts.sky = VulkanContext::create_pipeline_layout(pipeline_layout_details);
@@ -191,8 +191,10 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 		VulkanContext::PipelineDetails::BLEND_NONE
 	};
 	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
-	pipeline_details.filename_shader_vertex   = "Shaders/geometry.vert.spv";
-	pipeline_details.filename_shader_fragment = "Shaders/geometry.frag.spv";
+	pipeline_details.shaders = {
+		{ "Shaders/geometry.vert.spv", VK_SHADER_STAGE_VERTEX_BIT   },
+		{ "Shaders/geometry.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }
+	};
 	pipeline_details.pipeline_layout = pipeline_layouts.geometry;
 	pipeline_details.render_pass     = render_pass;
 
@@ -203,8 +205,10 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	pipeline_details.blends[1].colorWriteMask = 0; // Don't write to position buffer
 	pipeline_details.blends[2].colorWriteMask = 0; // Don't write to normal   buffer
 	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
-	pipeline_details.filename_shader_vertex   = "Shaders/sky.vert.spv";
-	pipeline_details.filename_shader_fragment = "Shaders/sky.frag.spv";
+	pipeline_details.shaders = {
+		{ "Shaders/sky.vert.spv", VK_SHADER_STAGE_VERTEX_BIT },
+		{ "Shaders/sky.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }
+	};
 	pipeline_details.enable_depth_write = false;
 	pipeline_details.depth_compare = VK_COMPARE_OP_EQUAL;
 	pipeline_details.pipeline_layout = pipeline_layouts.sky;
@@ -302,11 +306,7 @@ void GBuffer::free() {
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
-void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
-	auto & command_buffer = command_buffers[image_index];
-
-	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-
+void GBuffer::record_command_buffer(int image_index, VkCommandBuffer command_buffer, Scene const & scene) {
 	// Clear values for all attachments written in the fragment shader
 	VkClearValue clear_values[4] = { };
 	clear_values[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -321,8 +321,6 @@ void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 	render_pass_begin_info.renderArea.extent.height = height;
 	render_pass_begin_info.clearValueCount = Util::array_element_count(clear_values);
 	render_pass_begin_info.pClearValues    = clear_values;
-
-	VK_CHECK(vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info));
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -409,6 +407,4 @@ void GBuffer::record_command_buffer(int image_index, Scene const & scene) {
 	vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(command_buffer);
-
-	VK_CHECK(vkEndCommandBuffer(command_buffer));
 }

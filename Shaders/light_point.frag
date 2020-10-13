@@ -10,7 +10,7 @@ layout(binding = 0) uniform sampler2D sampler_albedo;
 layout(binding = 1) uniform sampler2D sampler_position;
 layout(binding = 2) uniform sampler2D sampler_normal;
 
-layout(binding = 3) uniform UniformBuffer {
+layout(binding = 3, row_major) uniform UniformBuffer {
 	PointLight point_light;
 
 	vec3 camera_position;

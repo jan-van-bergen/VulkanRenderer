@@ -16,11 +16,17 @@
 
 #include "Util.h"
 
+struct ShadowPushConstants {
+	alignas(16) Matrix4 wvp;
+};
+
 struct DirectionalLightUBO {
 	struct {
 		alignas(16) Vector3 colour;
 
 		alignas(16) Vector3 direction;
+
+		alignas(16) Matrix4 light_matrix;
 	} directional_light;
 	
 	alignas(16) Vector3 camera_position; 
@@ -70,7 +76,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : sce
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
-
+	
 	swapchain_create();
 
 	VkSemaphoreCreateInfo semaphore_create_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -98,7 +104,7 @@ VulkanRenderer::~VulkanRenderer() {
 
 	Texture::free();
 	Mesh::free();
-
+	
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
 		vkDestroySemaphore(device, semaphores_gbuffer_done   [i], nullptr);
@@ -119,7 +125,7 @@ void VulkanRenderer::LightPass::free() {
 	}
 }
 
-void VulkanRenderer::create_light_render_pass() {
+void VulkanRenderer::create_descriptor_pool() {
 	auto device = VulkanContext::get_device();
 	
 	// Create Descriptor Pool
@@ -131,47 +137,186 @@ void VulkanRenderer::create_light_render_pass() {
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
-	pool_create_info.maxSets = 4 * swapchain_views.size();
+	pool_create_info.maxSets = 4 * swapchain_views.size() + 1;
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 	
-	// Create Descriptor Set Layout
-	VkDescriptorSetLayoutBinding layout_bindings[4] = { };
+	{
+		// Create Descriptor Set Layout
+		VkDescriptorSetLayoutBinding layout_bindings[4] = { };
 
-	// Albedo Sampler
-	layout_bindings[0].binding = 0;
-	layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	layout_bindings[0].descriptorCount = 1;
-	layout_bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_bindings[0].pImmutableSamplers = nullptr;
+		// Albedo Sampler
+		layout_bindings[0].binding = 0;
+		layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		layout_bindings[0].descriptorCount = 1;
+		layout_bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings[0].pImmutableSamplers = nullptr;
 
-	// Position Sampler
-	layout_bindings[1].binding = 1;
-	layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	layout_bindings[1].descriptorCount = 1;
-	layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_bindings[1].pImmutableSamplers = nullptr;
+		// Position Sampler
+		layout_bindings[1].binding = 1;
+		layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		layout_bindings[1].descriptorCount = 1;
+		layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings[1].pImmutableSamplers = nullptr;
 
-	// Normal Sampler
-	layout_bindings[2].binding = 2;
-	layout_bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	layout_bindings[2].descriptorCount = 1;
-	layout_bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_bindings[2].pImmutableSamplers = nullptr;
+		// Normal Sampler
+		layout_bindings[2].binding = 2;
+		layout_bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		layout_bindings[2].descriptorCount = 1;
+		layout_bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings[2].pImmutableSamplers = nullptr;
 	
-	// Uniform Buffer
-	layout_bindings[3].binding = 3;
-	layout_bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	layout_bindings[3].descriptorCount = 1;
-	layout_bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_bindings[3].pImmutableSamplers = nullptr;
+		// Uniform Buffer
+		layout_bindings[3].binding = 3;
+		layout_bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		layout_bindings[3].descriptorCount = 1;
+		layout_bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings[3].pImmutableSamplers = nullptr;
+	
+		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
+		layout_create_info.pBindings    = layout_bindings;
 
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &light_descriptor_set_layout));
+	}
+
+	{
+		// Create Descriptor Set Layout
+		VkDescriptorSetLayoutBinding layout_bindings[1] = { };
+
+		// Shadow Map Sampler
+		layout_bindings[0].binding = 0;
+		layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		layout_bindings[0].descriptorCount = 1;
+		layout_bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings[0].pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
+		layout_create_info.pBindings    = layout_bindings;
+
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &shadow_descriptor_set_layout));
+	}
+}
+
+void VulkanRenderer::create_shadow_render_pass() {
+	auto device = VulkanContext::get_device();
+
+	// Create Render Pass
+	VkAttachmentDescription attachments[1] = {  };
+
+	attachments[0].format = VulkanContext::get_supported_depth_format();
+	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachments[0].loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments[0].finalLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	VkAttachmentReference attachment_ref_depth = { };
+	attachment_ref_depth.attachment = 0;
+	attachment_ref_depth.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount    = 0;
+	subpass.pColorAttachments       = nullptr;
+	subpass.pDepthStencilAttachment = &attachment_ref_depth;
+
+	VkSubpassDependency dependencies[2] = { };
+
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	VkRenderPassCreateInfo render_pass_create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	render_pass_create_info.attachmentCount = Util::array_element_count(attachments);
+	render_pass_create_info.pAttachments    = attachments;
+	render_pass_create_info.subpassCount = 1;
+	render_pass_create_info.pSubpasses   = &subpass;
+	render_pass_create_info.dependencyCount = Util::array_element_count(dependencies);
+	render_pass_create_info.pDependencies   = dependencies;
+
+	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &shadow.render_pass));
+
+	for (auto & directional_light : scene.directional_lights) {
+		// Create Shadow Map Render Target
+		directional_light.shadow_map.render_target.init(shadow.WIDTH, shadow.HEIGHT, VulkanContext::get_supported_depth_format(),
+			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
+		);
+		
+		// Create Shadow Map Sampler
+		VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+		sampler_create_info.magFilter = VK_FILTER_LINEAR;
+		sampler_create_info.minFilter = VK_FILTER_LINEAR;
+		sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		sampler_create_info.mipLodBias = 0.0f;
+		sampler_create_info.maxAnisotropy = 1.0f;
+		sampler_create_info.minLod = 0.0f;
+		sampler_create_info.maxLod = 1.0f;
+		sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+
+		VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &directional_light.shadow_map.sampler));
+
+		// Create Shadow Map Frame Buffer
+		directional_light.shadow_map.frame_buffer = VulkanContext::create_frame_buffer(shadow.WIDTH, shadow.HEIGHT, shadow.render_pass, {
+			directional_light.shadow_map.render_target.image_view
+		});
+	}
+	
+	// Create Descriptor Set Layout
 	VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
-	layout_create_info.pBindings    = layout_bindings;
+	layout_create_info.bindingCount = 0;
+	layout_create_info.pBindings    = nullptr;
 
-	VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &light_descriptor_set_layout));
+	VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &shadow.descriptor_set_layout));
 
+	// Create Pipeline Layout
+	std::vector<VkPushConstantRange> push_constants(1);
+	push_constants[0].offset = 0;
+	push_constants[0].size = sizeof(ShadowPushConstants);
+	push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VulkanContext::PipelineLayoutDetails pipeline_layout_details;
+	pipeline_layout_details.descriptor_set_layouts = { shadow.descriptor_set_layout };
+	pipeline_layout_details.push_constants = push_constants;
+
+	shadow.pipeline_layout = VulkanContext::create_pipeline_layout(pipeline_layout_details);
+
+	// Create Pipeline
+	VulkanContext::PipelineDetails pipeline_details;
+	pipeline_details.vertex_bindings   = Mesh::Vertex::get_binding_descriptions();
+	pipeline_details.vertex_attributes = Mesh::Vertex::get_attribute_descriptions();
+	pipeline_details.width  = shadow.WIDTH;
+	pipeline_details.height = shadow.HEIGHT;
+	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
+	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_ADDITIVE };
+	pipeline_details.shaders = { { "Shaders/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT } }; // NOTE: no Fragment Shader
+	pipeline_details.pipeline_layout = shadow.pipeline_layout;
+	pipeline_details.render_pass     = shadow.render_pass;
+
+	shadow.pipeline = VulkanContext::create_pipeline(pipeline_details);
+}
+
+void VulkanRenderer::create_light_render_pass() {
+	auto device = VulkanContext::get_device();
+	
 	// Create Post-Process Render Targets
 	post_process.render_target_colour.init(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 	post_process.render_target_depth .init(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -275,7 +420,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 	push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details;
-	pipeline_layout_details.descriptor_set_layout = light_descriptor_set_layout;
+	pipeline_layout_details.descriptor_set_layouts = { light_descriptor_set_layout, shadow_descriptor_set_layout };
 	if (push_constants_size > 0) {
 		pipeline_layout_details.push_constants = push_constants;
 	}
@@ -290,8 +435,10 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 	pipeline_details.height = height;
 	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
 	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_ADDITIVE };
-	pipeline_details.filename_shader_vertex   = filename_shader_vertex;
-	pipeline_details.filename_shader_fragment = filename_shader_fragment;
+	pipeline_details.shaders = {
+		{ filename_shader_vertex,   VK_SHADER_STAGE_VERTEX_BIT },
+		{ filename_shader_fragment, VK_SHADER_STAGE_FRAGMENT_BIT }
+	};
 	pipeline_details.enable_depth_test  = false;
 	pipeline_details.enable_depth_write = false;
 	pipeline_details.pipeline_layout = light_pass.pipeline_layout;
@@ -465,7 +612,7 @@ void VulkanRenderer::create_post_process() {
 
 	// Create Pipeline Layout
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details = { };
-	pipeline_layout_details.descriptor_set_layout = post_process.descriptor_set_layout;
+	pipeline_layout_details.descriptor_set_layouts = { post_process.descriptor_set_layout };
 
 	post_process.pipeline_layout = VulkanContext::create_pipeline_layout(pipeline_layout_details);
 
@@ -475,8 +622,10 @@ void VulkanRenderer::create_post_process() {
 	pipeline_details.height = height;
 	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
 	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_NONE };
-	pipeline_details.filename_shader_vertex   = "Shaders/post_process.vert.spv";
-	pipeline_details.filename_shader_fragment = "Shaders/post_process.frag.spv";
+	pipeline_details.shaders = {
+		{ "Shaders/post_process.vert.spv", VK_SHADER_STAGE_VERTEX_BIT },
+		{ "Shaders/post_process.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }
+	};
 	pipeline_details.enable_depth_test  = false;
 	pipeline_details.enable_depth_write = false;
 	pipeline_details.pipeline_layout = post_process.pipeline_layout;
@@ -686,28 +835,26 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		
 		std::vector<std::byte> buf(scene.directional_lights.size() * aligned_size);
 
-		for (int i = 0; i < scene.directional_lights.size(); i++) {
-			auto const & directional_light = scene.directional_lights[i];
-
-			DirectionalLightUBO ubo = { };
-			ubo.directional_light.colour    = directional_light.colour;
-			ubo.directional_light.direction = directional_light.direction;
-			ubo.camera_position = scene.camera.position;
-
-			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
-		}
-		
-		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
-	
 		// For each Directional Light render a full sqreen quad
 		for (int i = 0; i < scene.directional_lights.size(); i++) {
 			auto const & directional_light = scene.directional_lights[i];
 
+			DirectionalLightUBO ubo = { };
+			ubo.directional_light.colour       = directional_light.colour;
+			ubo.directional_light.direction    = directional_light.direction;
+			ubo.directional_light.light_matrix = directional_light.get_light_matrix();
+			ubo.camera_position = scene.camera.position;
+
+			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
+
 			u32 offset = i * aligned_size;
-			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set,                              1, &offset);	
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 1, 1, &directional_light.shadow_map.descriptor_set, 0, nullptr);
 
 			vkCmdDraw(command_buffer, 3, 1, 0, 0);
 		}
+	
+		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
 	}
 
 	// Render Point Lights
@@ -857,6 +1004,9 @@ void VulkanRenderer::swapchain_create() {
 
 	gbuffer.init(swapchain_image_count, width, height);
 
+	create_descriptor_pool();
+
+	create_shadow_render_pass();
 	create_light_render_pass();
 
 	light_pass_directional = create_light_pass(
@@ -892,6 +1042,31 @@ void VulkanRenderer::swapchain_create() {
 
 	create_command_buffers();
 	create_imgui();	
+
+	// Allocate and update Descriptor Sets
+	for (auto & directional_light : scene.directional_lights) {	
+		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		alloc_info.descriptorPool = descriptor_pool;
+		alloc_info.descriptorSetCount = 1;
+		alloc_info.pSetLayouts        = &shadow_descriptor_set_layout;
+
+		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, &directional_light.shadow_map.descriptor_set));
+
+		VkDescriptorImageInfo image_info;
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = directional_light.shadow_map.render_target.image_view;
+		image_info.sampler   = directional_light.shadow_map.sampler;
+
+		VkWriteDescriptorSet write_descriptor_set = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		write_descriptor_set.dstSet = directional_light.shadow_map.descriptor_set;
+		write_descriptor_set.dstBinding = 0;
+		write_descriptor_set.dstArrayElement = 0;
+		write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write_descriptor_set.descriptorCount = 1;
+		write_descriptor_set.pImageInfo      = &image_info;
+
+		vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
+	}
 }
 
 void VulkanRenderer::update(float delta) {
@@ -949,7 +1124,69 @@ void VulkanRenderer::render() {
 	}
 	fences_in_flight[image_index] = fence;
 
-	gbuffer.record_command_buffer(image_index, scene);
+	{
+		auto command_buffer = gbuffer.command_buffers[image_index];
+
+		VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		VK_CHECK(vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info));
+
+		gbuffer.record_command_buffer(image_index, command_buffer, scene);
+
+		VkClearValue clear = { };
+		clear.depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+		render_pass_begin_info.renderPass  = shadow.render_pass;
+		render_pass_begin_info.framebuffer = scene.directional_lights[0].shadow_map.frame_buffer;
+		render_pass_begin_info.renderArea.extent.width  = shadow.WIDTH;
+		render_pass_begin_info.renderArea.extent.height = shadow.HEIGHT;
+		render_pass_begin_info.clearValueCount = 1;
+		render_pass_begin_info.pClearValues = &clear;
+
+		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport = { 0.0f, 0.0f, float(shadow.WIDTH), float(shadow.HEIGHT), 0.0f, 1.0f };
+		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+	
+		VkRect2D scissor = { 0, 0, shadow.WIDTH, shadow.HEIGHT };
+		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+		constexpr auto DEPTH_BIAS_CONSTANT = 1.25f;
+		constexpr auto DEPTH_BIAS_SLOPE    = 1.75f;
+		vkCmdSetDepthBias(command_buffer, DEPTH_BIAS_CONSTANT, 0.0f, DEPTH_BIAS_SLOPE);
+
+		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow.pipeline);
+
+		// Render Renderables
+		for (int i = 0; i < scene.meshes.size(); i++) {
+			auto const & mesh_instance = scene.meshes[i];
+			auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
+
+			auto transform = mesh_instance.transform.get_matrix();
+			
+			ShadowPushConstants push_constants;
+			push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;
+
+			vkCmdPushConstants(command_buffer, shadow.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &push_constants);
+
+			for (int j = 0; j < mesh.sub_meshes.size(); j++) {
+				auto const & sub_mesh = mesh.sub_meshes[j];
+
+				VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+				vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+				vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
+			}
+		}
+
+		vkCmdEndRenderPass(command_buffer);
+
+		VK_CHECK(vkEndCommandBuffer(command_buffer));
+	}
+
 	record_command_buffer(image_index);
 
 	// Render to GBuffer
@@ -1052,16 +1289,22 @@ void VulkanRenderer::swapchain_destroy() {
 
 	vkDestroyDescriptorPool     (device, descriptor_pool,                    nullptr);
 	vkDestroyDescriptorSetLayout(device, light_descriptor_set_layout,        nullptr);
+	vkDestroyDescriptorSetLayout(device, shadow_descriptor_set_layout,       nullptr);
+	vkDestroyDescriptorSetLayout(device, shadow.descriptor_set_layout,       nullptr);
 	vkDestroyDescriptorSetLayout(device, post_process.descriptor_set_layout, nullptr);
 
 	vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
-
+	
+	vkDestroyRenderPass(device, shadow.render_pass,       nullptr);
 	vkDestroyRenderPass(device, light_render_pass,        nullptr);
 	vkDestroyRenderPass(device, post_process.render_pass, nullptr);
-
+	
 	post_process.render_target_colour.free();
 	post_process.render_target_depth .free();
-
+	
+	vkDestroyPipeline      (device, shadow.pipeline,        nullptr);
+	vkDestroyPipelineLayout(device, shadow.pipeline_layout, nullptr);
+	
 	vkDestroyPipeline      (device, post_process.pipeline,        nullptr);
 	vkDestroyPipelineLayout(device, post_process.pipeline_layout, nullptr);
 
@@ -1071,7 +1314,15 @@ void VulkanRenderer::swapchain_destroy() {
 
 	for (int i = 0; i < swapchain_views.size(); i++) {
 		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
-		vkDestroyImageView  (device, swapchain_views  [i], nullptr);
+		vkDestroyImageView  (device, swapchain_views[i], nullptr);
+	}
+	
+	for (auto & directional_light : scene.directional_lights) {
+		vkDestroyFramebuffer(device, directional_light.shadow_map.frame_buffer, nullptr);
+
+		directional_light.shadow_map.render_target.free();
+
+		vkDestroySampler(device, directional_light.shadow_map.sampler, nullptr);
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);

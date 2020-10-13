@@ -81,6 +81,21 @@ struct alignas(16) Matrix4 {
 		return result;
 	}
 
+	inline static Matrix4 look_at(const Vector3 & eye, const Vector3 & target, const Vector3 & up) {
+        auto z = Vector3::normalize(eye - target);
+        auto x = Vector3::normalize(Vector3::cross(up, z));
+        auto y = Vector3::normalize(Vector3::cross(z,  x));
+
+        Matrix4 result;
+
+		result(0, 0) = x.x;  result(0, 1) = x.y;  result(0, 2) = x.z;  result(0, 3) = -(x.x * eye.x + x.y * eye.y + x.z * eye.z);
+		result(1, 0) = y.x;  result(1, 1) = y.y;  result(1, 2) = y.z;  result(1, 3) = -(y.x * eye.x + y.y * eye.y + y.z * eye.z);
+		result(2, 0) = z.x;  result(2, 1) = z.y;  result(2, 2) = z.z;  result(2, 3) = -(z.x * eye.x + z.y * eye.y + z.z * eye.z);
+		result(3, 0) = 0.0f; result(3, 1) = 0.0f; result(3, 2) = 0.0f; result(3, 3) = 1.0f;
+
+        return result;
+    }
+
 	inline static Matrix4 perspective(float fov, float aspect, float near, float far) {
 		float tan_half_fov = tanf(0.5f * fov);
 
@@ -92,6 +107,17 @@ struct alignas(16) Matrix4 {
 		result(3, 2) = -1.0f;
 		result(2, 3) = -(far * near) / (far - near);
 		result(3, 3) =  0.0f;
+
+		return result;
+	}
+
+	inline static Matrix4 orthographic(float width, float height, float near, float far) {
+		Matrix4 result = Matrix4::identity();
+
+		result(0, 0) =  2.0f / width;
+		result(1, 1) = -2.0f / height;
+		result(2, 2) = -1.0f / (far - near);
+		result(2, 3) = -near / (far - near);
 
 		return result;
 	}
