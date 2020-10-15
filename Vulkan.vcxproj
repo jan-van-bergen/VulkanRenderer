@@ -246,10 +246,10 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
     </CustomBuild>
     <CustomBuild Include="Shaders\light_directional.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -280,10 +280,10 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
     </CustomBuild>
     <CustomBuild Include="Shaders\light_point.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -314,10 +314,10 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting.h;Shaders/util.h</AdditionalInputs>
     </CustomBuild>
     <CustomBuild Include="Shaders\light_spot.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -418,13 +418,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/util.h</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/util.h</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/util.h</AdditionalInputs>
