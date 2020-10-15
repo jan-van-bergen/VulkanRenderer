@@ -159,6 +159,8 @@ void RenderTarget::free() {
 		vkFreeMemory      (device, attachment.memory,     nullptr);
 	}
 
+	attachments.clear();
+
 	vkDestroyFramebuffer(device, frame_buffer, nullptr);
 	vkDestroyRenderPass (device, render_pass,  nullptr);
 	vkDestroySampler    (device, sampler,      nullptr);

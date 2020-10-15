@@ -25,8 +25,6 @@ class VulkanRenderer {
 			VkPipelineLayout sky;
 		} pipeline_layouts;
 
-		VkDescriptorPool descriptor_pool;
-
 		struct {
 			VkDescriptorSetLayout geometry;
 			VkDescriptorSetLayout sky;

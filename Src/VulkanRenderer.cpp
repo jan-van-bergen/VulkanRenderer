@@ -1386,7 +1386,6 @@ void VulkanRenderer::swapchain_destroy() {
 	
 	gbuffer.render_target.free();
 
-	vkDestroyDescriptorPool     (device, gbuffer.descriptor_pool,                 nullptr);
 	vkDestroyDescriptorSetLayout(device, gbuffer.descriptor_set_layouts.geometry, nullptr);
 	vkDestroyDescriptorSetLayout(device, gbuffer.descriptor_set_layouts.sky,      nullptr);
 
@@ -1399,7 +1398,8 @@ void VulkanRenderer::swapchain_destroy() {
 		VulkanMemory::buffer_free(uniform_buffer);
 	}
 
-	vkFreeCommandBuffers(device, VulkanContext::get_command_pool(), command_buffers.size(), command_buffers.data());
+	vkFreeCommandBuffers(device, VulkanContext::get_command_pool(), gbuffer.command_buffers.size(), gbuffer.command_buffers.data());
+
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);
 	vkFreeMemory      (device, depth_image_memory, nullptr);
