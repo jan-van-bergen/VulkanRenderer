@@ -94,75 +94,12 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 	}
 
 	// Initialize FrameBuffers and their attachments
-	render_target_albedo  .init(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	render_target_position.init(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	render_target_normal  .init(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	render_target_depth   .init(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	render_target.init(width, height);
 
-	// Create Renderpass
-	VkAttachmentDescription attachments[4] = { };
-	attachments[0].format = render_target_albedo  .format;
-	attachments[1].format = render_target_position.format;
-	attachments[2].format = render_target_normal  .format;
-	attachments[3].format = render_target_depth   .format;
-
-	for (int i = 0; i < 4; i++) {
-		attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[i].loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[i].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-		if (i < 3) {
-			attachments[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		} else {
-			attachments[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		}
-	}
-
-	VkAttachmentReference colour_ref[3] = {
-		{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
-		{ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
-		{ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }
-	};
-
-	VkAttachmentReference depth_ref = { 3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-
-	VkSubpassDescription subpass = { };
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = Util::array_element_count(colour_ref);
-	subpass.pColorAttachments    = colour_ref;
-	subpass.pDepthStencilAttachment = &depth_ref;
-
-	VkSubpassDependency dependencies[2] = { };
-	
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	VkRenderPassCreateInfo render_pass_create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	render_pass_create_info.attachmentCount = Util::array_element_count(attachments);
-	render_pass_create_info.pAttachments    = attachments;
-	render_pass_create_info.subpassCount = 1;
-	render_pass_create_info.pSubpasses   = &subpass;
-	render_pass_create_info.dependencyCount = Util::array_element_count(dependencies);
-	render_pass_create_info.pDependencies   = dependencies;
-
-	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &render_pass));
-	
 	VkPushConstantRange push_constants;
 	push_constants.offset = 0;
 	push_constants.size = sizeof(GBufferPushConstants);
@@ -196,7 +133,7 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 		{ "Shaders/geometry.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }
 	};
 	pipeline_details.pipeline_layout = pipeline_layouts.geometry;
-	pipeline_details.render_pass     = render_pass;
+	pipeline_details.render_pass     = render_target.render_pass;
 
 	pipelines.geometry = VulkanContext::create_pipeline(pipeline_details);
 
@@ -259,14 +196,6 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
 	}
 
-	// Create Frame Buffer
-	frame_buffer = VulkanContext::create_frame_buffer(width, height, render_pass, {
-		render_target_albedo  .image_view,
-		render_target_position.image_view,
-		render_target_normal  .image_view,
-		render_target_depth   .image_view,
-	});
-
 	// Create Command Buffers
 	command_buffers.resize(swapchain_image_count);
 
@@ -281,13 +210,8 @@ void GBuffer::init(int swapchain_image_count, int width, int height) {
 void GBuffer::free() {
 	auto device = VulkanContext::get_device();
 
-	vkDestroyFramebuffer(device, frame_buffer, nullptr);
+	render_target.free();
 
-	render_target_albedo  .free();
-	render_target_position.free();
-	render_target_normal  .free();
-	render_target_depth   .free();
-	
 	vkDestroyDescriptorPool     (device, descriptor_pool,                 nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.geometry, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.sky,      nullptr);
@@ -302,8 +226,6 @@ void GBuffer::free() {
 	}
 
 	vkFreeCommandBuffers(device, VulkanContext::get_command_pool(), command_buffers.size(), command_buffers.data());
-
-	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
 void GBuffer::record_command_buffer(int image_index, VkCommandBuffer command_buffer, Scene const & scene) {
@@ -315,8 +237,8 @@ void GBuffer::record_command_buffer(int image_index, VkCommandBuffer command_buf
 	clear_values[3].depthStencil = { 1.0f, 0 };
 
 	VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	render_pass_begin_info.renderPass =  render_pass;
-	render_pass_begin_info.framebuffer = frame_buffer;
+	render_pass_begin_info.renderPass =  render_target.render_pass;
+	render_pass_begin_info.framebuffer = render_target.frame_buffer;
 	render_pass_begin_info.renderArea.extent.width  = width;
 	render_pass_begin_info.renderArea.extent.height = height;
 	render_pass_begin_info.clearValueCount = Util::array_element_count(clear_values);

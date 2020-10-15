@@ -4,9 +4,12 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
 	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), Vector3( 10.0f, 0.0f, 0.0f) });
 	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), Vector3(-10.0f, 0.0f, 0.0f) });
-#ifdef NDEBUG
-	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), Vector3(0.0f, -7.5f, 0.0f) });
-#endif
+//#ifdef NDEBUG
+//	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), Vector3(0.0f, -7.5f, 0.0f) });
+//#else
+//	meshes.push_back({ "Sponza", Mesh::load("Data/Terrain.obj"), Vector3(0.0f, -7.5f, 0.0f) });
+//#endif
+	meshes.push_back({ "Sponza", Mesh::load("Data/Terrain.obj"), Vector3(0.0f, -7.5f, 0.0f) });
 
 	directional_lights.push_back({ Vector3(1.0f), Vector3::normalize(Vector3(1.0f, -10.0f, 0.0f)) });
 

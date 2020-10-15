@@ -9,9 +9,6 @@
 class GBuffer {
 	int width, height;
 	
-	VkRenderPass  render_pass;
-	VkFramebuffer frame_buffer;
-	
 	struct {
 		VkPipeline geometry;
 		VkPipeline sky;
@@ -33,11 +30,8 @@ class GBuffer {
 	std::vector<VkDescriptorSet>      descriptor_sets;
 
 public:
-	RenderTarget render_target_albedo;
-	RenderTarget render_target_position;
-	RenderTarget render_target_normal;
-	RenderTarget render_target_depth;
-	
+	RenderTarget render_target;
+
 	std::vector<VkCommandBuffer> command_buffers;
 	
 	void init(int swapchain_image_count, int width, int height);

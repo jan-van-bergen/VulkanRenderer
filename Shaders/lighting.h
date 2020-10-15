@@ -43,7 +43,7 @@ float calc_shadow(sampler2D shadow_map, mat4 light_matrix, vec3 world_position) 
 		for (int x = -range; x <= range; x++) {
 			float depth = texture(shadow_map, shadow_map_coords.xy + vec2(x, y) * texel_size).x;
 	
-			if (depth < shadow_map_coords.z - 0.001f) result -= 1.0f / total;
+			if (depth < shadow_map_coords.z - 0.005f) result -= 1.0f / total;
 		}
 	}
 

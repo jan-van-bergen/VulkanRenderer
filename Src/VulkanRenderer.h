@@ -24,24 +24,16 @@ class VulkanRenderer {
 
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;
-
-		VkRenderPass render_pass;
 	} shadow;
 
 	struct {
-		RenderTarget render_target_colour;
-		RenderTarget render_target_depth;
-
 		VkDescriptorSetLayout        descriptor_set_layout;
 		std::vector<VkDescriptorSet> descriptor_sets;
 
-		VkRenderPass render_pass;
-
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;
-
-		VkFramebuffer frame_buffer;
-		VkSampler sampler;
+		
+		VkRenderPass render_pass;
 	} post_process;
 	
 	struct LightPass {
@@ -56,7 +48,8 @@ class VulkanRenderer {
 	
 	VkDescriptorSetLayout light_descriptor_set_layout;
 	VkDescriptorSetLayout shadow_descriptor_set_layout;
-	VkRenderPass          light_render_pass;
+	
+	RenderTarget light_render_target;
 
 	LightPass light_pass_directional;
 	LightPass light_pass_point;
@@ -81,9 +74,8 @@ class VulkanRenderer {
 	VkFence              fences[MAX_FRAMES_IN_FLIGHT];
 	std::vector<VkFence> fences_in_flight;
 
-	GBuffer   gbuffer;
-	VkSampler gbuffer_sampler;
-
+	GBuffer gbuffer;
+	
 	int current_frame = 0;
 
 	// Timing
@@ -105,8 +97,7 @@ class VulkanRenderer {
 	void create_descriptor_pool();
 
 	void create_shadow_render_pass();
-	void create_light_render_pass();
-
+	
 	LightPass create_light_pass(
 		std::vector<VkVertexInputBindingDescription>   const & vertex_bindings,
 		std::vector<VkVertexInputAttributeDescription> const & vertex_attributes,

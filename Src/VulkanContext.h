@@ -73,6 +73,7 @@ namespace VulkanContext {
 
 		bool enable_depth_test  = true;
 		bool enable_depth_write = true;
+		bool enable_depth_bias = false;
 
 		VkCompareOp depth_compare = VK_COMPARE_OP_LESS;
 

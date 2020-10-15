@@ -378,7 +378,7 @@ VkPipeline VulkanContext::create_pipeline(PipelineDetails const & details) {
 	rasterizer_create_info.depthClampEnable = VK_FALSE;
 	rasterizer_create_info.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer_create_info.lineWidth   = 1.0f;
-	rasterizer_create_info.depthBiasEnable         = VK_FALSE;
+	rasterizer_create_info.depthBiasEnable         = details.enable_depth_bias;
 	rasterizer_create_info.depthBiasConstantFactor = 0.0f;
 	rasterizer_create_info.depthBiasClamp          = 0.0f;
 	rasterizer_create_info.depthBiasSlopeFactor    = 0.0f;

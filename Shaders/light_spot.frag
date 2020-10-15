@@ -21,6 +21,12 @@ void main() {
 	vec3 position      = texture(sampler_position, in_uv).xyz;
 	vec2 packed_normal = texture(sampler_normal,   in_uv).xy;
 
+	// Don't light the Sky
+	if (packed_normal == vec2(0.0f)) {
+		out_colour = vec4(0.0f);
+		return;
+	}
+
 	vec3 normal = unpack_normal(packed_normal);
 
 	out_colour = vec4(albedo, 1.0f) * calc_spot_light(spot_light, position, normal, camera_position);

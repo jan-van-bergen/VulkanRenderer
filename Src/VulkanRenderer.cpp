@@ -202,82 +202,13 @@ void VulkanRenderer::create_descriptor_pool() {
 void VulkanRenderer::create_shadow_render_pass() {
 	auto device = VulkanContext::get_device();
 
-	// Create Render Pass
-	VkAttachmentDescription attachments[1] = {  };
-
-	attachments[0].format = VulkanContext::get_supported_depth_format();
-	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments[0].loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	VkAttachmentReference attachment_ref_depth = { };
-	attachment_ref_depth.attachment = 0;
-	attachment_ref_depth.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass = { };
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount    = 0;
-	subpass.pColorAttachments       = nullptr;
-	subpass.pDepthStencilAttachment = &attachment_ref_depth;
-
-	VkSubpassDependency dependencies[2] = { };
-
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	VkRenderPassCreateInfo render_pass_create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	render_pass_create_info.attachmentCount = Util::array_element_count(attachments);
-	render_pass_create_info.pAttachments    = attachments;
-	render_pass_create_info.subpassCount = 1;
-	render_pass_create_info.pSubpasses   = &subpass;
-	render_pass_create_info.dependencyCount = Util::array_element_count(dependencies);
-	render_pass_create_info.pDependencies   = dependencies;
-
-	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &shadow.render_pass));
-
 	for (auto & directional_light : scene.directional_lights) {
 		// Create Shadow Map Render Target
-		directional_light.shadow_map.render_target.init(shadow.WIDTH, shadow.HEIGHT, VulkanContext::get_supported_depth_format(),
-			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
+		directional_light.shadow_map.render_target.add_attachment(shadow.WIDTH, shadow.HEIGHT, VulkanContext::get_supported_depth_format(),
+			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		
-		// Create Shadow Map Sampler
-		VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-		sampler_create_info.magFilter = VK_FILTER_LINEAR;
-		sampler_create_info.minFilter = VK_FILTER_LINEAR;
-		sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-		sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler_create_info.mipLodBias = 0.0f;
-		sampler_create_info.maxAnisotropy = 1.0f;
-		sampler_create_info.minLod = 0.0f;
-		sampler_create_info.maxLod = 1.0f;
-		sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-
-		VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &directional_light.shadow_map.sampler));
-
-		// Create Shadow Map Frame Buffer
-		directional_light.shadow_map.frame_buffer = VulkanContext::create_frame_buffer(shadow.WIDTH, shadow.HEIGHT, shadow.render_pass, {
-			directional_light.shadow_map.render_target.image_view
-		});
+		directional_light.shadow_map.render_target.init(shadow.WIDTH, shadow.HEIGHT);
 	}
 	
 	// Create Descriptor Set Layout
@@ -306,99 +237,13 @@ void VulkanRenderer::create_shadow_render_pass() {
 	pipeline_details.width  = shadow.WIDTH;
 	pipeline_details.height = shadow.HEIGHT;
 	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
-	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_ADDITIVE };
-	pipeline_details.shaders = { { "Shaders/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT } }; // NOTE: no Fragment Shader
+	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_NONE };
+	pipeline_details.shaders = { { "Shaders/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT } }; // NOTE: no Fragment Shader, we only care about depth
+	pipeline_details.enable_depth_bias = true;
 	pipeline_details.pipeline_layout = shadow.pipeline_layout;
-	pipeline_details.render_pass     = shadow.render_pass;
+	pipeline_details.render_pass     = scene.directional_lights[0].shadow_map.render_target.render_pass;
 
 	shadow.pipeline = VulkanContext::create_pipeline(pipeline_details);
-}
-
-void VulkanRenderer::create_light_render_pass() {
-	auto device = VulkanContext::get_device();
-	
-	// Create Post-Process Render Targets
-	post_process.render_target_colour.init(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-	post_process.render_target_depth .init(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-	// Create Render Pass
-	VkAttachmentDescription attachments[2] = {  };
-
-	attachments[0].format = post_process.render_target_colour.format;
-	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments[0].loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	attachments[1].format = post_process.render_target_depth.format;
-	attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments[1].loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[1].finalLayout   = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference attachment_ref_colour = { };
-	attachment_ref_colour.attachment = 0;
-	attachment_ref_colour.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference attachment_ref_depth = { };
-	attachment_ref_depth.attachment = 1;
-	attachment_ref_depth.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass = { };
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount    = 1;
-	subpass.pColorAttachments       = &attachment_ref_colour;
-	subpass.pDepthStencilAttachment = &attachment_ref_depth;
-
-	VkSubpassDependency dependencies[2] = { };
-
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	VkRenderPassCreateInfo render_pass_create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	render_pass_create_info.attachmentCount = Util::array_element_count(attachments);
-	render_pass_create_info.pAttachments    = attachments;
-	render_pass_create_info.subpassCount = 1;
-	render_pass_create_info.pSubpasses   = &subpass;
-	render_pass_create_info.dependencyCount = Util::array_element_count(dependencies);
-	render_pass_create_info.pDependencies   = dependencies;
-
-	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &light_render_pass));
-	
-	// Create Sampler to sample from the GBuffer's color attachments
-	VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	sampler_create_info.magFilter = VK_FILTER_NEAREST;
-	sampler_create_info.minFilter = VK_FILTER_NEAREST;
-	sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler_create_info.mipLodBias = 0.0f;
-	sampler_create_info.maxAnisotropy = 1.0f;
-	sampler_create_info.minLod = 0.0f;
-	sampler_create_info.maxLod = 1.0f;
-	sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-
-	VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &gbuffer_sampler));
 }
 
 VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
@@ -442,7 +287,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 	pipeline_details.enable_depth_test  = false;
 	pipeline_details.enable_depth_write = false;
 	pipeline_details.pipeline_layout = light_pass.pipeline_layout;
-	pipeline_details.render_pass     = light_render_pass;
+	pipeline_details.render_pass     = light_render_target.render_pass;
 
 	light_pass.pipeline = VulkanContext::create_pipeline(pipeline_details);
 
@@ -476,8 +321,8 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 
 		// Write Descriptor for Albedo target
 		VkDescriptorImageInfo descriptor_image_albedo = { };
-		descriptor_image_albedo.sampler     = gbuffer_sampler;
-		descriptor_image_albedo.imageView   = gbuffer.render_target_albedo.image_view;
+		descriptor_image_albedo.sampler     = gbuffer.render_target.sampler;
+		descriptor_image_albedo.imageView   = gbuffer.render_target.attachments[0].image_view;
 		descriptor_image_albedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -490,8 +335,8 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 		
 		// Write Descriptor for Position target
 		VkDescriptorImageInfo descriptor_image_position = { };
-		descriptor_image_position.sampler     = gbuffer_sampler;
-		descriptor_image_position.imageView   = gbuffer.render_target_position.image_view;
+		descriptor_image_position.sampler     = gbuffer.render_target.sampler;
+		descriptor_image_position.imageView   = gbuffer.render_target.attachments[1].image_view;
 		descriptor_image_position.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -504,8 +349,8 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 
 		// Write Descriptor for Normal target
 		VkDescriptorImageInfo descriptor_image_normal = { };
-		descriptor_image_normal.sampler     = gbuffer_sampler;
-		descriptor_image_normal.imageView   = gbuffer.render_target_normal.image_view;
+		descriptor_image_normal.sampler     = gbuffer.render_target.sampler;
+		descriptor_image_normal.imageView   = gbuffer.render_target.attachments[2].image_view;
 		descriptor_image_normal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -583,7 +428,7 @@ void VulkanRenderer::create_post_process() {
 	VkSubpassDescription subpass = { };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colour_ref;
+	subpass.pColorAttachments    = &colour_ref;
 	subpass.pDepthStencilAttachment = &depth_ref;
 
 	VkSubpassDependency dependency = { };
@@ -598,17 +443,11 @@ void VulkanRenderer::create_post_process() {
 	render_pass_create_info.attachmentCount = Util::array_element_count(attachments);
 	render_pass_create_info.pAttachments    = attachments;
 	render_pass_create_info.subpassCount = 1;
-	render_pass_create_info.pSubpasses = &subpass;
+	render_pass_create_info.pSubpasses   = &subpass;
 	render_pass_create_info.dependencyCount = 1;
-	render_pass_create_info.pDependencies = &dependency;
+	render_pass_create_info.pDependencies   = &dependency;
 
 	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &post_process.render_pass));
-
-	// Create Frame Buffer
-	post_process.frame_buffer = VulkanContext::create_frame_buffer(width, height, light_render_pass, {
-		post_process.render_target_colour.image_view,
-		post_process.render_target_depth .image_view
-	});
 
 	// Create Pipeline Layout
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details = { };
@@ -633,22 +472,6 @@ void VulkanRenderer::create_post_process() {
 
 	post_process.pipeline = VulkanContext::create_pipeline(pipeline_details);
 
-	// Create Sampler
-	VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	sampler_create_info.magFilter = VK_FILTER_NEAREST;
-	sampler_create_info.minFilter = VK_FILTER_NEAREST;
-	sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler_create_info.mipLodBias = 0.0f;
-	sampler_create_info.maxAnisotropy = 1.0f;
-	sampler_create_info.minLod = 0.0f;
-	sampler_create_info.maxLod = 1.0f;
-	sampler_create_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-
-	VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &post_process.sampler));
-
 	// Allocate and update Descriptor Sets
 	std::vector<VkDescriptorSetLayout> layouts(swapchain_views.size(), post_process.descriptor_set_layout);
 
@@ -666,8 +489,8 @@ void VulkanRenderer::create_post_process() {
 		VkWriteDescriptorSet write_descriptor_sets[1] = { };
 
 		VkDescriptorImageInfo descriptor_image_colour = { };
-		descriptor_image_colour.sampler     = post_process.sampler;
-		descriptor_image_colour.imageView   = post_process.render_target_colour.image_view;
+		descriptor_image_colour.sampler     = light_render_target.sampler;
+		descriptor_image_colour.imageView   = light_render_target.attachments[0].image_view;
 		descriptor_image_colour.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -815,8 +638,8 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	
 	// Begin Light Render Pass
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderpass_begin_info.renderPass = light_render_pass;
-	renderpass_begin_info.framebuffer = post_process.frame_buffer;
+	renderpass_begin_info.renderPass  = light_render_target.render_pass;
+	renderpass_begin_info.framebuffer = light_render_target.frame_buffer;
 	renderpass_begin_info.renderArea = { 0, 0, width, height };
 	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_values);
 	renderpass_begin_info.pClearValues    = clear_values;
@@ -1007,7 +830,10 @@ void VulkanRenderer::swapchain_create() {
 	create_descriptor_pool();
 
 	create_shadow_render_pass();
-	create_light_render_pass();
+	
+	light_render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	light_render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	light_render_target.init(width, height);
 
 	light_pass_directional = create_light_pass(
 		{ },
@@ -1054,8 +880,8 @@ void VulkanRenderer::swapchain_create() {
 
 		VkDescriptorImageInfo image_info;
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = directional_light.shadow_map.render_target.image_view;
-		image_info.sampler   = directional_light.shadow_map.sampler;
+		image_info.imageView = directional_light.shadow_map.render_target.attachments[0].image_view;
+		image_info.sampler   = directional_light.shadow_map.render_target.sampler;
 
 		VkWriteDescriptorSet write_descriptor_set = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		write_descriptor_set.dstSet = directional_light.shadow_map.descriptor_set;
@@ -1136,8 +962,8 @@ void VulkanRenderer::render() {
 		clear.depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		render_pass_begin_info.renderPass  = shadow.render_pass;
-		render_pass_begin_info.framebuffer = scene.directional_lights[0].shadow_map.frame_buffer;
+		render_pass_begin_info.renderPass  = scene.directional_lights[0].shadow_map.render_target.render_pass;
+		render_pass_begin_info.framebuffer = scene.directional_lights[0].shadow_map.render_target.frame_buffer;
 		render_pass_begin_info.renderArea.extent.width  = shadow.WIDTH;
 		render_pass_begin_info.renderArea.extent.height = shadow.HEIGHT;
 		render_pass_begin_info.clearValueCount = 1;
@@ -1281,8 +1107,6 @@ void VulkanRenderer::swapchain_destroy() {
 	vkDestroyImageView(device, depth_image_view,   nullptr);
 	vkFreeMemory      (device, depth_image_memory, nullptr);
 	
-	vkDestroySampler(device, gbuffer_sampler, nullptr);
-	
 	light_pass_directional.free();
 	light_pass_point      .free();
 	light_pass_spot       .free();
@@ -1295,22 +1119,15 @@ void VulkanRenderer::swapchain_destroy() {
 
 	vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
 	
-	vkDestroyRenderPass(device, shadow.render_pass,       nullptr);
-	vkDestroyRenderPass(device, light_render_pass,        nullptr);
 	vkDestroyRenderPass(device, post_process.render_pass, nullptr);
 	
-	post_process.render_target_colour.free();
-	post_process.render_target_depth .free();
-	
+	light_render_target.free();
+
 	vkDestroyPipeline      (device, shadow.pipeline,        nullptr);
 	vkDestroyPipelineLayout(device, shadow.pipeline_layout, nullptr);
 	
 	vkDestroyPipeline      (device, post_process.pipeline,        nullptr);
 	vkDestroyPipelineLayout(device, post_process.pipeline_layout, nullptr);
-
-	vkDestroyFramebuffer(device, post_process.frame_buffer, nullptr);
-
-	vkDestroySampler(device, post_process.sampler, nullptr);
 
 	for (int i = 0; i < swapchain_views.size(); i++) {
 		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
@@ -1318,11 +1135,7 @@ void VulkanRenderer::swapchain_destroy() {
 	}
 	
 	for (auto & directional_light : scene.directional_lights) {
-		vkDestroyFramebuffer(device, directional_light.shadow_map.frame_buffer, nullptr);
-
 		directional_light.shadow_map.render_target.free();
-
-		vkDestroySampler(device, directional_light.shadow_map.sampler, nullptr);
 	}
 
 	vkDestroySwapchainKHR(device, swapchain, nullptr);

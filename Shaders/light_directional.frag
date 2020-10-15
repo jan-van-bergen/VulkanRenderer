@@ -23,9 +23,15 @@ void main() {
 	vec3 position      = texture(sampler_position, in_uv).xyz;
 	vec2 packed_normal = texture(sampler_normal,   in_uv).xy;
 
+	// Don't light the Sky
+	if (packed_normal == vec2(0.0f)) {
+		out_colour = vec4(albedo, 1.0f);
+		return;
+	}
+
 	vec3 normal = unpack_normal(packed_normal);
 
-	const float ambient = 0.2f;
+	const float ambient = 0.1f;
 
-	out_colour = vec4(albedo + vec3(ambient), 1.0f) * (calc_directional_light(directional_light, position, normal, camera_position, sampler_shadow_map));
+	out_colour = vec4(albedo, 1.0f) * (ambient + (1.0f - ambient) * calc_directional_light(directional_light, position, normal, camera_position, sampler_shadow_map));
 }

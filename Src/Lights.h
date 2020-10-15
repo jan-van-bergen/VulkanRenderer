@@ -16,9 +16,7 @@ public:
 	Vector3 direction;
 
 	struct {
-		RenderTarget  render_target;
-		VkFramebuffer frame_buffer;
-		VkSampler     sampler;
+		RenderTarget render_target;
 
 		VkDescriptorSet descriptor_set;
 	} shadow_map;
