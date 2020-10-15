@@ -113,7 +113,8 @@
       <AdditionalLibraryDirectories>lib;$(VULKAN_SDK)\lib</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>compile_shaders</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -161,7 +162,8 @@
       <AdditionalLibraryDirectories>lib;$(VULKAN_SDK)\lib</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>compile_shaders</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -211,6 +213,223 @@
     <ClInclude Include="Src\VulkanCheck.h" />
     <ClInclude Include="Src\VulkanContext.h" />
     <ClInclude Include="Src\VulkanMemory.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Shaders\geometry.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Shaders\light_directional.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting.h Shaders/util.h</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_directional.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_point.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_point.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_spot.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/lighting Shaders/util.h</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_spot.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\post_process.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\post_process.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\shadow.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\sky.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\sky.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Identity).spv</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Identity).spv</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Shaders\geometry.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">(Identity).spv</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">(Identity).spv</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">(Identity).spv</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%VULKAN_SDK%/Bin/glslc.exe %(Identity) -o %(Identity).spv</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">(Identity).spv</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders/util.h</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders/util.h</AdditionalInputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

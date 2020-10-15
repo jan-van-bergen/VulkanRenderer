@@ -139,5 +139,49 @@
     <Filter Include="Rendering">
       <UniqueIdentifier>{e4cf129a-4cc2-47f3-8c80-871ae0b1bddf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{d6a36b92-3129-4ad5-9507-cc67fd629a9f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\geometry.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_directional.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_directional.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_point.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_point.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_spot.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_spot.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\post_process.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\post_process.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\shadow.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\sky.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\sky.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\geometry.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
