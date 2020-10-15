@@ -39,9 +39,6 @@
     <ClCompile Include="Src\Camera.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Src\GBuffer.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Lights.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
@@ -114,9 +111,6 @@
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Src\Camera.h">
-      <Filter>Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Src\GBuffer.h">
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Src\Lights.h">

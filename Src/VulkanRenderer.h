@@ -2,19 +2,43 @@
 #include <vector>
 
 #include <GLFW/glfw3.h>
-
 #include <vulkan/vulkan.h>
 
 #include "VulkanMemory.h"
 
-#include "GBuffer.h"
-#include "Lights.h"
+#include "Scene.h"
 
 class VulkanRenderer {
 	GLFWwindow * window;
 
 	VkSwapchainKHR           swapchain;
 	std::vector<VkImageView> swapchain_views;
+
+	struct {	
+		struct {
+			VkPipeline geometry;
+			VkPipeline sky;
+		} pipelines;
+
+		struct {
+			VkPipelineLayout geometry;
+			VkPipelineLayout sky;
+		} pipeline_layouts;
+
+		VkDescriptorPool descriptor_pool;
+
+		struct {
+			VkDescriptorSetLayout geometry;
+			VkDescriptorSetLayout sky;
+		} descriptor_set_layouts;
+	
+		std::vector<VulkanMemory::Buffer> uniform_buffers;
+		std::vector<VkDescriptorSet>      descriptor_sets;
+
+		RenderTarget render_target;
+
+		std::vector<VkCommandBuffer> command_buffers;
+	} gbuffer;
 
 	struct {
 		inline static constexpr int WIDTH  = 2048;
@@ -74,8 +98,6 @@ class VulkanRenderer {
 	VkFence              fences[MAX_FRAMES_IN_FLIGHT];
 	std::vector<VkFence> fences_in_flight;
 
-	GBuffer gbuffer;
-	
 	int current_frame = 0;
 
 	// Timing
@@ -96,6 +118,7 @@ class VulkanRenderer {
 
 	void create_descriptor_pool();
 
+	void create_gbuffer();
 	void create_shadow_render_pass();
 	
 	LightPass create_light_pass(
@@ -113,6 +136,7 @@ class VulkanRenderer {
 	void create_command_buffers();
 	void create_imgui();
 
+	void record_command_buffer_gbuffer(u32 image_index);
 	void record_command_buffer(u32 image_index);
 
 public:
