@@ -17,11 +17,12 @@ struct RenderTarget {
 	std::vector<Attachment> attachments;
 
 	VkFramebuffer frame_buffer;
-	VkRenderPass  render_pass;
 	VkSampler     sampler;
 
 	void add_attachment(int width, int height, VkFormat format, VkImageUsageFlagBits usage, VkImageLayout image_layout);
 
-	void init(int width, int height);
+	void init(int width, int height, VkRenderPass render_pass);
 	void free();
+
+	VkRenderPass create_render_pass();
 };

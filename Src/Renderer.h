@@ -34,6 +34,7 @@ class Renderer {
 		std::vector<VkDescriptorSet>      descriptor_sets_sky;
 
 		RenderTarget render_target;
+		VkRenderPass render_pass;
 	} gbuffer;
 
 	struct {
@@ -44,6 +45,8 @@ class Renderer {
 
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;
+		
+		VkRenderPass render_pass;
 	} shadow;
 
 	struct {
@@ -70,6 +73,7 @@ class Renderer {
 	VkDescriptorSetLayout shadow_descriptor_set_layout;
 	
 	RenderTarget light_render_target;
+	VkRenderPass light_render_pass;
 
 	LightPass light_pass_directional;
 	LightPass light_pass_point;

@@ -279,7 +279,9 @@ void Renderer::create_gbuffer() {
 	gbuffer.render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	gbuffer.render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	gbuffer.render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-	gbuffer.render_target.init(width, height);
+
+	gbuffer.render_pass = gbuffer.render_target.create_render_pass();
+	gbuffer.render_target.init(width, height, gbuffer.render_pass);
 
 	VkPushConstantRange push_constants;
 	push_constants.offset = 0;
@@ -314,7 +316,7 @@ void Renderer::create_gbuffer() {
 		{ "Shaders/geometry.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }
 	};
 	pipeline_details.pipeline_layout = gbuffer.pipeline_layouts.geometry;
-	pipeline_details.render_pass     = gbuffer.render_target.render_pass;
+	pipeline_details.render_pass     = gbuffer.render_pass;
 
 	gbuffer.pipelines.geometry = VulkanContext::create_pipeline(pipeline_details);
 
@@ -381,13 +383,61 @@ void Renderer::create_gbuffer() {
 void Renderer::create_shadow_render_pass() {
 	auto device = VulkanContext::get_device();
 
+	auto depth_format = VulkanContext::get_supported_depth_format();
+
+	VkAttachmentDescription depth_attachment = { };
+	depth_attachment.format = depth_format;
+	depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depth_attachment.loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	depth_attachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depth_attachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	
+	VkAttachmentReference depth_ref = { 0 , VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL };
+
+	VkSubpassDescription subpass = { };
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 0;
+	subpass.pColorAttachments    = nullptr;
+	subpass.pDepthStencilAttachment = &depth_ref;
+
+	VkSubpassDependency dependencies[2] = { };
+	
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	VkRenderPassCreateInfo render_pass_create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	render_pass_create_info.attachmentCount = 1;
+	render_pass_create_info.pAttachments    = &depth_attachment;
+	render_pass_create_info.subpassCount = 1;
+	render_pass_create_info.pSubpasses   = &subpass;
+	render_pass_create_info.dependencyCount = Util::array_element_count(dependencies);
+	render_pass_create_info.pDependencies   = dependencies;
+
+	VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &shadow.render_pass));
+
 	for (auto & directional_light : scene.directional_lights) {
 		// Create Shadow Map Render Target
-		directional_light.shadow_map.render_target.add_attachment(shadow.WIDTH, shadow.HEIGHT, VulkanContext::get_supported_depth_format(),
+		directional_light.shadow_map.render_target.add_attachment(shadow.WIDTH, shadow.HEIGHT, depth_format,
 			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		directional_light.shadow_map.render_target.init(shadow.WIDTH, shadow.HEIGHT);
+		directional_light.shadow_map.render_target.init(shadow.WIDTH, shadow.HEIGHT, shadow.render_pass);
 	}
 	
 	// Create Descriptor Set Layout
@@ -420,7 +470,7 @@ void Renderer::create_shadow_render_pass() {
 	pipeline_details.shaders = { { "Shaders/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT } }; // NOTE: no Fragment Shader, we only care about depth
 	pipeline_details.enable_depth_bias = true;
 	pipeline_details.pipeline_layout = shadow.pipeline_layout;
-	pipeline_details.render_pass     = scene.directional_lights[0].shadow_map.render_target.render_pass;
+	pipeline_details.render_pass     = shadow.render_pass;
 
 	shadow.pipeline = VulkanContext::create_pipeline(pipeline_details);
 }
@@ -466,7 +516,7 @@ Renderer::LightPass Renderer::create_light_pass(
 	pipeline_details.enable_depth_test  = false;
 	pipeline_details.enable_depth_write = false;
 	pipeline_details.pipeline_layout = light_pass.pipeline_layout;
-	pipeline_details.render_pass     = light_render_target.render_pass;
+	pipeline_details.render_pass     = light_render_pass;
 
 	light_pass.pipeline = VulkanContext::create_pipeline(pipeline_details);
 
@@ -815,7 +865,7 @@ void Renderer::record_command_buffer(u32 image_index) {
 	clear_gbuffer[3].depthStencil = { 1.0f, 0 };
 
 	VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	render_pass_begin_info.renderPass =  gbuffer.render_target.render_pass;
+	render_pass_begin_info.renderPass =  gbuffer.render_pass;
 	render_pass_begin_info.framebuffer = gbuffer.render_target.frame_buffer;
 	render_pass_begin_info.renderArea.extent.width  = width;
 	render_pass_begin_info.renderArea.extent.height = height;
@@ -907,56 +957,58 @@ void Renderer::record_command_buffer(u32 image_index) {
 
 	vkCmdEndRenderPass(command_buffer);
 	
-	VkClearValue clear = { };
-	clear.depthStencil = { 1.0f, 0 };
+	// Render to Shadow Maps
+	for (auto const & directional_light : scene.directional_lights) {
+		VkClearValue clear = { };
+		clear.depthStencil = { 1.0f, 0 };
 
-	render_pass_begin_info.renderPass  = scene.directional_lights[0].shadow_map.render_target.render_pass;
-	render_pass_begin_info.framebuffer = scene.directional_lights[0].shadow_map.render_target.frame_buffer;
-	render_pass_begin_info.renderArea.extent.width  = shadow.WIDTH;
-	render_pass_begin_info.renderArea.extent.height = shadow.HEIGHT;
-	render_pass_begin_info.clearValueCount = 1;
-	render_pass_begin_info.pClearValues = &clear;
+		render_pass_begin_info.renderPass  = shadow.render_pass;
+		render_pass_begin_info.framebuffer = directional_light.shadow_map.render_target.frame_buffer;
+		render_pass_begin_info.renderArea.extent.width  = shadow.WIDTH;
+		render_pass_begin_info.renderArea.extent.height = shadow.HEIGHT;
+		render_pass_begin_info.clearValueCount = 1;
+		render_pass_begin_info.pClearValues = &clear;
 
-	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-	viewport = { 0.0f, 0.0f, float(shadow.WIDTH), float(shadow.HEIGHT), 0.0f, 1.0f };
-	vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+		viewport = { 0.0f, 0.0f, float(shadow.WIDTH), float(shadow.HEIGHT), 0.0f, 1.0f };
+		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 	
-	scissor = { 0, 0, shadow.WIDTH, shadow.HEIGHT };
-	vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+		scissor = { 0, 0, shadow.WIDTH, shadow.HEIGHT };
+		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-	constexpr auto DEPTH_BIAS_CONSTANT = 1.25f;
-	constexpr auto DEPTH_BIAS_SLOPE    = 1.75f;
-	vkCmdSetDepthBias(command_buffer, DEPTH_BIAS_CONSTANT, 0.0f, DEPTH_BIAS_SLOPE);
+		constexpr auto DEPTH_BIAS_CONSTANT = 1.25f;
+		constexpr auto DEPTH_BIAS_SLOPE    = 1.75f;
+		vkCmdSetDepthBias(command_buffer, DEPTH_BIAS_CONSTANT, 0.0f, DEPTH_BIAS_SLOPE);
 
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow.pipeline);
+		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadow.pipeline);
 
-	// Render Renderables
-	for (int i = 0; i < scene.meshes.size(); i++) {
-		auto const & mesh_instance = scene.meshes[i];
-		auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
+		for (int i = 0; i < scene.meshes.size(); i++) {
+			auto const & mesh_instance = scene.meshes[i];
+			auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
-		auto transform = mesh_instance.transform.get_matrix();
+			auto transform = mesh_instance.transform.get_matrix();
 			
-		ShadowPushConstants push_constants;
-		push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;
+			ShadowPushConstants push_constants;
+			push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;
 
-		vkCmdPushConstants(command_buffer, shadow.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &push_constants);
+			vkCmdPushConstants(command_buffer, shadow.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &push_constants);
 
-		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
-			auto const & sub_mesh = mesh.sub_meshes[j];
+			for (int j = 0; j < mesh.sub_meshes.size(); j++) {
+				auto const & sub_mesh = mesh.sub_meshes[j];
 
-			VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+				VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
-			vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
+				vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
+			}
 		}
-	}
 
-	vkCmdEndRenderPass(command_buffer);
+		vkCmdEndRenderPass(command_buffer);
+	}
 
 	VkClearValue clear_frame_buffer[2] = { };
 	clear_frame_buffer[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -964,7 +1016,7 @@ void Renderer::record_command_buffer(u32 image_index) {
 	
 	// Begin Light Render Pass
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderpass_begin_info.renderPass  = light_render_target.render_pass;
+	renderpass_begin_info.renderPass  = light_render_pass;
 	renderpass_begin_info.framebuffer = light_render_target.frame_buffer;
 	renderpass_begin_info.renderArea = { 0, 0, width, height };
 	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_frame_buffer);
@@ -1158,7 +1210,9 @@ void Renderer::swapchain_create() {
 	
 	light_render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	light_render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-	light_render_target.init(width, height);
+
+	light_render_pass = light_render_target.create_render_pass();
+	light_render_target.init(width, height, light_render_pass);
 
 	light_pass_directional = create_light_pass(
 		{ },
@@ -1341,7 +1395,7 @@ void Renderer::swapchain_destroy() {
 	auto command_pool = VulkanContext::get_command_pool();
 	
 	gbuffer.render_target.free();
-
+	
 	vkDestroyDescriptorSetLayout(device, gbuffer.descriptor_set_layouts.geometry, nullptr);
 	vkDestroyDescriptorSetLayout(device, gbuffer.descriptor_set_layouts.sky,      nullptr);
 
@@ -1370,8 +1424,11 @@ void Renderer::swapchain_destroy() {
 
 	vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
 	
+	vkDestroyRenderPass(device, gbuffer.render_pass,      nullptr);
+	vkDestroyRenderPass(device, shadow.render_pass,       nullptr);
+	vkDestroyRenderPass(device, light_render_pass,        nullptr);
 	vkDestroyRenderPass(device, post_process.render_pass, nullptr);
-	
+
 	light_render_target.free();
 
 	vkDestroyPipeline      (device, shadow.pipeline,        nullptr);
