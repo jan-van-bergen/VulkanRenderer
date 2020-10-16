@@ -376,16 +376,6 @@ void Renderer::create_gbuffer() {
 
 		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
 	}
-
-	// Create Command Buffers
-	gbuffer.command_buffers.resize(swapchain_views.size());
-
-	VkCommandBufferAllocateInfo command_buffer_alloc_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-	command_buffer_alloc_info.commandPool = VulkanContext::get_command_pool();
-	command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	command_buffer_alloc_info.commandBufferCount = gbuffer.command_buffers.size();
-
-	VK_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, gbuffer.command_buffers.data()));
 }
 
 void Renderer::create_shadow_render_pass() {
@@ -777,26 +767,60 @@ void Renderer::create_command_buffers() {
 	VK_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, command_buffers.data()));
 }
 
-void Renderer::record_command_buffer_gbuffer(u32 image_index) {
-	auto command_buffer = gbuffer.command_buffers[image_index];
+void Renderer::record_command_buffer(u32 image_index) {
+	// Capture GUI draw data
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::Begin("Vulkan Renderer");
+	ImGui::Text("Delta: %.2f ms", 1000.0f * frame_delta);
+	ImGui::Text("Avg:   %.2f ms", 1000.0f * frame_avg);
+	ImGui::Text("Min:   %.2f ms", 1000.0f * frame_min);
+	ImGui::Text("Max:   %.2f ms", 1000.0f * frame_max);
+	ImGui::Text("FPS:   %d", fps);
+	ImGui::End();
+
+	static MeshInstance * selected_mesh = nullptr;
+
+	ImGui::Begin("Scene");
+	for (auto & mesh : scene.meshes) {
+		if (ImGui::Button(mesh.name.c_str())) {
+			selected_mesh = &mesh;
+		}
+	}
+	
+	if (selected_mesh) {
+		ImGui::Text("Selected Mesh: %s", selected_mesh->name.c_str());
+		ImGui::SliderFloat3("Position", selected_mesh->transform.position.data, -10.0f, 10.0f);
+		ImGui::SliderFloat4("Rotation", selected_mesh->transform.rotation.data,  -1.0f, -1.0f);
+		ImGui::SliderFloat ("Scale",   &selected_mesh->transform.scale, 0.0f, 10.0f);
+	}
+
+	ImGui::End();
+
+	ImGui::Render();
+
+	auto & command_buffer = command_buffers[image_index];
+	auto & frame_buffer   = frame_buffers  [image_index];
 
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	VK_CHECK(vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info));
 
 	// Clear values for all attachments written in the fragment shader
-	VkClearValue clear_values[4] = { };
-	clear_values[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear_values[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear_values[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear_values[3].depthStencil = { 1.0f, 0 };
+	VkClearValue clear_gbuffer[4] = { };
+	clear_gbuffer[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clear_gbuffer[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clear_gbuffer[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clear_gbuffer[3].depthStencil = { 1.0f, 0 };
 
 	VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	render_pass_begin_info.renderPass =  gbuffer.render_target.render_pass;
 	render_pass_begin_info.framebuffer = gbuffer.render_target.frame_buffer;
 	render_pass_begin_info.renderArea.extent.width  = width;
 	render_pass_begin_info.renderArea.extent.height = height;
-	render_pass_begin_info.clearValueCount = Util::array_element_count(clear_values);
-	render_pass_begin_info.pClearValues    = clear_values;
+	render_pass_begin_info.clearValueCount = Util::array_element_count(clear_gbuffer);
+	render_pass_begin_info.pClearValues    = clear_gbuffer;
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -934,64 +958,17 @@ void Renderer::record_command_buffer_gbuffer(u32 image_index) {
 
 	vkCmdEndRenderPass(command_buffer);
 
-	VK_CHECK(vkEndCommandBuffer(command_buffer));
-}
-
-void Renderer::record_command_buffer(u32 image_index) {
-	// Capture GUI draw data
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	ImGui::Begin("Vulkan Renderer");
-	ImGui::Text("Delta: %.2f ms", 1000.0f * frame_delta);
-	ImGui::Text("Avg:   %.2f ms", 1000.0f * frame_avg);
-	ImGui::Text("Min:   %.2f ms", 1000.0f * frame_min);
-	ImGui::Text("Max:   %.2f ms", 1000.0f * frame_max);
-	ImGui::Text("FPS:   %d", fps);
-	ImGui::End();
-
-	static MeshInstance * selected_mesh = nullptr;
-
-	ImGui::Begin("Scene");
-	for (auto & mesh : scene.meshes) {
-		if (ImGui::Button(mesh.name.c_str())) {
-			selected_mesh = &mesh;
-		}
-	}
-	
-	if (selected_mesh) {
-		ImGui::Text("Selected Mesh: %s", selected_mesh->name.c_str());
-		ImGui::SliderFloat3("Position", selected_mesh->transform.position.data, -10.0f, 10.0f);
-		ImGui::SliderFloat4("Rotation", selected_mesh->transform.rotation.data,  -1.0f, -1.0f);
-		ImGui::SliderFloat ("Scale",   &selected_mesh->transform.scale, 0.0f, 10.0f);
-	}
-
-	ImGui::End();
-
-	ImGui::Render();
-
-	auto & command_buffer = command_buffers[image_index];
-	auto & frame_buffer   = frame_buffers  [image_index];
-
-	// Begin Command Buffer
-	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	command_buffer_begin_info.flags = 0;
-	command_buffer_begin_info.pInheritanceInfo = nullptr;
-
-	VK_CHECK(vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info));
-	
-	VkClearValue clear_values[2] = { };
-	clear_values[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
-	clear_values[1].depthStencil = { 1.0f, 0 };
+	VkClearValue clear_frame_buffer[2] = { };
+	clear_frame_buffer[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
+	clear_frame_buffer[1].depthStencil = { 1.0f, 0 };
 	
 	// Begin Light Render Pass
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderpass_begin_info.renderPass  = light_render_target.render_pass;
 	renderpass_begin_info.framebuffer = light_render_target.frame_buffer;
 	renderpass_begin_info.renderArea = { 0, 0, width, height };
-	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_values);
-	renderpass_begin_info.pClearValues    = clear_values;
+	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_frame_buffer);
+	renderpass_begin_info.pClearValues    = clear_frame_buffer;
 		
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1141,8 +1118,8 @@ void Renderer::record_command_buffer(u32 image_index) {
 	renderpass_begin_info.renderPass = post_process.render_pass;
 	renderpass_begin_info.framebuffer = frame_buffer;
 	renderpass_begin_info.renderArea = { 0, 0, width, height };
-	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_values);
-	renderpass_begin_info.pClearValues    = clear_values;
+	renderpass_begin_info.clearValueCount = Util::array_element_count(clear_frame_buffer);
+	renderpass_begin_info.pClearValues    = clear_frame_buffer;
 
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1284,7 +1261,6 @@ void Renderer::render() {
 	auto queue_present  = VulkanContext::get_queue_present();
 
 	auto semaphore_image_available = semaphores_image_available[current_frame];
-	auto semaphore_gbuffer_done    = semaphores_gbuffer_done   [current_frame];
 	auto semaphore_render_done     = semaphores_render_done    [current_frame];
 
 	auto fence = fences[current_frame];
@@ -1298,47 +1274,24 @@ void Renderer::render() {
 	}
 	fences_in_flight[image_index] = fence;
 
-	record_command_buffer_gbuffer(image_index);
-	record_command_buffer        (image_index);
+	record_command_buffer(image_index);
 
-	// Render to GBuffer
-	{
-		VkSemaphore          wait_semaphores[] = { semaphore_image_available };
-		VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkSemaphore          wait_semaphores[] = { semaphore_image_available };
+	VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		
-		VkSemaphore signal_semaphores[] = { semaphore_gbuffer_done };
+	VkSemaphore signal_semaphores[] = { semaphore_render_done };
 
-		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-		submit_info.waitSemaphoreCount = Util::array_element_count(wait_semaphores);
-		submit_info.pWaitSemaphores    = wait_semaphores;
-		submit_info.pWaitDstStageMask  = wait_stages;
-		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers    = &gbuffer.command_buffers[image_index];
-		submit_info.signalSemaphoreCount = Util::array_element_count(signal_semaphores);
-		submit_info.pSignalSemaphores    = signal_semaphores;
+	VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submit_info.waitSemaphoreCount = Util::array_element_count(wait_semaphores);
+	submit_info.pWaitSemaphores    = wait_semaphores;
+	submit_info.pWaitDstStageMask  = wait_stages;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers    = &command_buffers[image_index];
+	submit_info.signalSemaphoreCount = Util::array_element_count(signal_semaphores);
+	submit_info.pSignalSemaphores    = signal_semaphores;
 
-		VK_CHECK(vkQueueSubmit(queue_graphics, 1, &submit_info, VK_NULL_HANDLE));
-	}
-
-	// Render to Screen
-	{
-		VkSemaphore          wait_semaphores[] = { semaphore_gbuffer_done };
-		VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		
-		VkSemaphore signal_semaphores[] = { semaphore_render_done };
-
-		VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-		submit_info.waitSemaphoreCount = Util::array_element_count(wait_semaphores);
-		submit_info.pWaitSemaphores    = wait_semaphores;
-		submit_info.pWaitDstStageMask  = wait_stages;
-		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers    = &command_buffers[image_index];
-		submit_info.signalSemaphoreCount = Util::array_element_count(signal_semaphores);
-		submit_info.pSignalSemaphores    = signal_semaphores;
-
-		VK_CHECK(vkResetFences(device, 1, &fence));
-		VK_CHECK(vkQueueSubmit(queue_graphics, 1, &submit_info, fence));
-	}
+	VK_CHECK(vkResetFences(device, 1, &fence));
+	VK_CHECK(vkQueueSubmit(queue_graphics, 1, &submit_info, fence));
 
 	VkSwapchainKHR swapchains[] = { swapchain };
 
@@ -1400,8 +1353,6 @@ void Renderer::swapchain_destroy() {
 	for (auto & uniform_buffer : gbuffer.uniform_buffers) {
 		VulkanMemory::buffer_free(uniform_buffer);
 	}
-
-	vkFreeCommandBuffers(device, VulkanContext::get_command_pool(), gbuffer.command_buffers.size(), gbuffer.command_buffers.data());
 
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);

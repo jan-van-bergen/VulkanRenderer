@@ -34,8 +34,6 @@ class Renderer {
 		std::vector<VkDescriptorSet>      descriptor_sets_sky;
 
 		RenderTarget render_target;
-
-		std::vector<VkCommandBuffer> command_buffers;
 	} gbuffer;
 
 	struct {
