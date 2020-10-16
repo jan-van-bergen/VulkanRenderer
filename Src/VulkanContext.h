@@ -28,12 +28,13 @@ namespace VulkanContext {
 
 	Shader shader_load(std::string const & filename, VkShaderStageFlagBits stage);
 	
+	VkRenderPass create_render_pass(std::vector<VkAttachmentDescription> const & attachments);
+
 	struct PipelineLayoutDetails {
 		std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
 
 		std::vector<VkPushConstantRange> push_constants;
 	};
-
 	VkPipelineLayout create_pipeline_layout(PipelineLayoutDetails const & details);
 
 	struct PipelineDetails {
@@ -80,10 +81,7 @@ namespace VulkanContext {
 		VkPipelineLayout pipeline_layout;
 		VkRenderPass     render_pass;
 	};
-
 	VkPipeline create_pipeline(PipelineDetails const & details);
-
-	VkRenderPass create_render_pass(std::vector<VkAttachmentDescription> const & attachments);
 
 	VkFramebuffer create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments);
 

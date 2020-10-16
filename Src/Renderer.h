@@ -51,7 +51,7 @@ class Renderer {
 
 	struct {
 		VkDescriptorSetLayout        descriptor_set_layout;
-		std::vector<VkDescriptorSet> descriptor_sets_sky;
+		std::vector<VkDescriptorSet> descriptor_sets;
 
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;

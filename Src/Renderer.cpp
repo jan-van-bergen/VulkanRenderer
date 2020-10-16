@@ -638,7 +638,7 @@ void Renderer::create_post_process() {
 	pipeline_details.enable_depth_test  = false;
 	pipeline_details.enable_depth_write = false;
 	pipeline_details.pipeline_layout = post_process.pipeline_layout;
-	pipeline_details.render_pass = post_process.render_pass;
+	pipeline_details.render_pass     = post_process.render_pass;
 
 	post_process.pipeline = VulkanContext::create_pipeline(pipeline_details);
 
@@ -650,11 +650,11 @@ void Renderer::create_post_process() {
 	alloc_info.descriptorSetCount = layouts.size();
 	alloc_info.pSetLayouts        = layouts.data();
 
-	post_process.descriptor_sets_sky.resize(swapchain_views.size());
-	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, post_process.descriptor_sets_sky.data()));
+	post_process.descriptor_sets.resize(swapchain_views.size());
+	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, post_process.descriptor_sets.data()));
 
-	for (int i = 0; i < post_process.descriptor_sets_sky.size(); i++) {
-		auto & descriptor_set = post_process.descriptor_sets_sky[i];
+	for (int i = 0; i < post_process.descriptor_sets.size(); i++) {
+		auto & descriptor_set = post_process.descriptor_sets[i];
 
 		VkWriteDescriptorSet write_descriptor_sets[1] = { };
 
@@ -775,6 +775,7 @@ void Renderer::record_command_buffer(u32 image_index) {
 	static MeshInstance * selected_mesh = nullptr;
 
 	ImGui::Begin("Scene");
+
 	for (auto & mesh : scene.meshes) {
 		if (ImGui::Button(mesh.name.c_str())) {
 			selected_mesh = &mesh;
@@ -789,7 +790,6 @@ void Renderer::record_command_buffer(u32 image_index) {
 	}
 
 	ImGui::End();
-
 	ImGui::Render();
 
 	auto & command_buffer = command_buffers[image_index];
@@ -900,15 +900,14 @@ void Renderer::record_command_buffer(u32 image_index) {
 	
 	// Render to Shadow Maps
 	for (auto const & directional_light : scene.directional_lights) {
-		VkClearValue clear = { };
-		clear.depthStencil = { 1.0f, 0 };
+		VkClearValue clear = { }; clear.depthStencil = { 1.0f, 0 };
 
 		render_pass_begin_info.renderPass  = shadow.render_pass;
 		render_pass_begin_info.framebuffer = directional_light.shadow_map.render_target.frame_buffer;
 		render_pass_begin_info.renderArea.extent.width  = shadow.WIDTH;
 		render_pass_begin_info.renderArea.extent.height = shadow.HEIGHT;
 		render_pass_begin_info.clearValueCount = 1;
-		render_pass_begin_info.pClearValues = &clear;
+		render_pass_begin_info.pClearValues    = &clear;
 
 		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1117,7 +1116,7 @@ void Renderer::record_command_buffer(u32 image_index) {
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline      (command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, post_process.pipeline);
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, post_process.pipeline_layout, 0, 1, &post_process.descriptor_sets_sky[image_index], 0, nullptr);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, post_process.pipeline_layout, 0, 1, &post_process.descriptor_sets[image_index], 0, nullptr);
 
 	vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
