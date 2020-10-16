@@ -1269,12 +1269,12 @@ void Renderer::render() {
 	
 	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
 
+	record_command_buffer(image_index);
+
 	if (fences_in_flight[image_index] != nullptr) {
 		VK_CHECK(vkWaitForFences(device, 1, &fences_in_flight[image_index], VK_TRUE, UINT64_MAX));
 	}
 	fences_in_flight[image_index] = fence;
-
-	record_command_buffer(image_index);
 
 	VkSemaphore          wait_semaphores[] = { semaphore_image_available };
 	VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
