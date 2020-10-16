@@ -13,7 +13,15 @@ void RenderTaskShadow::init() {
 	auto device = VulkanContext::get_device();
 
 	auto depth_format = VulkanContext::get_supported_depth_format();
+	
+	// Create Descriptor Set Layout
+	VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layout_create_info.bindingCount = 0;
+	layout_create_info.pBindings    = nullptr;
 
+	VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout));
+
+	// Create Render Pass
 	VkAttachmentDescription depth_attachment = { };
 	depth_attachment.format = depth_format;
 	depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -26,8 +34,8 @@ void RenderTaskShadow::init() {
 	
 	render_pass = VulkanContext::create_render_pass({ depth_attachment });
 
+	// Create Shadow Map Render Target for each Light
 	for (auto & directional_light : scene.directional_lights) {
-		// Create Shadow Map Render Target
 		directional_light.shadow_map.render_target.add_attachment(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, depth_format,
 			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -35,13 +43,6 @@ void RenderTaskShadow::init() {
 		directional_light.shadow_map.render_target.init(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, render_pass);
 	}
 	
-	// Create Descriptor Set Layout
-	VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layout_create_info.bindingCount = 0;
-	layout_create_info.pBindings    = nullptr;
-
-	VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout));
-
 	// Create Pipeline Layout
 	std::vector<VkPushConstantRange> push_constants(1);
 	push_constants[0].offset = 0;
@@ -60,7 +61,7 @@ void RenderTaskShadow::init() {
 	pipeline_details.vertex_attributes = Mesh::Vertex::get_attribute_descriptions();
 	pipeline_details.width  = SHADOW_MAP_WIDTH;
 	pipeline_details.height = SHADOW_MAP_HEIGHT;
-	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
+	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
 	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_NONE };
 	pipeline_details.shaders = { { "Shaders/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT } }; // NOTE: no Fragment Shader, we only care about depth
 	pipeline_details.enable_depth_bias = true;
@@ -105,10 +106,6 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 	
 		VkRect2D scissor = { 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
 		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-		//constexpr auto DEPTH_BIAS_CONSTANT = 1.25f;
-		//constexpr auto DEPTH_BIAS_SLOPE    = 1.75f;
-		//vkCmdSetDepthBias(command_buffer, DEPTH_BIAS_CONSTANT, 0.0f, DEPTH_BIAS_SLOPE);
 
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 

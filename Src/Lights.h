@@ -10,7 +10,7 @@ struct Light {
 
 struct DirectionalLight : Light {
 private:
-	inline static auto const projection = Matrix4::orthographic(200.0f, 200.0f, -200.0f, 200.0f);
+	inline static auto const projection = Matrix4::orthographic(200.0f, 200.0f, -200.0f, 50.0f);
 
 public:
 	Vector3 direction;
