@@ -46,4 +46,8 @@ void Scene::update(float delta) {
 
 	if (spot_lights.size() > 0) spot_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), 0.5f * delta) * spot_lights[0].direction;
 	if (spot_lights.size() > 1) spot_lights[1].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f),       -delta) * spot_lights[1].direction;
+
+	for (auto & mesh : meshes) {
+		mesh.transform.update();
+	}
 }

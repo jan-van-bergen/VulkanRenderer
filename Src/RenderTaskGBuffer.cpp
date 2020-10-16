@@ -242,7 +242,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		auto const & mesh_instance = scene.meshes[i];
 		auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
-		auto     transform = mesh_instance.transform.get_matrix();
+		auto     transform = mesh_instance.transform.matrix;
 		auto abs_transform = Matrix4::abs(transform);
 
 		bool first_sub_mesh = true;

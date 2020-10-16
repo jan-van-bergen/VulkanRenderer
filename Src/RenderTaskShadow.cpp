@@ -106,9 +106,9 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 		VkRect2D scissor = { 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
 		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-		constexpr auto DEPTH_BIAS_CONSTANT = 1.25f;
-		constexpr auto DEPTH_BIAS_SLOPE    = 1.75f;
-		vkCmdSetDepthBias(command_buffer, DEPTH_BIAS_CONSTANT, 0.0f, DEPTH_BIAS_SLOPE);
+		//constexpr auto DEPTH_BIAS_CONSTANT = 1.25f;
+		//constexpr auto DEPTH_BIAS_SLOPE    = 1.75f;
+		//vkCmdSetDepthBias(command_buffer, DEPTH_BIAS_CONSTANT, 0.0f, DEPTH_BIAS_SLOPE);
 
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -116,7 +116,7 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 			auto const & mesh_instance = scene.meshes[i];
 			auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
-			auto transform = mesh_instance.transform.get_matrix();
+			auto transform = mesh_instance.transform.matrix;
 			
 			ShadowPushConstants push_constants;
 			push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;

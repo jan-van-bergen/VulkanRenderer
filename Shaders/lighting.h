@@ -31,7 +31,8 @@ float calc_shadow(sampler2D shadow_map, mat4 light_matrix, vec3 world_position) 
 
 	vec4 shadow_map_coords = light_matrix * vec4(world_position, 1.0f);
 	
-	shadow_map_coords /= shadow_map_coords.w;
+	// Perspective divide and transform from [-1, 1] to [0, 1]
+	shadow_map_coords   /= shadow_map_coords.w;
 	shadow_map_coords.xy = shadow_map_coords.xy * 0.5f + 0.5f;
 	
 	const int range = 1;

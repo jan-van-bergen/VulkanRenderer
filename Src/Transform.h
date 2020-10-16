@@ -8,8 +8,10 @@ struct Transform {
 	Quaternion rotation;
 	float      scale = 1.0f;
 
-	inline Matrix4 get_matrix() const {
-		return
+	Matrix4 matrix;
+
+	void update() {
+		matrix =
 			Matrix4::create_translation(position) *
 			Matrix4::create_rotation(rotation) *
 			Matrix4::create_scale(scale);
