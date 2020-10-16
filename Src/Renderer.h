@@ -31,7 +31,7 @@ class Renderer {
 		} descriptor_set_layouts;
 	
 		std::vector<VulkanMemory::Buffer> uniform_buffers;
-		std::vector<VkDescriptorSet>      descriptor_sets;
+		std::vector<VkDescriptorSet>      descriptor_sets_sky;
 
 		RenderTarget render_target;
 
@@ -50,7 +50,7 @@ class Renderer {
 
 	struct {
 		VkDescriptorSetLayout        descriptor_set_layout;
-		std::vector<VkDescriptorSet> descriptor_sets;
+		std::vector<VkDescriptorSet> descriptor_sets_sky;
 
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;

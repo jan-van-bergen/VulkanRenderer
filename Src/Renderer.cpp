@@ -150,7 +150,10 @@ void Renderer::create_descriptor_pool() {
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
-	pool_create_info.maxSets = 4 * swapchain_views.size() + 1 + Texture::textures.size() + 100;
+	pool_create_info.maxSets =
+		(1 + 3 + 1) * swapchain_views.size() + // Sky + 3 Light types + Post Process
+		Texture::textures.size() +             // Textures
+		scene.directional_lights.size();       // Shadow map
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 	
@@ -350,11 +353,11 @@ void Renderer::create_gbuffer() {
 	alloc_info.descriptorSetCount = layouts.size();
 	alloc_info.pSetLayouts        = layouts.data();
 
-	gbuffer.descriptor_sets.resize(swapchain_views.size());
-	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, gbuffer.descriptor_sets.data()));
+	gbuffer.descriptor_sets_sky.resize(swapchain_views.size());
+	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, gbuffer.descriptor_sets_sky.data()));
 
-	for (int i = 0; i < gbuffer.descriptor_sets.size(); i++) {
-		auto & descriptor_set = gbuffer.descriptor_sets[i];
+	for (int i = 0; i < gbuffer.descriptor_sets_sky.size(); i++) {
+		auto & descriptor_set = gbuffer.descriptor_sets_sky[i];
 
 		VkWriteDescriptorSet write_descriptor_sets[1] = { };
 
@@ -666,11 +669,11 @@ void Renderer::create_post_process() {
 	alloc_info.descriptorSetCount = layouts.size();
 	alloc_info.pSetLayouts        = layouts.data();
 
-	post_process.descriptor_sets.resize(swapchain_views.size());
-	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, post_process.descriptor_sets.data()));
+	post_process.descriptor_sets_sky.resize(swapchain_views.size());
+	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, post_process.descriptor_sets_sky.data()));
 
-	for (int i = 0; i < post_process.descriptor_sets.size(); i++) {
-		auto & descriptor_set = post_process.descriptor_sets[i];
+	for (int i = 0; i < post_process.descriptor_sets_sky.size(); i++) {
+		auto & descriptor_set = post_process.descriptor_sets_sky[i];
 
 		VkWriteDescriptorSet write_descriptor_sets[1] = { };
 
@@ -863,7 +866,7 @@ void Renderer::record_command_buffer_gbuffer(u32 image_index) {
 	
 	// Render Sky
 	auto & uniform_buffer = gbuffer.uniform_buffers[image_index];
-	auto & descriptor_set = gbuffer.descriptor_sets[image_index];
+	auto & descriptor_set = gbuffer.descriptor_sets_sky[image_index];
 
 	vkCmdBindPipeline      (command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gbuffer.pipelines.sky);
 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gbuffer.pipeline_layouts.sky, 0, 1, &descriptor_set, 0, nullptr);
@@ -1144,7 +1147,7 @@ void Renderer::record_command_buffer(u32 image_index) {
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline      (command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, post_process.pipeline);
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, post_process.pipeline_layout, 0, 1, &post_process.descriptor_sets[image_index], 0, nullptr);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, post_process.pipeline_layout, 0, 1, &post_process.descriptor_sets_sky[image_index], 0, nullptr);
 
 	vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
