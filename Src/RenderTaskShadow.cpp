@@ -40,7 +40,7 @@ void RenderTaskShadow::init() {
 			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		directional_light.shadow_map.render_target.init(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, render_pass);
+		directional_light.shadow_map.render_target.init(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, render_pass, VK_FILTER_LINEAR);
 	}
 	
 	// Create Pipeline Layout

@@ -301,7 +301,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	sky_ubo.camera_top_left_corner = scene.camera.rotation * scene.camera.top_left_corner;
 	sky_ubo.camera_x               = scene.camera.rotation * Vector3(float(width), 0.0f, 0.0f);
 	sky_ubo.camera_y               = scene.camera.rotation * Vector3(0.0f, -float(height), 0.0f);
-	sky_ubo.sun_direction = -scene.directional_lights[0].direction;
+	sky_ubo.sun_direction = -scene.directional_lights[0].get_direction();
 
 	VulkanMemory::buffer_copy_direct(uniform_buffer, &sky_ubo, sizeof(sky_ubo));
 

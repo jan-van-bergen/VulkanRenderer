@@ -208,6 +208,9 @@ void Renderer::update(float delta) {
 
 	ImGui::Begin("Scene");
 
+	auto dir = scene.directional_lights[0].get_direction();
+	ImGui::Text("Sun: %f, %f, %f", dir.x, dir.y, dir.z);
+
 	for (auto & mesh : scene.meshes) {
 		if (ImGui::Button(mesh.name.c_str())) {
 			selected_mesh = &mesh;

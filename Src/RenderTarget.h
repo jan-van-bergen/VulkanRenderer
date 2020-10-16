@@ -21,7 +21,7 @@ struct RenderTarget {
 
 	void add_attachment(int width, int height, VkFormat format, VkImageUsageFlagBits usage, VkImageLayout image_layout);
 
-	void init(int width, int height, VkRenderPass render_pass);
+	void init(int width, int height, VkRenderPass render_pass, VkFilter filter = VK_FILTER_NEAREST);
 	void free();
 
 	std::vector<VkAttachmentDescription> get_attachment_descriptions();

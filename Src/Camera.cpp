@@ -31,8 +31,8 @@ void Camera::on_resize(int width, int height) {
 }
 
 void Camera::update(float delta) {
-	const float MOVEMENT_SPEED = 10.0f;
-	const float ROTATION_SPEED =  1.0f;
+	const float MOVEMENT_SPEED = 15.0f;
+	const float ROTATION_SPEED =  5.0f;
 
 	Vector3 right   = rotation * Vector3(1.0f, 0.0f,  0.0f);
 	Vector3 forward = rotation * Vector3(0.0f, 0.0f, -1.0f);
@@ -58,8 +58,8 @@ void Camera::update(float delta) {
 	if (mouse_locked) {
 		int mouse_x, mouse_y; Input::get_mouse_pos(mouse_x, mouse_y);
 		
-		angle_x -= ROTATION_SPEED * delta * float(mouse_x - mouse_prev_x);
-		angle_y -= ROTATION_SPEED * delta * float(mouse_y - mouse_prev_y);
+		angle_x -= delta * float(mouse_x - mouse_prev_x);
+		angle_y -= delta * float(mouse_y - mouse_prev_y);
 
 		// Clamp vertical rotation between 90 degrees down and 90 degrees up
 		angle_y = Math::clamp(angle_y, -0.499f * PI, 0.499f * PI);

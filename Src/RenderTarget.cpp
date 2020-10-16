@@ -66,7 +66,7 @@ void RenderTarget::add_attachment(int width, int height, VkFormat format, VkImag
 	attachment.description.finalLayout = image_layout;
 }
 
-void RenderTarget::init(int width, int height, VkRenderPass render_pass) {
+void RenderTarget::init(int width, int height, VkRenderPass render_pass, VkFilter filter) {
 	auto device = VulkanContext::get_device();
 	
 	std::vector<VkImageView> attachment_views(attachments.size());
@@ -80,8 +80,8 @@ void RenderTarget::init(int width, int height, VkRenderPass render_pass) {
 
 	// Create Sampler to sample from the GBuffer's color attachments
 	VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	sampler_create_info.magFilter = VK_FILTER_NEAREST;
-	sampler_create_info.minFilter = VK_FILTER_NEAREST;
+	sampler_create_info.magFilter = filter;
+	sampler_create_info.minFilter = filter;
 	sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;

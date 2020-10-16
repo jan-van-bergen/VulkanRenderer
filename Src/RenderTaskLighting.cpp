@@ -382,7 +382,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 
 			DirectionalLightUBO ubo = { };
 			ubo.directional_light.colour       = directional_light.colour;
-			ubo.directional_light.direction    = directional_light.direction;
+			ubo.directional_light.direction    = directional_light.get_direction();
 			ubo.directional_light.light_matrix = directional_light.get_light_matrix();
 			ubo.camera_position = scene.camera.position;
 
