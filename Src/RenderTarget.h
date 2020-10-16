@@ -24,5 +24,5 @@ struct RenderTarget {
 	void init(int width, int height, VkRenderPass render_pass);
 	void free();
 
-	VkRenderPass create_render_pass();
+	std::vector<VkAttachmentDescription> get_attachment_descriptions();
 };

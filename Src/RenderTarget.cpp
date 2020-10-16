@@ -110,66 +110,12 @@ void RenderTarget::free() {
 	vkDestroySampler    (device, sampler,      nullptr);
 }
 
-VkRenderPass RenderTarget::create_render_pass() {
-	auto device = VulkanContext::get_device();
-
-	std::vector<VkAttachmentDescription> attachment_descs(attachments.size());
-	std::vector<VkAttachmentReference> refs_colour;
-	std::vector<VkAttachmentReference> refs_depth;
+std::vector<VkAttachmentDescription> RenderTarget::get_attachment_descriptions() {
+	std::vector<VkAttachmentDescription> descs(attachments.size());
 
 	for (int i = 0; i < attachments.size(); i++) {
-		attachment_descs[i] = attachments[i].description;
-		
-		auto depth_formats = {
-			VK_FORMAT_D16_UNORM,
-			VK_FORMAT_X8_D24_UNORM_PACK32,
-			VK_FORMAT_D32_SFLOAT,
-			VK_FORMAT_D16_UNORM_S8_UINT,
-			VK_FORMAT_D24_UNORM_S8_UINT,
-			VK_FORMAT_D32_SFLOAT_S8_UINT
-		};
-		bool is_depth_format = std::find(depth_formats.begin(), depth_formats.end(), attachments[i].format) != depth_formats.end();
-
-		if (is_depth_format) {
-			refs_depth.push_back({ u32(i), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
-		} else {
-			refs_colour.push_back({ u32(i), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-		}
+		descs[i] = attachments[i].description;
 	}
-	
-	VkSubpassDescription subpass = { };
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = refs_colour.size();
-	subpass.pColorAttachments    = refs_colour.data();
-	subpass.pDepthStencilAttachment = refs_depth.size() > 0 ? refs_depth.data() : nullptr;
 
-	VkSubpassDependency dependencies[2] = { };
-	
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	VkRenderPassCreateInfo render_pass_create_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	render_pass_create_info.attachmentCount = attachment_descs.size();
-	render_pass_create_info.pAttachments    = attachment_descs.data();
-	render_pass_create_info.subpassCount = 1;
-	render_pass_create_info.pSubpasses   = &subpass;
-	render_pass_create_info.dependencyCount = Util::array_element_count(dependencies);
-	render_pass_create_info.pDependencies   = dependencies;
-
-	VkRenderPass render_pass; VK_CHECK(vkCreateRenderPass(device, &render_pass_create_info, nullptr, &render_pass));
-
-	return render_pass;
+	return descs;
 }

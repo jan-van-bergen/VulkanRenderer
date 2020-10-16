@@ -83,6 +83,8 @@ namespace VulkanContext {
 
 	VkPipeline create_pipeline(PipelineDetails const & details);
 
+	VkRenderPass create_render_pass(std::vector<VkAttachmentDescription> const & attachments);
+
 	VkFramebuffer create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments);
 
 	VkInstance get_instance();
