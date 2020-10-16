@@ -415,7 +415,7 @@ void Renderer::create_shadow_render_pass() {
 	pipeline_details.vertex_attributes = Mesh::Vertex::get_attribute_descriptions();
 	pipeline_details.width  = shadow.WIDTH;
 	pipeline_details.height = shadow.HEIGHT;
-	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
+	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
 	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_NONE };
 	pipeline_details.shaders = { { "Shaders/shadow.vert.spv", VK_SHADER_STAGE_VERTEX_BIT } }; // NOTE: no Fragment Shader, we only care about depth
 	pipeline_details.enable_depth_bias = true;
