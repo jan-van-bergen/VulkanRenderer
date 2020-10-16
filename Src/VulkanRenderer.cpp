@@ -831,7 +831,7 @@ void VulkanRenderer::record_command_buffer_gbuffer(u32 image_index) {
 			Vector3 aabb_world_min = new_center - new_extent;
 			Vector3 aabb_world_max = new_center + new_extent;
 
-			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
+			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 
 			// The first unculled Submesh must set the Push Constants
 			if (first_sub_mesh) {		
@@ -1051,7 +1051,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		for (int i = 0; i < scene.point_lights.size(); i++) {
 			auto const & point_light = scene.point_lights[i];
 
-			if (scene.camera.frustum.intersect_sphere(point_light.position, point_light.radius) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
+			if (scene.camera.frustum.intersect_sphere(point_light.position, point_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 			
 			// Upload UBO
 			PointLightUBO ubo = { };
@@ -1104,7 +1104,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 		for (int i = 0; i < scene.spot_lights.size(); i++) {
 			auto const & spot_light = scene.spot_lights[i];
 			
-			if (scene.camera.frustum.intersect_sphere(spot_light.position, spot_light.radius) == Camera::Frustum::IntersectionType::FULLY_OUTSIDE) continue;
+			if (scene.camera.frustum.intersect_sphere(spot_light.position, spot_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 			
 			SpotLightUBO ubo = { };
 			ubo.spot_light.colour    = spot_light.colour;

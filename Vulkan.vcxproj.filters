@@ -48,6 +48,9 @@
     <ClCompile Include="Src\Scene.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Frustum.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Types.h" />
@@ -125,6 +128,9 @@
     <ClInclude Include="Src\Scene.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Frustum.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">
@@ -144,44 +150,44 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\geometry.vert">
+    <CustomBuild Include="Shaders\light_directional.frag">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\light_directional.frag">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_directional.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\light_directional.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_point.frag">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\light_point.frag">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_point.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\light_point.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_spot.frag">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\light_spot.frag">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\light_spot.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\light_spot.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\post_process.frag">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\post_process.frag">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\post_process.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\post_process.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\shadow.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\shadow.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\sky.frag">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\sky.frag">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\sky.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\sky.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\geometry.frag">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\geometry.frag">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\geometry.vert">
       <Filter>Shaders</Filter>
-    </None>
+    </CustomBuild>
   </ItemGroup>
 </Project>
