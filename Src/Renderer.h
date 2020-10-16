@@ -8,7 +8,7 @@
 
 #include "Scene.h"
 
-class VulkanRenderer {
+class Renderer {
 	GLFWwindow * window;
 
 	VkSwapchainKHR           swapchain;
@@ -145,8 +145,8 @@ public:
 	
 	Scene scene;
 
-	VulkanRenderer(GLFWwindow * window, u32 width, u32 height);
-	~VulkanRenderer();
+	Renderer(GLFWwindow * window, u32 width, u32 height);
+	~Renderer();
 
 	void update(float delta);
 	void render();

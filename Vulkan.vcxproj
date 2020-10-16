@@ -184,7 +184,7 @@
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\VulkanContext.cpp" />
     <ClCompile Include="Src\VulkanMemory.cpp" />
-    <ClCompile Include="Src\VulkanRenderer.cpp" />
+    <ClCompile Include="Src\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Imgui\imconfig.h" />
@@ -207,7 +207,7 @@
     <ClInclude Include="Src\Scene.h" />
     <ClInclude Include="Src\Texture.h" />
     <ClInclude Include="Src\Transform.h" />
-    <ClInclude Include="Src\VulkanRenderer.h" />
+    <ClInclude Include="Src\Renderer.h" />
     <ClInclude Include="Src\Util.h" />
     <ClInclude Include="Src\Types.h" />
     <ClInclude Include="Src\Vector2.h" />

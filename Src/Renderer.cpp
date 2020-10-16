@@ -1,4 +1,4 @@
-#include "VulkanRenderer.h"
+#include "Renderer.h"
 
 #include <string>
 #include <chrono>
@@ -75,7 +75,7 @@ struct SpotLightUBO {
 	alignas(16) Vector3 camera_position;
 };
 
-VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : scene(width, height) {
+Renderer::Renderer(GLFWwindow * window, u32 width, u32 height) : scene(width, height) {
 	auto device = VulkanContext::get_device();
 
 	this->width  = width;
@@ -106,7 +106,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow * window, u32 width, u32 height) : sce
 	}
 }
 
-VulkanRenderer::~VulkanRenderer() {
+Renderer::~Renderer() {
 	auto device = VulkanContext::get_device();
 
 	swapchain_destroy();
@@ -127,7 +127,7 @@ VulkanRenderer::~VulkanRenderer() {
 	}
 }
 
-void VulkanRenderer::LightPass::free() {
+void Renderer::LightPass::free() {
 	auto device = VulkanContext::get_device();
 
 	vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
@@ -138,7 +138,7 @@ void VulkanRenderer::LightPass::free() {
 	}
 }
 
-void VulkanRenderer::create_descriptor_pool() {
+void Renderer::create_descriptor_pool() {
 	auto device = VulkanContext::get_device();
 	
 	// Create Descriptor Pool
@@ -212,7 +212,7 @@ void VulkanRenderer::create_descriptor_pool() {
 	}
 }
 
-void VulkanRenderer::create_gbuffer() {
+void Renderer::create_gbuffer() {
 	auto device = VulkanContext::get_device();
 
 	this->width  = width;
@@ -385,7 +385,7 @@ void VulkanRenderer::create_gbuffer() {
 	VK_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, gbuffer.command_buffers.data()));
 }
 
-void VulkanRenderer::create_shadow_render_pass() {
+void Renderer::create_shadow_render_pass() {
 	auto device = VulkanContext::get_device();
 
 	for (auto & directional_light : scene.directional_lights) {
@@ -432,7 +432,7 @@ void VulkanRenderer::create_shadow_render_pass() {
 	shadow.pipeline = VulkanContext::create_pipeline(pipeline_details);
 }
 
-VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
+Renderer::LightPass Renderer::create_light_pass(
 	std::vector<VkVertexInputBindingDescription>   const & vertex_bindings,
 	std::vector<VkVertexInputAttributeDescription> const & vertex_attributes,
 	std::string const & filename_shader_vertex,
@@ -568,7 +568,7 @@ VulkanRenderer::LightPass VulkanRenderer::create_light_pass(
 	return light_pass;
 }
 
-void VulkanRenderer::create_post_process() {
+void Renderer::create_post_process() {
 	auto device = VulkanContext::get_device();
 
 	// Create Descriptor Set Layout
@@ -691,7 +691,7 @@ void VulkanRenderer::create_post_process() {
 	}
 }
 
-void VulkanRenderer::create_frame_buffers() {
+void Renderer::create_frame_buffers() {
 	auto depth_format = VulkanContext::get_supported_depth_format();
 
 	// Create Depth Buffer
@@ -714,7 +714,7 @@ void VulkanRenderer::create_frame_buffers() {
 	}
 }
 
-void VulkanRenderer::create_imgui() {
+void Renderer::create_imgui() {
 	auto device = VulkanContext::get_device();
 
 	ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -761,7 +761,7 @@ void VulkanRenderer::create_imgui() {
 	VulkanMemory::command_buffer_single_use_end(command_buffer);
 }
 
-void VulkanRenderer::create_command_buffers() {
+void Renderer::create_command_buffers() {
 	auto device = VulkanContext::get_device();
 
 	command_buffers.resize(swapchain_views.size());
@@ -774,7 +774,7 @@ void VulkanRenderer::create_command_buffers() {
 	VK_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_info, command_buffers.data()));
 }
 
-void VulkanRenderer::record_command_buffer_gbuffer(u32 image_index) {
+void Renderer::record_command_buffer_gbuffer(u32 image_index) {
 	auto command_buffer = gbuffer.command_buffers[image_index];
 
 	VkCommandBufferBeginInfo command_buffer_begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -934,7 +934,7 @@ void VulkanRenderer::record_command_buffer_gbuffer(u32 image_index) {
 	VK_CHECK(vkEndCommandBuffer(command_buffer));
 }
 
-void VulkanRenderer::record_command_buffer(u32 image_index) {
+void Renderer::record_command_buffer(u32 image_index) {
 	// Capture GUI draw data
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -1156,7 +1156,7 @@ void VulkanRenderer::record_command_buffer(u32 image_index) {
 	VK_CHECK(vkEndCommandBuffer(command_buffer));
 }
 
-void VulkanRenderer::swapchain_create() {
+void Renderer::swapchain_create() {
 	swapchain = VulkanContext::create_swapchain(width, height);
 
 	auto device = VulkanContext::get_device();
@@ -1240,7 +1240,7 @@ void VulkanRenderer::swapchain_create() {
 	}
 }
 
-void VulkanRenderer::update(float delta) {
+void Renderer::update(float delta) {
 	scene.update(delta);
 
 	frame_delta = delta;
@@ -1275,7 +1275,7 @@ void VulkanRenderer::update(float delta) {
 	}
 }
 
-void VulkanRenderer::render() {
+void Renderer::render() {
 	auto device         = VulkanContext::get_device();
 	auto queue_graphics = VulkanContext::get_queue_graphics();
 	auto queue_present  = VulkanContext::get_queue_present();
@@ -1380,7 +1380,7 @@ void VulkanRenderer::render() {
 	current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void VulkanRenderer::swapchain_destroy() {
+void Renderer::swapchain_destroy() {
 	auto device       = VulkanContext::get_device();
 	auto command_pool = VulkanContext::get_command_pool();
 	

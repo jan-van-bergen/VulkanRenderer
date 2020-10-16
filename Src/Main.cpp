@@ -1,20 +1,16 @@
 #include "VulkanCheck.h"
 #include "VulkanContext.h"
 #include "VulkanMemory.h"
-#include "VulkanRenderer.h"
 
-#include "Vector2.h"
-#include "Vector3.h"
-#include "Matrix4.h"
+#include "Renderer.h"
 
 #include "Input.h"
-#include "Camera.h"
 
 static u32 screen_width  = 1280;
 static u32 screen_height = 720;
 
 static void glfw_framebuffer_resize_callback(GLFWwindow * window, int width, int height) {
-	reinterpret_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window))->framebuffer_needs_resize = true;
+	reinterpret_cast<Renderer *>(glfwGetWindowUserPointer(window))->framebuffer_needs_resize = true;
 }
 
 int main() {
@@ -29,6 +25,10 @@ int main() {
 
 	GLFWwindow * window = glfwCreateWindow(screen_width, screen_height, "Vulkan", nullptr, nullptr);
 
+	// Center window
+	GLFWvidmode const * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	glfwSetWindowPos(window, (mode->width - screen_width) / 2, (mode->height - screen_height) / 2);
+
 	Input::detail::init(window);
 
 	glfwSetFramebufferSizeCallback(window, &glfw_framebuffer_resize_callback);
@@ -39,7 +39,7 @@ int main() {
 
 	VulkanContext::init(window);
 	{
-		VulkanRenderer renderer(window, screen_width, screen_height);
+		Renderer renderer(window, screen_width, screen_height);
 		renderer.scene.camera.position.z = 12.0f;
 	
 		glfwSetWindowUserPointer(window, &renderer);
