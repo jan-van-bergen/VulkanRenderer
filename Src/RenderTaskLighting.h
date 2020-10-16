@@ -24,9 +24,11 @@ private:
 		void free();
 	};
 
-	VkDescriptorSetLayout light_descriptor_set_layout;
-	VkDescriptorSetLayout shadow_descriptor_set_layout;
-	
+	struct {
+		VkDescriptorSetLayout light;
+		VkDescriptorSetLayout shadow;
+	} descriptor_set_layouts;
+
 	RenderTarget render_target;
 	VkRenderPass render_pass;
 

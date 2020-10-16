@@ -82,7 +82,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 	push_constants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details;
-	pipeline_layout_details.descriptor_set_layouts = { light_descriptor_set_layout, shadow_descriptor_set_layout };
+	pipeline_layout_details.descriptor_set_layouts = { descriptor_set_layouts.light, descriptor_set_layouts.shadow };
 	if (push_constants_size > 0) {
 		pipeline_layout_details.push_constants = push_constants;
 	}
@@ -121,7 +121,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 	}
 
 	// Allocate and update Descriptor Sets
-	std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, light_descriptor_set_layout);
+	std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.light);
 
 	VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	alloc_info.descriptorPool = descriptor_pool;
@@ -241,7 +241,7 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
 		layout_create_info.pBindings    = layout_bindings;
 
-		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &light_descriptor_set_layout));
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.light));
 	}
 
 	{
@@ -259,7 +259,7 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
 		layout_create_info.pBindings    = layout_bindings;
 
-		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &shadow_descriptor_set_layout));
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.shadow));
 	}
 	
 	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -312,7 +312,7 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		alloc_info.descriptorPool = descriptor_pool;
 		alloc_info.descriptorSetCount = 1;
-		alloc_info.pSetLayouts        = &shadow_descriptor_set_layout;
+		alloc_info.pSetLayouts        = &descriptor_set_layouts.shadow;
 
 		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, &directional_light.shadow_map.descriptor_set));
 
@@ -340,8 +340,8 @@ void RenderTaskLighting::free() {
 	light_pass_point      .free();
 	light_pass_spot       .free();
 
-	vkDestroyDescriptorSetLayout(device, light_descriptor_set_layout,  nullptr);
-	vkDestroyDescriptorSetLayout(device, shadow_descriptor_set_layout, nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.light,  nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.shadow, nullptr);
 	
 	render_target.free();
 
