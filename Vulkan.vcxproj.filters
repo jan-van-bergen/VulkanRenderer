@@ -51,6 +51,18 @@
     <ClCompile Include="Src\Renderer.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Src\RenderTaskGBuffer.cpp">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RenderTaskLighting.cpp">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RenderTaskPostProcess.cpp">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RenderTaskShadow.cpp">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Types.h" />
@@ -131,6 +143,18 @@
     <ClInclude Include="Src\Renderer.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Src\RenderTaskGBuffer.h">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\RenderTaskLighting.h">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\RenderTaskPostProcess.h">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\RenderTaskShadow.h">
+      <Filter>Rendering\RenderTasks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">
@@ -147,6 +171,9 @@
     </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{d6a36b92-3129-4ad5-9507-cc67fd629a9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering\RenderTasks">
+      <UniqueIdentifier>{8bb7fd82-41cc-405c-bdee-42b67b4d21b2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

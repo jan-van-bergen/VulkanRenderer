@@ -180,6 +180,10 @@
     <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\Lights.cpp" />
     <ClCompile Include="Src\RenderTarget.cpp" />
+    <ClCompile Include="Src\RenderTaskGBuffer.cpp" />
+    <ClCompile Include="Src\RenderTaskLighting.cpp" />
+    <ClCompile Include="Src\RenderTaskPostProcess.cpp" />
+    <ClCompile Include="Src\RenderTaskShadow.cpp" />
     <ClCompile Include="Src\Scene.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\VulkanContext.cpp" />
@@ -204,6 +208,10 @@
     <ClInclude Include="Src\Lights.h" />
     <ClInclude Include="Src\Quaternion.h" />
     <ClInclude Include="Src\RenderTarget.h" />
+    <ClInclude Include="Src\RenderTaskGBuffer.h" />
+    <ClInclude Include="Src\RenderTaskLighting.h" />
+    <ClInclude Include="Src\RenderTaskPostProcess.h" />
+    <ClInclude Include="Src\RenderTaskShadow.h" />
     <ClInclude Include="Src\Scene.h" />
     <ClInclude Include="Src\Texture.h" />
     <ClInclude Include="Src\Transform.h" />
