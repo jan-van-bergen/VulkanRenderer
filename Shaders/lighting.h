@@ -1,5 +1,11 @@
 const float PI = 3.141592653589793238462643383279502884197169f;
 
+struct Material {
+	vec3 albedo;
+	float roughness;
+	float metallic;
+};
+
 struct Light {
 	vec3 colour;
 };
@@ -75,7 +81,7 @@ vec3 F(vec3 F_0, float cos_theta) {
 	return F_0 + (1.0f - F_0) * pow(1.0f - cos_theta, 5.0f);
 }
 
-vec3 brdf(Light light, vec3 albedo, float metallic, float roughness, vec3 l, vec3 v, vec3 n) {	
+vec3 brdf(Light light, Material material, vec3 l, vec3 v, vec3 n) {	
 	vec3 h = normalize(l + v);
 
 	float n_dot_l = max(dot(n, l), 0.0f);
@@ -85,36 +91,33 @@ vec3 brdf(Light light, vec3 albedo, float metallic, float roughness, vec3 l, vec
 
 	if (n_dot_l <= 0.0) return vec3(0.0f);
 
-	roughness = max(0.05f, roughness);
+	float roughness = max(0.05f, material.roughness);
 
-	vec3 F_0 = mix(vec3(0.04f), albedo, metallic);
+	vec3 F_0 = mix(vec3(0.04f), material.albedo, material.metallic);
 
 	float d = D(roughness, n_dot_h);
 	float g = G(roughness, n_dot_l, n_dot_v);
 	vec3  f = F(F_0, n_dot_v);
 
-	vec3 diffuse  = albedo / PI;
+	vec3 diffuse  = material.albedo / PI;
 	vec3 specular = d * f * g / (4.0f * n_dot_l * n_dot_v);
 
 	return light.colour * (diffuse + specular) * n_dot_l;
 }
 
-const float metallic  = 0.0f;
-const float roughness = 0.5f;
-
-vec3 calc_directional_light(DirectionalLight directional_light, vec3 albedo, vec3 position, vec3 normal, vec3 camera_position, sampler2D shadow_map) {
+vec3 calc_directional_light(DirectionalLight directional_light, Material material, vec3 position, vec3 normal, vec3 camera_position, sampler2D shadow_map) {
 	vec3 l = -directional_light.direction;
 	vec3 v = normalize(camera_position - position);
 
-	vec3 ambient = 0.1f * albedo;
+	vec3 ambient = 0.1f * material.albedo;
 
-	vec3  light  = brdf(directional_light.base, albedo, metallic, roughness, l, v, normal);
+	vec3  light  = brdf(directional_light.base, material, l, v, normal);
 	float shadow = calc_shadow(shadow_map, directional_light.light_matrix, position);
 
 	return ambient + light * shadow;
 }
 
-vec3 calc_point_light(PointLight point_light, vec3 albedo, vec3 position, vec3 normal, vec3 camera_position) {
+vec3 calc_point_light(PointLight point_light, Material material, vec3 position, vec3 normal, vec3 camera_position) {
 	vec3 to_light = point_light.position - position;
 
 	float distance_squared = dot(to_light, to_light);
@@ -122,7 +125,7 @@ vec3 calc_point_light(PointLight point_light, vec3 albedo, vec3 position, vec3 n
 	vec3 l = normalize(to_light);
 	vec3 v = normalize(camera_position - position);
 
-	vec3 light = brdf(point_light.base, albedo, metallic, roughness, l, v, normal);
+	vec3 light = brdf(point_light.base, material, l, v, normal);
 
 	// NOTE: Non-physically based attenuation
 	float attenuation = clamp(1.0f - distance_squared * point_light.one_over_radius_squared, 0.0f, 1.0f);
@@ -130,7 +133,7 @@ vec3 calc_point_light(PointLight point_light, vec3 albedo, vec3 position, vec3 n
 	return light / (4.0f * PI) * attenuation * attenuation;
 }
 
-vec3 calc_spot_light(SpotLight spot_light, vec3 albedo, vec3 position, vec3 normal, vec3 camera_position) {
+vec3 calc_spot_light(SpotLight spot_light, Material material, vec3 position, vec3 normal, vec3 camera_position) {
 	vec3 to_light = spot_light.base.position - position;
 
 	float distance_squared = dot(to_light, to_light);
@@ -141,7 +144,7 @@ vec3 calc_spot_light(SpotLight spot_light, vec3 albedo, vec3 position, vec3 norm
 	float spot_factor = dot(l, spot_light.direction);
 	if (spot_factor <= 0.0f) return vec3(0.0f);
 
-	vec3 light = brdf(spot_light.base.base, albedo, metallic, roughness, l, v, normal);
+	vec3 light = brdf(spot_light.base.base, material, l, v, normal);
 
 	// NOTE: Non-physically based attenuation
 	float attenuation    = clamp(1.0f - distance_squared * spot_light.base.one_over_radius_squared, 0.0f, 1.0f);

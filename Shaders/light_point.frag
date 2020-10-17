@@ -19,12 +19,12 @@ layout(binding = 3, row_major) uniform UniformBuffer {
 };
 
 void main() {
-	vec3  albedo        = texture(sampler_albedo, in_uv).rgb;
-	vec2  packed_normal = texture(sampler_normal, in_uv).rg;
-	float depth         = texture(sampler_depth,  in_uv).r;
+	vec3  albedo = texture(sampler_albedo, in_uv).rgb;
+	vec4  packed = texture(sampler_normal, in_uv).rgba;
+	float depth  = texture(sampler_depth,  in_uv).r;
 
 	// Don't light the Sky
-	if (packed_normal == vec2(0.0f)) {
+	if (packed.xy == vec2(0.0f)) {
 		out_colour = vec4(0.0f);
 		return;
 	}
@@ -39,7 +39,12 @@ void main() {
 	position  = inv_view_projection * position;
 	position /= position.w;
 
-	vec3 normal = unpack_normal(packed_normal);
+	vec3 normal = unpack_normal(packed.xy);
 
-	out_colour = vec4(calc_point_light(point_light, albedo, position.xyz, normal, camera_position), 1.0f);
+	Material material;
+	material.albedo = albedo;
+	material.roughness = packed.z;
+	material.metallic  = packed.w;
+
+	out_colour = vec4(calc_point_light(point_light, material, position.xyz, normal, camera_position), 1.0f);
 }
