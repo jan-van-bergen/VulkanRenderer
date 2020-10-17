@@ -75,7 +75,7 @@ void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, in
 	VulkanContext::PipelineDetails pipeline_details;
 	pipeline_details.width  = width;
 	pipeline_details.height = height;
-	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
+	pipeline_details.cull_mode = VK_CULL_MODE_NONE;
 	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_NONE };
 	pipeline_details.shaders = {
 		{ "Shaders/post_process.vert.spv", VK_SHADER_STAGE_VERTEX_BIT },

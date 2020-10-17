@@ -129,7 +129,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	pipeline_details.vertex_bindings   = { };
 	pipeline_details.vertex_attributes = { };
 	pipeline_details.blends[1].colorWriteMask = 0; // Don't write to normal buffer
-	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
+	pipeline_details.cull_mode = VK_CULL_MODE_NONE;
 	pipeline_details.shaders = {
 		{ "Shaders/sky.vert.spv", VK_SHADER_STAGE_VERTEX_BIT },
 		{ "Shaders/sky.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }

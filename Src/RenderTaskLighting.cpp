@@ -101,7 +101,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 	pipeline_details.vertex_attributes = vertex_attributes;
 	pipeline_details.width  = width;
 	pipeline_details.height = height;
-	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
+	pipeline_details.cull_mode = VK_CULL_MODE_NONE;
 	pipeline_details.blends = { VulkanContext::PipelineDetails::BLEND_ADDITIVE };
 	pipeline_details.shaders = {
 		{ filename_shader_vertex,   VK_SHADER_STAGE_VERTEX_BIT },
