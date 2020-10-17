@@ -19,7 +19,7 @@ struct RenderTarget {
 	VkFramebuffer frame_buffer;
 	VkSampler     sampler;
 
-	void add_attachment(int width, int height, VkFormat format, VkImageUsageFlagBits usage, VkImageLayout image_layout);
+	void add_attachment(int width, int height, VkFormat format, unsigned usage, VkImageLayout image_layout);
 
 	void init(int width, int height, VkRenderPass render_pass, VkFilter filter = VK_FILTER_NEAREST);
 	void free();

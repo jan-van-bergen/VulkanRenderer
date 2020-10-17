@@ -8,7 +8,7 @@
 
 #include "Util.h"
 
-void RenderTarget::add_attachment(int width, int height, VkFormat format, VkImageUsageFlagBits usage, VkImageLayout image_layout) {
+void RenderTarget::add_attachment(int width, int height, VkFormat format, unsigned usage, VkImageLayout image_layout) {
 	auto device = VulkanContext::get_device();
 	
 	VkImageAspectFlags image_aspect_mask = 0;
@@ -29,7 +29,7 @@ void RenderTarget::add_attachment(int width, int height, VkFormat format, VkImag
 	image_create_info.arrayLayers = 1;
 	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-	image_create_info.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+	image_create_info.usage = usage;
 
 	VK_CHECK(vkCreateImage(device, &image_create_info, nullptr, &attachment.image));
 

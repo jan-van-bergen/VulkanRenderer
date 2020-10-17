@@ -83,9 +83,9 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	}
 
 	// Initialize FrameBuffers and their attachments
-	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Albedo
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Normal (packed)
-	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Depth
+	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Albedo
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Normal (packed)
+	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Depth
 
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);

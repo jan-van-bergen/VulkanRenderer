@@ -18,19 +18,16 @@ u32 VulkanMemory::find_memory_type(u32 type_filter, VkMemoryPropertyFlags proper
 }
 
 VulkanMemory::Buffer VulkanMemory::buffer_create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
-	Buffer buffer;
+	auto device = VulkanContext::get_device();
 
 	VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	buffer_create_info.size = size;
 	buffer_create_info.usage = usage;
 	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	VkDevice device = VulkanContext::get_device();
+	Buffer buffer; VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer.buffer));
 
-	VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer.buffer));
-
-	VkMemoryRequirements requirements;
-	vkGetBufferMemoryRequirements(device, buffer.buffer, &requirements);
+	VkMemoryRequirements requirements; vkGetBufferMemoryRequirements(device, buffer.buffer, &requirements);
 
 	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	alloc_info.allocationSize = requirements.size;
@@ -44,7 +41,7 @@ VulkanMemory::Buffer VulkanMemory::buffer_create(VkDeviceSize size, VkBufferUsag
 }
 
 void VulkanMemory::buffer_free(Buffer & buffer) {
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
 	vkDestroyBuffer(device, buffer.buffer, nullptr);
 	vkFreeMemory   (device, buffer.memory, nullptr);
@@ -52,7 +49,7 @@ void VulkanMemory::buffer_free(Buffer & buffer) {
 
 void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size) {	
 	// Create temporary staging buffer
-	VulkanMemory::Buffer staging_buffer = VulkanMemory::buffer_create(
+	auto staging_buffer = VulkanMemory::buffer_create(
 		size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -61,7 +58,7 @@ void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * da
 	buffer_copy_direct(staging_buffer, data_src, size);
 
 	// Copy Staging Buffer over to desired destination Buffer
-	VkCommandBuffer copy_command_buffer = command_buffer_single_use_begin();
+	auto copy_command_buffer = command_buffer_single_use_begin();
 
 	VkBufferCopy buffer_copy = { };
 	buffer_copy.srcOffset = 0;
@@ -75,7 +72,7 @@ void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * da
 }
 
 void VulkanMemory::buffer_copy_direct(Buffer const & buffer_dst, void const * data_src, size_t size) {
-	VkDevice device = VulkanContext::get_device();
+	auto device = VulkanContext::get_device();
 
 	void * dst = buffer_map(buffer_dst, size);
 	memcpy(dst, data_src, size);
@@ -97,8 +94,7 @@ VkCommandBuffer VulkanMemory::command_buffer_single_use_begin() {
 	alloc_info.commandPool = VulkanContext::get_command_pool();
 	alloc_info.commandBufferCount = 1;
 
-	VkCommandBuffer command_buffer;
-	VK_CHECK(vkAllocateCommandBuffers(VulkanContext::get_device(), &alloc_info, &command_buffer));
+	VkCommandBuffer command_buffer; VK_CHECK(vkAllocateCommandBuffers(VulkanContext::get_device(), &alloc_info, &command_buffer));
 
 	VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -172,14 +168,13 @@ VkImageView VulkanMemory::create_image_view(VkImage image, u32 mip_levels, VkFor
 	image_view_create_info.subresourceRange.baseArrayLayer = 0;
 	image_view_create_info.subresourceRange.layerCount     = 1;
 
-	VkImageView image_view;
-	VK_CHECK(vkCreateImageView(VulkanContext::get_device(), &image_view_create_info, nullptr, &image_view));
+	VkImageView image_view; VK_CHECK(vkCreateImageView(VulkanContext::get_device(), &image_view_create_info, nullptr, &image_view));
 
 	return image_view;
 }
 
 void VulkanMemory::transition_image_layout(VkImage image, u32 mip_levels, VkFormat format, VkImageLayout layout_old, VkImageLayout layout_new) {
-	VkCommandBuffer command_buffer = command_buffer_single_use_begin();
+	auto command_buffer = command_buffer_single_use_begin();
 
 	VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	barrier.oldLayout = layout_old;
@@ -227,7 +222,7 @@ void VulkanMemory::transition_image_layout(VkImage image, u32 mip_levels, VkForm
 }
 
 void VulkanMemory::buffer_copy_to_image(VkBuffer buffer, VkImage image, u32 width, u32 height) {
-	VkCommandBuffer command_buffer = command_buffer_single_use_begin();
+	auto command_buffer = command_buffer_single_use_begin();
 
 	VkBufferImageCopy region = { };
 	region.bufferOffset = 0;
@@ -242,14 +237,7 @@ void VulkanMemory::buffer_copy_to_image(VkBuffer buffer, VkImage image, u32 widt
 	region.imageOffset = { 0, 0, 0 };
 	region.imageExtent = { width, height, 1 };
 
-	vkCmdCopyBufferToImage(
-		command_buffer,
-		buffer,
-		image,
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		1,
-		&region
-	);
+	vkCmdCopyBufferToImage(command_buffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 	command_buffer_single_use_end(command_buffer);
 }
