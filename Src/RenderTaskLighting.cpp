@@ -507,7 +507,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
 
 			num_unculled_lights++;
-		}
+		}	
 		
 		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
 	}

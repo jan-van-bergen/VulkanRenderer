@@ -41,5 +41,5 @@ void main() {
 
 	vec3 normal = unpack_normal(packed_normal);
 
-	out_colour = vec4(albedo, 1.0f) * calc_point_light(point_light, position.xyz, normal, camera_position);
+	out_colour = vec4(calc_point_light(point_light, albedo, position.xyz, normal, camera_position), 1.0f);
 }

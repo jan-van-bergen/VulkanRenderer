@@ -45,5 +45,5 @@ void main() {
 
 	const float ambient = 0.1f;
 
-	out_colour = vec4(albedo, 1.0f) * (ambient + (1.0f - ambient) * calc_directional_light(directional_light, position.xyz, normal, camera_position, sampler_shadow_map));
+	out_colour = vec4(calc_directional_light(directional_light, albedo, position.xyz, normal, camera_position, sampler_shadow_map), 1.0f);
 }

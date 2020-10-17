@@ -15,8 +15,8 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 		Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), DEG_TO_RAD(-90.0f))
 	});
 
-	point_lights.push_back({ Vector3(1.0f, 0.0f, 0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
-	point_lights.push_back({ Vector3(0.0f, 0.0f, 1.0f), Vector3(+6.0f, 0.0f, 0.0f), 16.0f });
+	point_lights.push_back({ Vector3(10.0f, 0.0f,  0.0f), Vector3(-6.0f, 0.0f, 0.0f), 16.0f });
+	point_lights.push_back({ Vector3( 0.0f, 0.0f, 10.0f), Vector3(+6.0f, 0.0f, 0.0f), 16.0f });
 
 	constexpr float point_lights_width  = 150.0f;
 	constexpr float point_lights_height =  60.0f;
@@ -25,7 +25,7 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 
 	for (int i = 0; i < 500; i++) {
 		point_lights.push_back({ 
-			10.0f * Vector3(rand_float(), rand_float(), rand_float()),
+			5.0f + 10.0f * Vector3(rand_float(), rand_float(), rand_float()),
 			Vector3(rand_float(-point_lights_width, point_lights_width), -7.0f, rand_float(-point_lights_height, point_lights_height)),
 			rand_float(0.5f, 10.0f)
 		});
