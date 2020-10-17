@@ -390,14 +390,12 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		for (int i = 0; i < scene.directional_lights.size(); i++) {
 			auto const & directional_light = scene.directional_lights[i];
 
-			DirectionalLightUBO ubo = { };
-			ubo.directional_light.colour       = directional_light.colour;
-			ubo.directional_light.direction    = directional_light.get_direction();
-			ubo.directional_light.light_matrix = directional_light.get_light_matrix();
-			ubo.camera_position = scene.camera.position;
-			ubo.inv_view_projection = inv_view_projection;
-
-			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
+			auto ubo = reinterpret_cast<DirectionalLightUBO *>(buf.data() + i * aligned_size);
+			ubo->directional_light.colour       = directional_light.colour;
+			ubo->directional_light.direction    = directional_light.get_direction();
+			ubo->directional_light.light_matrix = directional_light.get_light_matrix();
+			ubo->camera_position = scene.camera.position;
+			ubo->inv_view_projection = inv_view_projection;
 
 			u32 offset = i * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set,                              1, &offset);	
@@ -437,14 +435,12 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			if (scene.camera.frustum.intersect_sphere(point_light.position, point_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 			
 			// Upload UBO
-			PointLightUBO ubo = { };
-			ubo.point_light.colour   = point_light.colour;
-			ubo.point_light.position = point_light.position;
-			ubo.point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
-			ubo.camera_position = scene.camera.position;
-			ubo.inv_view_projection = inv_view_projection;
-
-			std::memcpy(buf.data() + num_unculled_lights * aligned_size, &ubo, sizeof(PointLightUBO));
+			auto ubo = reinterpret_cast<PointLightUBO *>(buf.data() + num_unculled_lights * aligned_size);
+			ubo->point_light.colour   = point_light.colour;
+			ubo->point_light.position = point_light.position;
+			ubo->point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
+			ubo->camera_position = scene.camera.position;
+			ubo->inv_view_projection = inv_view_projection;
 
 			// Draw Sphere
 			PointLightPushConstants push_constants = { };
@@ -490,17 +486,15 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			
 			if (scene.camera.frustum.intersect_sphere(spot_light.position, spot_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 			
-			SpotLightUBO ubo = { };
-			ubo.spot_light.colour    = spot_light.colour;
-			ubo.spot_light.position  = spot_light.position;
-			ubo.spot_light.direction = spot_light.direction;
-			ubo.spot_light.one_over_radius_squared = 1.0f / (spot_light.radius * spot_light.radius);
-			ubo.spot_light.cutoff_inner = std::cos(0.5f * spot_light.cutoff_inner);
-			ubo.spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
-			ubo.camera_position = scene.camera.position;
-			ubo.inv_view_projection = inv_view_projection;
-
-			std::memcpy(buf.data() + num_unculled_lights * aligned_size, &ubo, sizeof(SpotLightUBO));
+			auto ubo = reinterpret_cast<SpotLightUBO *>(buf.data() + num_unculled_lights * aligned_size);
+			ubo->spot_light.colour    = spot_light.colour;
+			ubo->spot_light.position  = spot_light.position;
+			ubo->spot_light.direction = spot_light.direction;
+			ubo->spot_light.one_over_radius_squared = 1.0f / (spot_light.radius * spot_light.radius);
+			ubo->spot_light.cutoff_inner = std::cos(0.5f * spot_light.cutoff_inner);
+			ubo->spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
+			ubo->camera_position = scene.camera.position;
+			ubo->inv_view_projection = inv_view_projection;
 
 			PointLightPushConstants push_constants = { };
 			push_constants.wvp = scene.camera.get_view_projection() * Matrix4::create_translation(spot_light.position) * Matrix4::create_scale(spot_light.radius);
