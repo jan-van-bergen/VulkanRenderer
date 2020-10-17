@@ -80,17 +80,17 @@ void Renderer::swapchain_create() {
 	
 	// Create Descriptor Pool
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 }
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024 }
 	};
 
 	VkDescriptorPoolCreateInfo pool_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
 	pool_create_info.maxSets =
-		(1 + 3 + 1) * swapchain_views.size() + // Sky + 3 Light types + Post Process
-		Texture::textures.size() +             // Textures
-		scene.directional_lights.size();       // Shadow map
+		(1 + 1 + 3 + 1) * swapchain_views.size() + // Sky + Materials + 3 Light types + Post Process
+		Texture::textures.size() +                 // Textures
+		scene.directional_lights.size();           // Shadow map
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 

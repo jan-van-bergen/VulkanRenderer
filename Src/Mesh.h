@@ -83,6 +83,11 @@ struct MeshInstance {
 	std::string name;
 
 	MeshHandle mesh_handle;
+	
+	struct Material {
+		float roughness = 0.9f;
+		float metallic  = 0.0f;
+	} material;
 
 	Transform transform;
 };

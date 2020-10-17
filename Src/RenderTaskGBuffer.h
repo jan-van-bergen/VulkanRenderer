@@ -13,6 +13,7 @@ private:
 	
 	struct {
 		VkDescriptorSetLayout geometry;
+		VkDescriptorSetLayout material;
 		VkDescriptorSetLayout sky;
 	} descriptor_set_layouts;
 	
@@ -26,8 +27,15 @@ private:
 		VkPipeline sky;
 	} pipelines;
 
-	std::vector<VulkanMemory::Buffer> uniform_buffers;
-	std::vector<VkDescriptorSet>      descriptor_sets_sky;
+	struct {
+		std::vector<VulkanMemory::Buffer> material;
+		std::vector<VulkanMemory::Buffer> sky;
+	} uniform_buffers;
+
+	struct {
+		std::vector<VkDescriptorSet> material;
+		std::vector<VkDescriptorSet> sky;
+	} descriptor_sets;
 
 	RenderTarget render_target;
 	VkRenderPass render_pass;

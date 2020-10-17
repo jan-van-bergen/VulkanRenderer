@@ -6,11 +6,21 @@ layout(location = 1) in vec2 in_texcoord;
 layout(location = 2) in vec3 in_normal;
 
 layout(location = 0) out vec4 out_albedo;
-layout(location = 1) out vec2 out_normal;
+layout(location = 1) out vec4 out_normal_roughness_metallic;
 
 layout(binding = 1) uniform sampler2D sampler_diffuse;
 
+layout(set = 1, binding = 0) uniform MaterialUBO {
+	float roughness;
+	float metallic;
+} material;
+
 void main() {
 	out_albedo = texture(sampler_diffuse, in_texcoord);
-	out_normal = pack_normal(in_normal);
+
+	out_normal_roughness_metallic = vec4(
+		pack_normal(in_normal),
+		material.roughness,
+		material.metallic
+	);
 }

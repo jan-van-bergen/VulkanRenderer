@@ -15,6 +15,11 @@ struct GBufferPushConstants {
 	alignas(16) Matrix4 wvp;
 };
 
+struct MaterialUBO {
+	alignas(4) float material_roughness;
+	alignas(4) float material_metallic;
+};
+
 struct SkyUBO {
 	alignas(16) Vector3 camera_top_left_corner;
 	alignas(16)	Vector3 camera_x;
@@ -29,31 +34,54 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	this->width  = width;
 	this->height = height;
 
-	// Create Descriptor Set Layout
-	VkDescriptorSetLayoutBinding layout_bindings_geometry[1] = { };
-	layout_bindings_geometry[0].binding = 1;
-	layout_bindings_geometry[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	layout_bindings_geometry[0].descriptorCount = 1;
-	layout_bindings_geometry[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_bindings_geometry[0].pImmutableSamplers = nullptr;
+	// Create Descriptor Set Layouts
+	{
+		// Geometry
+		VkDescriptorSetLayoutBinding layout_bindings_geometry[1] = { };
+		layout_bindings_geometry[0].binding = 1;
+		layout_bindings_geometry[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		layout_bindings_geometry[0].descriptorCount = 1;
+		layout_bindings_geometry[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings_geometry[0].pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layout_create_info.bindingCount = Util::array_element_count(layout_bindings_geometry);
-	layout_create_info.pBindings    = layout_bindings_geometry;
+		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layout_create_info.bindingCount = Util::array_element_count(layout_bindings_geometry);
+		layout_create_info.pBindings    = layout_bindings_geometry;
 
-	VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.geometry));
-	
-	VkDescriptorSetLayoutBinding layout_bindings_sky[1] = { };
-	layout_bindings_sky[0].binding = 0;
-	layout_bindings_sky[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	layout_bindings_sky[0].descriptorCount = 1;
-	layout_bindings_sky[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	layout_bindings_sky[0].pImmutableSamplers = nullptr;
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.geometry));
+	}
 
-	layout_create_info.bindingCount = Util::array_element_count(layout_bindings_sky);
-	layout_create_info.pBindings    = layout_bindings_sky;
+	{
+		// Material
+		VkDescriptorSetLayoutBinding layout_bindings_material[1] = { };
+		layout_bindings_material[0].binding = 0;
+		layout_bindings_material[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		layout_bindings_material[0].descriptorCount = 1;
+		layout_bindings_material[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings_material[0].pImmutableSamplers = nullptr;
 
-	VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.sky));
+		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layout_create_info.bindingCount = Util::array_element_count(layout_bindings_material);
+		layout_create_info.pBindings    = layout_bindings_material;
+
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.material));
+	}
+
+	{
+		// Sky
+		VkDescriptorSetLayoutBinding layout_bindings_sky[1] = { };
+		layout_bindings_sky[0].binding = 0;
+		layout_bindings_sky[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		layout_bindings_sky[0].descriptorCount = 1;
+		layout_bindings_sky[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		layout_bindings_sky[0].pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layout_create_info.bindingCount = Util::array_element_count(layout_bindings_sky);
+		layout_create_info.pBindings    = layout_bindings_sky;
+
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.sky));
+	}
 
 	// Allocate and update Texture Descriptor Sets
 	for (int i = 0; i < Texture::textures.size(); i++) {
@@ -84,7 +112,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 	// Initialize FrameBuffers and their attachments
 	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Albedo
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Normal (packed)
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Normal (packed in xy) + Roughness + Metallic 
 	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Depth
 
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
@@ -96,7 +124,10 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details;
-	pipeline_layout_details.descriptor_set_layouts = { descriptor_set_layouts.geometry };
+	pipeline_layout_details.descriptor_set_layouts = {
+		descriptor_set_layouts.geometry,
+		descriptor_set_layouts.material
+	};
 	pipeline_layout_details.push_constants = { push_constants };
 
 	pipeline_layouts.geometry = VulkanContext::create_pipeline_layout(pipeline_layout_details);
@@ -141,47 +172,89 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	pipelines.sky = VulkanContext::create_pipeline(pipeline_details);
 
 	// Create Uniform Buffers
-	uniform_buffers.resize(swapchain_image_count);
+	uniform_buffers.material.resize(swapchain_image_count);
+	uniform_buffers.sky     .resize(swapchain_image_count);
 
-	auto aligned_size = Math::round_up(sizeof(SkyUBO), VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_material = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_sky      = Math::round_up(sizeof(SkyUBO),      VulkanContext::get_min_uniform_buffer_alignment());
 	
 	for (int i = 0; i < swapchain_image_count; i++) {
-		uniform_buffers[i] = VulkanMemory::buffer_create(aligned_size,
+		uniform_buffers.material[i] = VulkanMemory::buffer_create(scene.meshes.size() * aligned_size_material,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+
+		uniform_buffers.sky[i] = VulkanMemory::buffer_create(aligned_size_sky,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 	}
 
 	// Allocate and update Descriptor Sets
-	std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.sky);
+	{
+		std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.material);
 
-	VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	alloc_info.descriptorPool = descriptor_pool;
-	alloc_info.descriptorSetCount = layouts.size();
-	alloc_info.pSetLayouts        = layouts.data();
+		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		alloc_info.descriptorPool = descriptor_pool;
+		alloc_info.descriptorSetCount = layouts.size();
+		alloc_info.pSetLayouts        = layouts.data();
 
-	descriptor_sets_sky.resize(swapchain_image_count);
-	VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets_sky.data()));
+		descriptor_sets.material.resize(swapchain_image_count);
+		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.material.data()));
 
-	for (int i = 0; i < descriptor_sets_sky.size(); i++) {
-		auto & descriptor_set = descriptor_sets_sky[i];
+		for (int i = 0; i < descriptor_sets.material.size(); i++) {
+			auto & descriptor_set = descriptor_sets.material[i];
 
-		VkWriteDescriptorSet write_descriptor_sets[1] = { };
+			VkWriteDescriptorSet write_descriptor_sets[1] = { };
 
-		VkDescriptorBufferInfo descriptor_ubo = { };
-		descriptor_ubo.buffer = uniform_buffers[i].buffer;
-		descriptor_ubo.offset = 0;
-		descriptor_ubo.range = sizeof(SkyUBO);
+			VkDescriptorBufferInfo descriptor_ubo = { };
+			descriptor_ubo.buffer = uniform_buffers.material[i].buffer;
+			descriptor_ubo.offset = 0;
+			descriptor_ubo.range = sizeof(MaterialUBO);
 
-		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		write_descriptor_sets[0].dstSet = descriptor_set;
-		write_descriptor_sets[0].dstBinding = 0;
-		write_descriptor_sets[0].dstArrayElement = 0;
-		write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		write_descriptor_sets[0].descriptorCount = 1;
-		write_descriptor_sets[0].pBufferInfo     = &descriptor_ubo;
+			write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write_descriptor_sets[0].dstSet = descriptor_set;
+			write_descriptor_sets[0].dstBinding = 0;
+			write_descriptor_sets[0].dstArrayElement = 0;
+			write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			write_descriptor_sets[0].descriptorCount = 1;
+			write_descriptor_sets[0].pBufferInfo     = &descriptor_ubo;
 
-		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
+			vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
+		}
+	}
+
+	{
+		std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.sky);
+
+		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		alloc_info.descriptorPool = descriptor_pool;
+		alloc_info.descriptorSetCount = layouts.size();
+		alloc_info.pSetLayouts        = layouts.data();
+
+		descriptor_sets.sky.resize(swapchain_image_count);
+		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.sky.data()));
+
+		for (int i = 0; i < descriptor_sets.sky.size(); i++) {
+			auto & descriptor_set = descriptor_sets.sky[i];
+
+			VkWriteDescriptorSet write_descriptor_sets[1] = { };
+
+			VkDescriptorBufferInfo descriptor_ubo = { };
+			descriptor_ubo.buffer = uniform_buffers.sky[i].buffer;
+			descriptor_ubo.offset = 0;
+			descriptor_ubo.range = sizeof(SkyUBO);
+
+			write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write_descriptor_sets[0].dstSet = descriptor_set;
+			write_descriptor_sets[0].dstBinding = 0;
+			write_descriptor_sets[0].dstArrayElement = 0;
+			write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			write_descriptor_sets[0].descriptorCount = 1;
+			write_descriptor_sets[0].pBufferInfo     = &descriptor_ubo;
+
+			vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
+		}
 	}
 }
 
@@ -191,6 +264,7 @@ void RenderTaskGBuffer::free() {
 	render_target.free();
 	
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.geometry, nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.material, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.sky,      nullptr);
 	
 	vkDestroyPipeline      (device, pipelines.geometry, nullptr);
@@ -198,10 +272,9 @@ void RenderTaskGBuffer::free() {
 	vkDestroyPipelineLayout(device, pipeline_layouts.geometry, nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.sky,      nullptr);
 	
-	for (auto & uniform_buffer : uniform_buffers) {
-		VulkanMemory::buffer_free(uniform_buffer);
-	}
-	
+	for (auto & uniform_buffer : uniform_buffers.material) VulkanMemory::buffer_free(uniform_buffer);
+	for (auto & uniform_buffer : uniform_buffers.sky)      VulkanMemory::buffer_free(uniform_buffer);
+
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }
 
@@ -233,6 +306,15 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.geometry);
 
 	auto last_texture_handle = -1;
+
+	auto & uniform_buffer_material = uniform_buffers.material[image_index];
+	auto & descriptor_set_material = descriptor_sets.material[image_index];
+	
+	// Upload Uniform Buffer
+	auto aligned_size = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
+
+	std::vector<std::byte> buf(scene.meshes.size() * aligned_size);
+	size_t num_unculled_mesh_instances = 0;
 
 	// Render Renderables
 	for (int i = 0; i < scene.meshes.size(); i++) {
@@ -268,6 +350,14 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				push_constants.wvp   = scene.camera.get_view_projection() * transform;
 
 				vkCmdPushConstants(command_buffer, pipeline_layouts.geometry, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
+				
+				auto ubo = reinterpret_cast<MaterialUBO *>(&buf[num_unculled_mesh_instances * aligned_size]);
+				ubo->material_roughness = mesh_instance.material.roughness;
+				ubo->material_metallic  = mesh_instance.material.metallic;
+
+				u32 offset = num_unculled_mesh_instances * aligned_size;
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry, 1, 1, &descriptor_set_material, 1, &offset);
+				num_unculled_mesh_instances++;
 			}
 
 			VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
@@ -282,17 +372,19 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				auto const & texture = Texture::textures[sub_mesh.texture_handle];
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry, 0, 1, &texture.descriptor_set, 0, nullptr);
 			}
-
+			
 			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
 		}
 	}
+
+	if (num_unculled_mesh_instances > 0) VulkanMemory::buffer_copy_direct(uniform_buffer_material, buf.data(), num_unculled_mesh_instances * aligned_size);
 	
 	// Render Sky
-	auto & uniform_buffer = uniform_buffers[image_index];
-	auto & descriptor_set = descriptor_sets_sky[image_index];
+	auto & uniform_buffer_sky = uniform_buffers.sky[image_index];
+	auto & descriptor_set_sky = descriptor_sets.sky[image_index];
 
 	vkCmdBindPipeline      (command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.sky);
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.sky, 0, 1, &descriptor_set, 0, nullptr);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.sky, 0, 1, &descriptor_set_sky, 0, nullptr);
 
 	SkyUBO sky_ubo = { };
 	sky_ubo.camera_top_left_corner = scene.camera.rotation * scene.camera.top_left_corner;
@@ -300,7 +392,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	sky_ubo.camera_y               = scene.camera.rotation * Vector3(0.0f, -float(height), 0.0f);
 	sky_ubo.sun_direction = -scene.directional_lights[0].get_direction();
 
-	VulkanMemory::buffer_copy_direct(uniform_buffer, &sky_ubo, sizeof(sky_ubo));
+	VulkanMemory::buffer_copy_direct(uniform_buffer_sky, &sky_ubo, sizeof(sky_ubo));
 
 	vkCmdDraw(command_buffer, 3, 1, 0, 0);
 

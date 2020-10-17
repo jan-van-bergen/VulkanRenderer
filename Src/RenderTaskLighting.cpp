@@ -390,7 +390,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		for (int i = 0; i < scene.directional_lights.size(); i++) {
 			auto const & directional_light = scene.directional_lights[i];
 
-			auto ubo = reinterpret_cast<DirectionalLightUBO *>(buf.data() + i * aligned_size);
+			auto ubo = reinterpret_cast<DirectionalLightUBO *>(&buf[i * aligned_size]);
 			ubo->directional_light.colour       = directional_light.colour;
 			ubo->directional_light.direction    = directional_light.get_direction();
 			ubo->directional_light.light_matrix = directional_light.get_light_matrix();
@@ -435,7 +435,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			if (scene.camera.frustum.intersect_sphere(point_light.position, point_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 			
 			// Upload UBO
-			auto ubo = reinterpret_cast<PointLightUBO *>(buf.data() + num_unculled_lights * aligned_size);
+			auto ubo = reinterpret_cast<PointLightUBO *>(&buf[num_unculled_lights * aligned_size]);
 			ubo->point_light.colour   = point_light.colour;
 			ubo->point_light.position = point_light.position;
 			ubo->point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
@@ -486,7 +486,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			
 			if (scene.camera.frustum.intersect_sphere(spot_light.position, spot_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 			
-			auto ubo = reinterpret_cast<SpotLightUBO *>(buf.data() + num_unculled_lights * aligned_size);
+			auto ubo = reinterpret_cast<SpotLightUBO *>(&buf[num_unculled_lights * aligned_size]);
 			ubo->spot_light.colour    = spot_light.colour;
 			ubo->spot_light.position  = spot_light.position;
 			ubo->spot_light.direction = spot_light.direction;
