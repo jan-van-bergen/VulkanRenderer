@@ -152,6 +152,58 @@ struct alignas(16) Matrix4 {
 		return result;
 	}
 
+	inline static Matrix4 invert(const Matrix4 & matrix) {		
+		float inv[16] = {
+			 matrix.cells[5] * matrix.cells[10] * matrix.cells[15] - matrix.cells[5]  * matrix.cells[11] * matrix.cells[14] - matrix.cells[9]  * matrix.cells[6] * matrix.cells[15] +
+			 matrix.cells[9] * matrix.cells[7]  * matrix.cells[14] + matrix.cells[13] * matrix.cells[6]  * matrix.cells[11] - matrix.cells[13] * matrix.cells[7] * matrix.cells[10],
+			-matrix.cells[1] * matrix.cells[10] * matrix.cells[15] + matrix.cells[1]  * matrix.cells[11] * matrix.cells[14] + matrix.cells[9]  * matrix.cells[2] * matrix.cells[15] -
+			 matrix.cells[9] * matrix.cells[3]  * matrix.cells[14] - matrix.cells[13] * matrix.cells[2]  * matrix.cells[11] + matrix.cells[13] * matrix.cells[3] * matrix.cells[10],
+			 matrix.cells[1] * matrix.cells[6]  * matrix.cells[15] - matrix.cells[1]  * matrix.cells[7]  * matrix.cells[14] - matrix.cells[5]  * matrix.cells[2] * matrix.cells[15] +
+			 matrix.cells[5] * matrix.cells[3]  * matrix.cells[14] + matrix.cells[13] * matrix.cells[2]  * matrix.cells[7]  - matrix.cells[13] * matrix.cells[3] * matrix.cells[6],
+			-matrix.cells[1] * matrix.cells[6]  * matrix.cells[11] + matrix.cells[1]  * matrix.cells[7]  * matrix.cells[10] + matrix.cells[5]  * matrix.cells[2] * matrix.cells[11] -
+			 matrix.cells[5] * matrix.cells[3]  * matrix.cells[10] - matrix.cells[9]  * matrix.cells[2]  * matrix.cells[7]  + matrix.cells[9]  * matrix.cells[3] * matrix.cells[6],
+			-matrix.cells[4] * matrix.cells[10] * matrix.cells[15] + matrix.cells[4]  * matrix.cells[11] * matrix.cells[14] + matrix.cells[8]  * matrix.cells[6] * matrix.cells[15] -
+			 matrix.cells[8] * matrix.cells[7]  * matrix.cells[14] - matrix.cells[12] * matrix.cells[6]  * matrix.cells[11] + matrix.cells[12] * matrix.cells[7] * matrix.cells[10],
+			 matrix.cells[0] * matrix.cells[10] * matrix.cells[15] - matrix.cells[0]  * matrix.cells[11] * matrix.cells[14] - matrix.cells[8]  * matrix.cells[2] * matrix.cells[15] +
+			 matrix.cells[8] * matrix.cells[3]  * matrix.cells[14] + matrix.cells[12] * matrix.cells[2]  * matrix.cells[11] - matrix.cells[12] * matrix.cells[3] * matrix.cells[10],
+			-matrix.cells[0] * matrix.cells[6]  * matrix.cells[15] + matrix.cells[0]  * matrix.cells[7]  * matrix.cells[14] + matrix.cells[4]  * matrix.cells[2] * matrix.cells[15] -
+			 matrix.cells[4] * matrix.cells[3]  * matrix.cells[14] - matrix.cells[12] * matrix.cells[2]  * matrix.cells[7]  + matrix.cells[12] * matrix.cells[3] * matrix.cells[6],
+			 matrix.cells[0] * matrix.cells[6]  * matrix.cells[11] - matrix.cells[0]  * matrix.cells[7]  * matrix.cells[10] - matrix.cells[4]  * matrix.cells[2] * matrix.cells[11] +
+			 matrix.cells[4] * matrix.cells[3]  * matrix.cells[10] + matrix.cells[8]  * matrix.cells[2]  * matrix.cells[7]  - matrix.cells[8]  * matrix.cells[3] * matrix.cells[6],
+			 matrix.cells[4] * matrix.cells[9]  * matrix.cells[15] - matrix.cells[4]  * matrix.cells[11] * matrix.cells[13] - matrix.cells[8]  * matrix.cells[5] * matrix.cells[15] +
+			 matrix.cells[8] * matrix.cells[7]  * matrix.cells[13] + matrix.cells[12] * matrix.cells[5]  * matrix.cells[11] - matrix.cells[12] * matrix.cells[7] * matrix.cells[9],
+			-matrix.cells[0] * matrix.cells[9]  * matrix.cells[15] + matrix.cells[0]  * matrix.cells[11] * matrix.cells[13] + matrix.cells[8]  * matrix.cells[1] * matrix.cells[15] -
+			 matrix.cells[8] * matrix.cells[3]  * matrix.cells[13] - matrix.cells[12] * matrix.cells[1]  * matrix.cells[11] + matrix.cells[12] * matrix.cells[3] * matrix.cells[9],
+			 matrix.cells[0] * matrix.cells[5]  * matrix.cells[15] - matrix.cells[0]  * matrix.cells[7]  * matrix.cells[13] - matrix.cells[4]  * matrix.cells[1] * matrix.cells[15] +
+			 matrix.cells[4] * matrix.cells[3]  * matrix.cells[13] + matrix.cells[12] * matrix.cells[1]  * matrix.cells[7]  - matrix.cells[12] * matrix.cells[3] * matrix.cells[5],
+			-matrix.cells[0] * matrix.cells[5]  * matrix.cells[11] + matrix.cells[0]  * matrix.cells[7]  * matrix.cells[9]  + matrix.cells[4]  * matrix.cells[1] * matrix.cells[11] -
+			 matrix.cells[4] * matrix.cells[3]  * matrix.cells[9]  - matrix.cells[8]  * matrix.cells[1]  * matrix.cells[7]  + matrix.cells[8]  * matrix.cells[3] * matrix.cells[5],
+			-matrix.cells[4] * matrix.cells[9]  * matrix.cells[14] + matrix.cells[4]  * matrix.cells[10] * matrix.cells[13] + matrix.cells[8]  * matrix.cells[5] * matrix.cells[14] -
+			 matrix.cells[8] * matrix.cells[6]  * matrix.cells[13] - matrix.cells[12] * matrix.cells[5]  * matrix.cells[10] + matrix.cells[12] * matrix.cells[6] * matrix.cells[9],
+			 matrix.cells[0] * matrix.cells[9]  * matrix.cells[14] - matrix.cells[0]  * matrix.cells[10] * matrix.cells[13] - matrix.cells[8]  * matrix.cells[1] * matrix.cells[14] +
+			 matrix.cells[8] * matrix.cells[2]  * matrix.cells[13] + matrix.cells[12] * matrix.cells[1]  * matrix.cells[10] - matrix.cells[12] * matrix.cells[2] * matrix.cells[9],
+			-matrix.cells[0] * matrix.cells[5]  * matrix.cells[14] + matrix.cells[0]  * matrix.cells[6]  * matrix.cells[13] + matrix.cells[4]  * matrix.cells[1] * matrix.cells[14] -
+			 matrix.cells[4] * matrix.cells[2]  * matrix.cells[13] - matrix.cells[12] * matrix.cells[1]  * matrix.cells[6]  + matrix.cells[12] * matrix.cells[2] * matrix.cells[5],
+			 matrix.cells[0] * matrix.cells[5]  * matrix.cells[10] - matrix.cells[0]  * matrix.cells[6]  * matrix.cells[9]  - matrix.cells[4]  * matrix.cells[1] * matrix.cells[10] +
+			 matrix.cells[4] * matrix.cells[2]  * matrix.cells[9]  + matrix.cells[8]  * matrix.cells[1]  * matrix.cells[6]  - matrix.cells[8]  * matrix.cells[2] * matrix.cells[5]
+		};
+		
+		Matrix4 result;
+
+		float det = 
+			matrix.cells[0] * inv[0] + matrix.cells[1] * inv[4] + 
+			matrix.cells[2] * inv[8] + matrix.cells[3] * inv[12];
+
+		if (det != 0.0f) {
+			const float inv_det = 1.0f / det;
+			for (int i = 0; i < 16; i++) {
+				result.cells[i] = inv[i] * inv_det;
+			}
+		}
+
+		return result;
+	}
+
 	// Component-wise absolute value
 	inline static Matrix4 abs(const Matrix4 & matrix) {
 		Matrix4 result;

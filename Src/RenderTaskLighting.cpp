@@ -16,7 +16,9 @@ struct DirectionalLightUBO {
 		alignas(16) Matrix4 light_matrix;
 	} directional_light;
 	
-	alignas(16) Vector3 camera_position; 
+	alignas(16) Vector3 camera_position;
+
+	alignas(16) Matrix4 inv_view_projection;
 };
 
 struct PointLightPushConstants {
@@ -32,6 +34,8 @@ struct PointLightUBO {
 	} point_light;
 
 	alignas(16) Vector3 camera_position;
+	
+	alignas(16) Matrix4 inv_view_projection;
 };
 
 struct SpotLightUBO {
@@ -47,6 +51,8 @@ struct SpotLightUBO {
 	} spot_light;
 	
 	alignas(16) Vector3 camera_position;
+	
+	alignas(16) Matrix4 inv_view_projection;
 };
 
 void RenderTaskLighting::LightPass::free() {
@@ -150,11 +156,11 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 		write_descriptor_sets[0].descriptorCount = 1;
 		write_descriptor_sets[0].pImageInfo = &descriptor_image_albedo;
 		
-		// Write Descriptor for Position target
-		VkDescriptorImageInfo descriptor_image_position = { };
-		descriptor_image_position.sampler     = render_target_input.sampler;
-		descriptor_image_position.imageView   = render_target_input.attachments[1].image_view;
-		descriptor_image_position.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		// Write Descriptor for Normal target
+		VkDescriptorImageInfo descriptor_image_normal = { };
+		descriptor_image_normal.sampler     = render_target_input.sampler;
+		descriptor_image_normal.imageView   = render_target_input.attachments[1].image_view;
+		descriptor_image_normal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor_sets[1].dstSet = descriptor_set;
@@ -162,13 +168,13 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 		write_descriptor_sets[1].dstArrayElement = 0;
 		write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write_descriptor_sets[1].descriptorCount = 1;
-		write_descriptor_sets[1].pImageInfo = &descriptor_image_position;
-
-		// Write Descriptor for Normal target
-		VkDescriptorImageInfo descriptor_image_normal = { };
-		descriptor_image_normal.sampler     = render_target_input.sampler;
-		descriptor_image_normal.imageView   = render_target_input.attachments[2].image_view;
-		descriptor_image_normal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		write_descriptor_sets[1].pImageInfo = &descriptor_image_normal;
+		
+		// Write Descriptor for Depth target
+		VkDescriptorImageInfo descriptor_image_depth = { };
+		descriptor_image_depth.sampler     = render_target_input.sampler;
+		descriptor_image_depth.imageView   = render_target_input.attachments[2].image_view;
+		descriptor_image_depth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		write_descriptor_sets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor_sets[2].dstSet = descriptor_set;
@@ -176,7 +182,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 		write_descriptor_sets[2].dstArrayElement = 0;
 		write_descriptor_sets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write_descriptor_sets[2].descriptorCount = 1;
-		write_descriptor_sets[2].pImageInfo = &descriptor_image_normal;
+		write_descriptor_sets[2].pImageInfo = &descriptor_image_depth;
 
 		VkDescriptorBufferInfo descriptor_ubo = { };
 		descriptor_ubo.buffer = light_pass.uniform_buffers[i].buffer;
@@ -216,14 +222,14 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		layout_bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		layout_bindings[0].pImmutableSamplers = nullptr;
 
-		// Position Sampler
+		// Normal Sampler
 		layout_bindings[1].binding = 1;
 		layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		layout_bindings[1].descriptorCount = 1;
 		layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		layout_bindings[1].pImmutableSamplers = nullptr;
 
-		// Normal Sampler
+		// Depth Sampler
 		layout_bindings[2].binding = 2;
 		layout_bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		layout_bindings[2].descriptorCount = 1;
@@ -262,8 +268,8 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.shadow));
 	}
 	
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);         // HDR lighting
+	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL); // Depth
 
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);
@@ -350,10 +356,14 @@ void RenderTaskLighting::free() {
 }
 
 void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer) {
+	auto inv_view_projection = Matrix4::invert(scene.camera.get_view_projection());
+
 	VkClearValue clear[2] = { };
 	clear[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
 	clear[1].depthStencil = { 1.0f, 0 };
 	
+	assert(Util::array_element_count(clear) == render_target.attachments.size());
+
 	// Begin Light Render Pass
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderpass_begin_info.renderPass  = render_pass;
@@ -385,6 +395,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo.directional_light.direction    = directional_light.get_direction();
 			ubo.directional_light.light_matrix = directional_light.get_light_matrix();
 			ubo.camera_position = scene.camera.position;
+			ubo.inv_view_projection = inv_view_projection;
 
 			std::memcpy(buf.data() + i * aligned_size, &ubo, sizeof(DirectionalLightUBO));
 
@@ -431,6 +442,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo.point_light.position = point_light.position;
 			ubo.point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
 			ubo.camera_position = scene.camera.position;
+			ubo.inv_view_projection = inv_view_projection;
 
 			std::memcpy(buf.data() + num_unculled_lights * aligned_size, &ubo, sizeof(PointLightUBO));
 
@@ -486,6 +498,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo.spot_light.cutoff_inner = std::cos(0.5f * spot_light.cutoff_inner);
 			ubo.spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
 			ubo.camera_position = scene.camera.position;
+			ubo.inv_view_projection = inv_view_projection;
 
 			std::memcpy(buf.data() + num_unculled_lights * aligned_size, &ubo, sizeof(SpotLightUBO));
 

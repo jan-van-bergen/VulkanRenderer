@@ -83,10 +83,9 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	}
 
 	// Initialize FrameBuffers and their attachments
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Albedo
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16_SFLOAT,                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Normal (packed)
+	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Depth
 
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);
@@ -115,7 +114,6 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	pipeline_details.height = height;
 	pipeline_details.blends = {
 		VulkanContext::PipelineDetails::BLEND_NONE,
-		VulkanContext::PipelineDetails::BLEND_NONE,
 		VulkanContext::PipelineDetails::BLEND_NONE
 	};
 	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
@@ -130,8 +128,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 	pipeline_details.vertex_bindings   = { };
 	pipeline_details.vertex_attributes = { };
-	pipeline_details.blends[1].colorWriteMask = 0; // Don't write to position buffer
-	pipeline_details.blends[2].colorWriteMask = 0; // Don't write to normal   buffer
+	pipeline_details.blends[1].colorWriteMask = 0; // Don't write to normal buffer
 	pipeline_details.cull_mode = VK_CULL_MODE_FRONT_BIT;
 	pipeline_details.shaders = {
 		{ "Shaders/sky.vert.spv", VK_SHADER_STAGE_VERTEX_BIT },
@@ -210,25 +207,25 @@ void RenderTaskGBuffer::free() {
 
 void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) {
 	// Clear values for all attachments written in the fragment shader
-	VkClearValue clear_gbuffer[4] = { };
-	clear_gbuffer[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear_gbuffer[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear_gbuffer[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear_gbuffer[3].depthStencil = { 1.0f, 0 };
+	VkClearValue clear[3] = { };
+	clear[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clear[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clear[2].depthStencil = { 1.0f, 0 };
+
+	assert(Util::array_element_count(clear) == render_target.attachments.size());
 
 	VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	render_pass_begin_info.renderPass =  render_pass;
 	render_pass_begin_info.framebuffer = render_target.frame_buffer;
 	render_pass_begin_info.renderArea.extent.width  = width;
 	render_pass_begin_info.renderArea.extent.height = height;
-	render_pass_begin_info.clearValueCount = Util::array_element_count(clear_gbuffer);
-	render_pass_begin_info.pClearValues    = clear_gbuffer;
+	render_pass_begin_info.clearValueCount = Util::array_element_count(clear);
+	render_pass_begin_info.pClearValues    = clear;
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	VkViewport viewport = { 0.0f, 0.0f, float(width), float(height), 0.0f, 1.0f };
-
-	VkRect2D scissor = { 0, 0, width, height };
+	VkRect2D   scissor = { 0, 0, width, height };
 	
 	vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 	vkCmdSetScissor (command_buffer, 0, 1, &scissor);

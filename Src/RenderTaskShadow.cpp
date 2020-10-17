@@ -30,14 +30,14 @@ void RenderTaskShadow::init() {
 	depth_attachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depth_attachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	depth_attachment.finalLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	
 	render_pass = VulkanContext::create_render_pass({ depth_attachment });
 
 	// Create Shadow Map Render Target for each Light
 	for (auto & directional_light : scene.directional_lights) {
 		directional_light.shadow_map.render_target.add_attachment(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, depth_format,
-			VkImageUsageFlagBits(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
 		directional_light.shadow_map.render_target.init(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, render_pass, VK_FILTER_LINEAR);
@@ -89,7 +89,8 @@ void RenderTaskShadow::free() {
 void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 	// Render to Shadow Maps
 	for (auto const & directional_light : scene.directional_lights) {
-		VkClearValue clear = { }; clear.depthStencil = { 1.0f, 0 };
+		VkClearValue clear = { };
+		clear.depthStencil = { 1.0f, 0 };
 		
 		VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		render_pass_begin_info.renderPass  = render_pass;
@@ -102,10 +103,10 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 		VkViewport viewport = { 0.0f, 0.0f, float(SHADOW_MAP_WIDTH), float(SHADOW_MAP_HEIGHT), 0.0f, 1.0f };
-		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+		VkRect2D   scissor = { 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
 	
-		VkRect2D scissor = { 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
-		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+		vkCmdSetScissor (command_buffer, 0, 1, &scissor);
 
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
