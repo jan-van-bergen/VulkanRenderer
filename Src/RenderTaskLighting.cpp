@@ -268,9 +268,8 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.shadow));
 	}
 	
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);         // HDR lighting
-	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL); // Depth
-
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // HDR lighting
+	
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);
 
@@ -352,15 +351,13 @@ void RenderTaskLighting::free() {
 	render_target.free();
 
 	vkDestroyRenderPass(device, render_pass, nullptr);
-
 }
 
 void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer) {
 	auto inv_view_projection = Matrix4::invert(scene.camera.get_view_projection());
 
-	VkClearValue clear[2] = { };
-	clear[0].color        = { 0.0f, 0.0f, 0.0f, 1.0f };
-	clear[1].depthStencil = { 1.0f, 0 };
+	VkClearValue clear[1] = { };
+	clear[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	
 	assert(Util::array_element_count(clear) == render_target.attachments.size());
 
