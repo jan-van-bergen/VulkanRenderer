@@ -49,6 +49,8 @@ private:
 	);
 
 public:
+	int num_culled_lights = 0;
+
 	RenderTaskLighting(Scene & scene) : scene(scene) { }
 
 	void init(VkDescriptorPool descriptor_pool, int width, int height, int swapchain_image_count, RenderTarget const & render_target_input);

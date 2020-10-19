@@ -7,6 +7,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp> 
 #include <assimp/material.h>
+#include <assimp/pbrmaterial.h>
 
 #include "VulkanContext.h"
 #include "VulkanMemory.h"
@@ -58,7 +59,7 @@ MeshHandle Mesh::load(std::string const & filename) {
 		sub_mesh.aabb.min = Vector3(+INFINITY);
 		sub_mesh.aabb.max = Vector3(-INFINITY);
 
-		// Copy Vertices
+		// Load Vertices
 		for (int i = 0; i < assimp_mesh->mNumVertices; i++) {
 			auto index = offset_vertex + i;
 
@@ -81,7 +82,7 @@ MeshHandle Mesh::load(std::string const & filename) {
 			sub_mesh.aabb.max = Vector3::max(sub_mesh.aabb.max, vertices[index].position);
 		}
 
-		// Copy Indices
+		// Load Indices
 		for (int i = 0; i < assimp_mesh->mNumFaces; i++) {
 			auto index = offset_index + i * 3;
 
@@ -90,6 +91,7 @@ MeshHandle Mesh::load(std::string const & filename) {
 			indices[index + 2] = offset_vertex + assimp_mesh->mFaces[i].mIndices[2];
 		}
 
+		// Load Material
 		sub_mesh.texture_handle = -1;
 
 		int material_id = assimp_mesh->mMaterialIndex;

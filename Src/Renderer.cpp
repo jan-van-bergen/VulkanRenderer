@@ -210,6 +210,7 @@ void Renderer::update(float delta) {
 
 	auto dir = scene.directional_lights[0].get_direction();
 	ImGui::Text("Sun: %f, %f, %f", dir.x, dir.y, dir.z);
+	ImGui::Text("Culled Lights %i/%i", render_task_lighting.num_culled_lights, scene.point_lights.size() + scene.spot_lights.size());
 
 	for (auto & mesh : scene.meshes) {
 		if (ImGui::Button(mesh.name.c_str())) {

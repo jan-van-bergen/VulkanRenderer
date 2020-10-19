@@ -404,6 +404,8 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
 	}
 
+	num_culled_lights = 0;
+
 	// Render Point Lights
 	if (scene.point_lights.size() > 0) {
 		auto & uniform_buffer = light_pass_point.uniform_buffers[image_index];
@@ -454,6 +456,8 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		}
 		
 		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
+
+		num_culled_lights += scene.point_lights.size() - num_unculled_lights;
 	}
 	
 	// Render Spot Lights
@@ -507,6 +511,8 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		}	
 		
 		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
+		
+		num_culled_lights += scene.spot_lights.size() - num_unculled_lights;
 	}
 
 	vkCmdEndRenderPass(command_buffer);
