@@ -4,11 +4,7 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
 	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), { 0.9f, 0.0f }, Vector3( 10.0f, 0.0f, 0.0f) });
 	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), { 0.1f, 0.0f }, Vector3(-10.0f, 0.0f, 0.0f) });
-#ifdef NDEBUG
 	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), { 0.9f, 0.0f }, Vector3(0.0f, -7.5f, 0.0f) });
-#else
-	meshes.push_back({ "Sponza", Mesh::load("Data/Terrain.obj"), { 0.9f, 0.0f }, Vector3(0.0f, -7.5f, 0.0f) });
-#endif
 
 	directional_lights.push_back({ Vector3(1.0f),
 		Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), std::tan(1.0f / 10.0f)) *
