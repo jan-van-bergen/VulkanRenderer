@@ -324,7 +324,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		auto     transform = mesh_instance.transform.matrix;
 		auto abs_transform = Matrix4::abs(transform);
 
-		bool first_sub_mesh = true;
+		auto first_sub_mesh = true;
 
 		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
 			auto const & sub_mesh = mesh.sub_meshes[j];
@@ -341,7 +341,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 
 			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 
-			// The first unculled Submesh must set the Push Constants
+			// The first unculled Submesh must set the Push Constants, bind Descriptor Sets, and bind Vertex/Index Buffers
 			if (first_sub_mesh) {		
 				first_sub_mesh = false;
 
@@ -358,13 +358,13 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				u32 offset = num_unculled_mesh_instances * aligned_size;
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry, 1, 1, &descriptor_set_material, 1, &offset);
 				num_unculled_mesh_instances++;
+				
+				VkBuffer vertex_buffers[] = { mesh.vertex_buffer.buffer };
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+				vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			}
-
-			VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-
-			vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			if (last_texture_handle != sub_mesh.texture_handle) {
 				last_texture_handle  = sub_mesh.texture_handle;
@@ -373,7 +373,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry, 0, 1, &texture.descriptor_set, 0, nullptr);
 			}
 			
-			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, sub_mesh.index_offset, 0, 0);
 		}
 	}
 

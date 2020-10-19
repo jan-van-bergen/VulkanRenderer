@@ -120,17 +120,17 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 			push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;
 
 			vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &push_constants);
+			
+			VkBuffer vertex_buffers[] = { mesh.vertex_buffer.buffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+			vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			for (int j = 0; j < mesh.sub_meshes.size(); j++) {
 				auto const & sub_mesh = mesh.sub_meshes[j];
 
-				VkBuffer vertex_buffers[] = { sub_mesh.vertex_buffer.buffer };
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-
-				vkCmdBindIndexBuffer(command_buffer, sub_mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-				vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, 0, 0, 0);
+				vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, sub_mesh.index_offset, 0, 0);
 			}
 		}
 

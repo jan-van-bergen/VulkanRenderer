@@ -55,12 +55,13 @@ struct Mesh {
 			return attribute_descriptions;
 		}
 	};
+	
+	VulkanMemory::Buffer vertex_buffer;
+	VulkanMemory::Buffer index_buffer;
 
 	struct SubMesh {
+		int index_offset;
 		int index_count;
-
-		VulkanMemory::Buffer vertex_buffer;
-		VulkanMemory::Buffer index_buffer;
 
 		struct AABB {
 			Vector3 min;
