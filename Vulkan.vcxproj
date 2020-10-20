@@ -214,6 +214,7 @@
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Frustum.h" />
     <ClInclude Include="Src\Input.h" />
+    <ClInclude Include="Src\Material.h" />
     <ClInclude Include="Src\Math.h" />
     <ClInclude Include="Src\Matrix4.h" />
     <ClInclude Include="Src\Mesh.h" />

@@ -236,8 +236,8 @@ void Renderer::update(float delta) {
 		ImGui::SliderFloat ("Scale",   &selected_mesh->transform.scale, 0.0f, 10.0f);
 
 		ImGui::Text("Material:");
-		ImGui::SliderFloat("Roughness", &selected_mesh->material.roughness, 0.0f, 1.0f);
-		ImGui::SliderFloat("Metallic",  &selected_mesh->material.metallic,  0.0f, 1.0f);
+		ImGui::SliderFloat("Roughness", &selected_mesh->material->roughness, 0.0f, 1.0f);
+		ImGui::SliderFloat("Metallic",  &selected_mesh->material->metallic,  0.0f, 1.0f);
 	}
 
 	ImGui::End();

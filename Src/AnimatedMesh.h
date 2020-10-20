@@ -7,7 +7,9 @@
 #include "Vector2.h"
 
 #include "Transform.h"
+
 #include "Texture.h"
+#include "Material.h"
 
 typedef int AnimatedMeshHandle;
 
@@ -92,7 +94,6 @@ struct AnimatedMesh {
 	static inline std::vector<AnimatedMesh> meshes;
 
 	static void free();
-
 };
 
 struct AnimatedMeshInstance {
@@ -101,10 +102,7 @@ struct AnimatedMeshInstance {
 	AnimatedMeshHandle mesh_handle;
 	AnimatedMesh & get_mesh() const { return AnimatedMesh::meshes[mesh_handle]; }
 	
-	struct Material {
-		float roughness = 0.9f;
-		float metallic  = 0.0f;
-	} material;
+	Material * material;
 
 	Transform transform;
 	

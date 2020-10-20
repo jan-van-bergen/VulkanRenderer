@@ -473,8 +473,8 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				vkCmdPushConstants(command_buffer, pipeline_layouts.geometry_static, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
 				
 				auto ubo = reinterpret_cast<MaterialUBO *>(&buffer_material_ubo[num_unculled_mesh_instances * aligned_size]);
-				ubo->material_roughness = mesh_instance.material.roughness;
-				ubo->material_metallic  = mesh_instance.material.metallic;
+				ubo->material_roughness = mesh_instance.material->roughness;
+				ubo->material_metallic  = mesh_instance.material->metallic;
 
 				u32 offset = num_unculled_mesh_instances * aligned_size;
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_static, 1, 1, &descriptor_set_material, 1, &offset);

@@ -173,6 +173,9 @@
     <ClInclude Include="Src\AnimatedMesh.h">
       <Filter>Rendering\Animation</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Material.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">

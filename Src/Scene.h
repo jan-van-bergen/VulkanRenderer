@@ -12,6 +12,8 @@ struct Scene {
 
 	Camera camera;
 	
+	std::vector<std::unique_ptr<Material>> materials;
+
 	std::vector<MeshInstance>         meshes;
 	std::vector<AnimatedMeshInstance> animated_meshes;
 

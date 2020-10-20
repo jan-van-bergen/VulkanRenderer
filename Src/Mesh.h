@@ -12,6 +12,7 @@
 #include "Transform.h"
 
 #include "Texture.h"
+#include "Material.h"
 
 typedef int MeshHandle;
 
@@ -85,10 +86,7 @@ struct MeshInstance {
 
 	Mesh & get_mesh() const { return Mesh::meshes[mesh_handle]; }
 	
-	struct Material {
-		float roughness = 0.9f;
-		float metallic  = 0.0f;
-	} material;
+	Material * material;
 
 	Transform transform;
 };
