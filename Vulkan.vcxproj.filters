@@ -33,9 +33,6 @@
     <ClCompile Include="Src\Texture.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Camera.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Lights.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
@@ -43,9 +40,6 @@
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Src\Scene.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\Frustum.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Src\Renderer.cpp">
@@ -62,6 +56,21 @@
     </ClCompile>
     <ClCompile Include="Src\RenderTaskShadow.cpp">
       <Filter>Rendering\RenderTasks</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Camera.cpp">
+      <Filter>Rendering\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Frustum.cpp">
+      <Filter>Rendering\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Animation.cpp">
+      <Filter>Rendering\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AssetLoader.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AnimatedMesh.cpp">
+      <Filter>Rendering\Animation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -122,9 +131,6 @@
     <ClInclude Include="Src\Texture.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Camera.h">
-      <Filter>Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Src\Lights.h">
       <Filter>Rendering</Filter>
     </ClInclude>
@@ -135,9 +141,6 @@
       <Filter>Math</Filter>
     </ClInclude>
     <ClInclude Include="Src\Scene.h">
-      <Filter>Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Src\Frustum.h">
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Src\Renderer.h">
@@ -154,6 +157,21 @@
     </ClInclude>
     <ClInclude Include="Src\RenderTaskShadow.h">
       <Filter>Rendering\RenderTasks</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Camera.h">
+      <Filter>Rendering\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Frustum.h">
+      <Filter>Rendering\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Animation.h">
+      <Filter>Rendering\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\AssetLoader.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\AnimatedMesh.h">
+      <Filter>Rendering\Animation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -174,6 +192,12 @@
     </Filter>
     <Filter Include="Rendering\RenderTasks">
       <UniqueIdentifier>{8bb7fd82-41cc-405c-bdee-42b67b4d21b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering\Camera">
+      <UniqueIdentifier>{2f3a18fc-2c9a-4b9e-8462-983cd510ff50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering\Animation">
+      <UniqueIdentifier>{463c35e9-c77c-453b-9298-ff60eeaaaad7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -213,7 +237,10 @@
     <CustomBuild Include="Shaders\geometry.frag">
       <Filter>Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="Shaders\geometry.vert">
+    <CustomBuild Include="Shaders\geometry_animated.vert">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\geometry_static.vert">
       <Filter>Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

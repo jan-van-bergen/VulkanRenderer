@@ -51,8 +51,9 @@ Renderer::~Renderer() {
 
 	PointLight::free_sphere();
 
-	Texture::free();
 	Mesh::free();
+	AnimatedMesh::free();
+	Texture::free();
 	
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -88,9 +89,9 @@ void Renderer::swapchain_create() {
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
 	pool_create_info.maxSets =
-		(1 + 1 + 3 + 1) * swapchain_views.size() + // Sky + Materials + 3 Light types + Post Process
-		Texture::textures.size() +                 // Textures
-		scene.directional_lights.size();           // Shadow map
+		(1 + 1 + 3 + 1 + AnimatedMesh::meshes.size()) * swapchain_views.size() + // Sky + Materials + 3 Light types + Post Process + Bones
+		Texture::textures.size() +                                               // Textures
+		scene.directional_lights.size();                                         // Shadow map
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 

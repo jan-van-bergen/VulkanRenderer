@@ -1,5 +1,5 @@
 #pragma once
-#include <math.h>
+#include <cmath>
 
 #include "Math.h"
 #include "Vector3.h"
@@ -109,7 +109,9 @@ struct Quaternion {
 	}
 
 	inline static Quaternion nlerp(const Quaternion & a, const Quaternion & b, float t) {
-		float one_minus_t = 1.0f - t;
+		float dot = a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
+		
+		float one_minus_t = dot >= 0.0f ? 1.0f - t : t - 1.0f; // Negate if a and b are on opposite sides of the hypersphere
 
 		return normalize(Quaternion(
 			one_minus_t * a.x + t * b.x, 
@@ -117,6 +119,31 @@ struct Quaternion {
 			one_minus_t * a.z + t * b.z, 
 			one_minus_t * a.w + t * b.w
 		));
+	}
+
+	inline static Quaternion slerp(const Quaternion & a, const Quaternion & b, float t) {
+		float cos_theta = a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
+
+		if (cos_theta > 0.9995f) return nlerp(a, b, t);
+
+		cos_theta = Math::clamp(cos_theta, -1.0f, 1.0f);
+		float theta = std::acos(cos_theta) * t;
+
+		Quaternion c = normalize(Quaternion(
+			b.x - a.x * cos_theta,
+			b.y - a.y * cos_theta,
+			b.z - a.z * cos_theta,
+			b.w - a.w * cos_theta
+		));
+
+		float sin_theta = std::sin(theta);
+
+		return Quaternion(
+			cos_theta * a.x + sin_theta * c.x,
+			cos_theta * a.y + sin_theta * c.y,
+			cos_theta * a.z + sin_theta * c.z,
+			cos_theta * a.w + sin_theta * c.w
+		);
 	}
 };
 

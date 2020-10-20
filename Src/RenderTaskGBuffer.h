@@ -14,26 +14,31 @@ private:
 	struct {
 		VkDescriptorSetLayout geometry;
 		VkDescriptorSetLayout material;
+		VkDescriptorSetLayout bones;
 		VkDescriptorSetLayout sky;
 	} descriptor_set_layouts;
 	
 	struct {
-		VkPipelineLayout geometry;
+		VkPipelineLayout geometry_static;
+		VkPipelineLayout geometry_animated;
 		VkPipelineLayout sky;
 	} pipeline_layouts;
 
 	struct {
-		VkPipeline geometry;
+		VkPipeline geometry_static;
+		VkPipeline geometry_animated;
 		VkPipeline sky;
 	} pipelines;
 
 	struct {
 		std::vector<VulkanMemory::Buffer> material;
+		std::vector<VulkanMemory::Buffer> bones;
 		std::vector<VulkanMemory::Buffer> sky;
 	} uniform_buffers;
 
 	struct {
 		std::vector<VkDescriptorSet> material;
+		std::vector<VkDescriptorSet> bones;
 		std::vector<VkDescriptorSet> sky;
 	} descriptor_sets;
 

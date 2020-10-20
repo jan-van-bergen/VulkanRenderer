@@ -60,6 +60,8 @@ struct Vector3 {
 		);
 	}
 
+	static Vector3 lerp(const Vector3 & a, const Vector3 & b, float t);
+
 	inline Vector3 operator+=(const Vector3 & vector) { x += vector.x; y += vector.y; z += vector.z; return *this; }
 	inline Vector3 operator-=(const Vector3 & vector) { x -= vector.x; y -= vector.y; z -= vector.z; return *this; }
 	inline Vector3 operator*=(const Vector3 & vector) { x *= vector.x; y *= vector.y; z *= vector.z; return *this; }
@@ -93,3 +95,7 @@ inline Vector3 operator/(float scalar, const Vector3 & vector) { float inv_scala
 
 inline bool operator==(const Vector3 & left, const Vector3 & right) { return left.x == right.x && left.y == right.y && left.z == right.z; }
 inline bool operator!=(const Vector3 & left, const Vector3 & right) { return left.x != right.x || left.y != right.y || left.z != right.z; }
+
+inline Vector3 Vector3::lerp(const Vector3 & a, const Vector3 & b, float t) {
+	return a + t * (b - a);
+}

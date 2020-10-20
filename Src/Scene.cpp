@@ -1,10 +1,14 @@
 #include "Scene.h"
 
 Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) {
-	meshes.push_back({ "Monkey", Mesh::load("Data/Monkey.obj") });
-	meshes.push_back({ "Cube 1", Mesh::load("Data/Cube.obj"), { 0.9f, 0.0f }, Vector3( 10.0f, 0.0f, 0.0f) });
-	meshes.push_back({ "Cube 2", Mesh::load("Data/Cube.obj"), { 0.1f, 0.0f }, Vector3(-10.0f, 0.0f, 0.0f) });
-	meshes.push_back({ "Sponza", Mesh::load("Data/Sponza/sponza.obj"), { 0.9f, 0.0f }, Vector3(0.0f, -7.5f, 0.0f) });
+	animated_meshes.push_back({ "Cowboy 1", asset_loader.load_animated_mesh("Data/Cowboy.fbx") });
+	animated_meshes.push_back({ "Cowboy 2", asset_loader.load_animated_mesh("Data/Cowboy.fbx") });
+	animated_meshes.push_back({ "Arm",      asset_loader.load_animated_mesh("Data/test.fbx") });
+
+	meshes.push_back({ "Monkey", asset_loader.load_mesh("Data/Monkey.obj"), { 0.9f, 0.0f }, Vector3( 0.0f, -10.0f, 0.0f) });
+	meshes.push_back({ "Cube 1", asset_loader.load_mesh("Data/Cube.obj"), { 0.9f, 0.0f }, Vector3( 10.0f, 0.0f, 0.0f) });
+	meshes.push_back({ "Cube 2", asset_loader.load_mesh("Data/Cube.obj"), { 0.1f, 0.0f }, Vector3(-10.0f, 0.0f, 0.0f) });
+	meshes.push_back({ "Sponza", asset_loader.load_mesh("Data/Sponza/sponza.obj"), { 0.9f, 0.0f }, Vector3(0.0f, -7.5f, 0.0f) });
 
 	directional_lights.push_back({ Vector3(1.0f),
 		Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), std::tan(1.0f / 10.0f)) *
@@ -37,6 +41,11 @@ void Scene::update(float delta) {
 	static float time = 0.0f;
 	time += delta;
 
+	if (animated_meshes.size() > 0) {
+		animated_meshes[0].transform.position.x += delta;
+		animated_meshes[0].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * animated_meshes[0].transform.rotation;
+	}
+
 	if (meshes.size() > 0) meshes[0].transform.scale = 5.0f + std::sin(time);
 	if (meshes.size() > 1) meshes[1].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[1].transform.rotation;
 	if (meshes.size() > 2) meshes[2].transform.rotation = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), delta) * meshes[2].transform.rotation;
@@ -45,6 +54,14 @@ void Scene::update(float delta) {
 
 	if (spot_lights.size() > 0) spot_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), 0.5f * delta) * spot_lights[0].direction;
 	if (spot_lights.size() > 1) spot_lights[1].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f),       -delta) * spot_lights[1].direction;
+
+	for (auto & animated_mesh : AnimatedMesh::meshes) {
+		animated_mesh.update(time);
+	}
+
+	for (auto & animated_mesh : animated_meshes) {
+		animated_mesh.transform.update();
+	}
 
 	for (auto & mesh : meshes) {
 		mesh.transform.update();

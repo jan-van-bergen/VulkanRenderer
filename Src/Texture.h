@@ -16,7 +16,7 @@ struct Texture {
 
 	static inline std::vector<Texture> textures;
 
-	static TextureHandle load(std::string const & filename);
+	void generate_mipmaps(int width, int height, int mip_levels);
 
 	static void free();
 };
