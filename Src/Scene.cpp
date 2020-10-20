@@ -5,6 +5,8 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	animated_meshes.push_back({ "Cowboy 2", asset_loader.load_animated_mesh("Data/Cowboy.fbx") });
 	animated_meshes.push_back({ "Arm",      asset_loader.load_animated_mesh("Data/test.fbx") });
 
+	animated_meshes[0].get_mesh().play_animation("Armature|Run");
+
 	meshes.push_back({ "Monkey", asset_loader.load_mesh("Data/Monkey.obj"), { 0.9f, 0.0f }, Vector3( 0.0f, -10.0f, 0.0f) });
 	meshes.push_back({ "Cube 1", asset_loader.load_mesh("Data/Cube.obj"), { 0.9f, 0.0f }, Vector3( 10.0f, 0.0f, 0.0f) });
 	meshes.push_back({ "Cube 2", asset_loader.load_mesh("Data/Cube.obj"), { 0.1f, 0.0f }, Vector3(-10.0f, 0.0f, 0.0f) });

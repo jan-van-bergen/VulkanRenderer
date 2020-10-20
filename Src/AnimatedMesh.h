@@ -74,7 +74,8 @@ struct AnimatedMesh {
 	
 	u32 index_count;
 
-	std::vector<Animation> animations;
+	std::unordered_map<std::string, Animation> animations;
+	Animation * current_animation = nullptr;
 	
 	struct Bone {
 		std::string name;
@@ -94,7 +95,12 @@ struct AnimatedMesh {
 
 	static void free();
 
+	void play_animation(std::string const & name);
+	void stop_animation();
+
 	void update(float time);
+
+	bool is_playing() const { return current_animation != nullptr; }
 };
 
 struct AnimatedMeshInstance {

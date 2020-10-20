@@ -213,6 +213,16 @@ void Renderer::update(float delta) {
 	ImGui::Text("Sun: %f, %f, %f", dir.x, dir.y, dir.z);
 	ImGui::Text("Culled Lights %i/%i", render_task_lighting.num_culled_lights, scene.point_lights.size() + scene.spot_lights.size());
 
+	if (ImGui::Button("Animation")) {
+		auto & anim_mesh = scene.animated_meshes[2].get_mesh();
+
+		if (anim_mesh.is_playing()) {
+			anim_mesh.stop_animation();
+		} else {
+			anim_mesh.play_animation("Armature|Bend");
+		}
+	}
+
 	for (auto & mesh : scene.meshes) {
 		if (ImGui::Button(mesh.name.c_str())) {
 			selected_mesh = &mesh;

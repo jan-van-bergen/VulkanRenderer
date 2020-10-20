@@ -232,7 +232,7 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 		auto & bone       = mesh.bones.emplace_back();
 
 		bone.name = std::string(assimp_bone->mName.C_Str());
-
+		bone.current_pose = Matrix4::identity();
 		std::memcpy(&bone.inv_bind_pose.cells, &assimp_bone->mOffsetMatrix, 4 * 4 * sizeof(float));
 
 		for (int w = 0; w < assimp_bone->mNumWeights; w++) {
@@ -287,7 +287,7 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 	for (int a = 0; a < assimp_scene->mNumAnimations; a++) {
 		auto assimp_animation = assimp_scene->mAnimations[a];
 
-		auto & animation = mesh.animations.emplace_back();
+		auto & animation = mesh.animations[std::string(assimp_animation->mName.C_Str())];
 
 		for (int c = 0; c < assimp_animation->mNumChannels; c++) {
 			auto assimp_channel = assimp_animation->mChannels[c];

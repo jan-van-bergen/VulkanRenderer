@@ -16,13 +16,25 @@ void AnimatedMesh::free() {
 	meshes.clear();
 }
 
+void AnimatedMesh::play_animation(std::string const & name) {
+	if (animations.find(name) != animations.end()) {
+		current_animation = &animations[name];
+	} else {
+		printf("WARNING: Trying to play non-existent animation %s!\n", name.c_str());
+	}
+}
+
+void AnimatedMesh::stop_animation() {
+	current_animation = nullptr;
+}
+
 void AnimatedMesh::update(float time) {
-	auto & animation = animations[0];
+	if (current_animation == nullptr) return;
 
 	for (auto & bone : bones) {
-		if (animation.channels.find(bone.name) == animation.channels.end()) __debugbreak();
+		if (current_animation->channels.find(bone.name) == current_animation->channels.end()) __debugbreak();
 
-		auto & channel = animation.channels[bone.name];
+		auto & channel = current_animation->channels[bone.name];
 
 		Vector3    position;
 		Quaternion rotation;
