@@ -214,7 +214,7 @@ void Renderer::update(float delta) {
 	ImGui::Text("Culled Lights %i/%i", render_task_lighting.num_culled_lights, scene.point_lights.size() + scene.spot_lights.size());
 
 	if (ImGui::Button("Animation")) {
-		auto & anim_mesh = scene.animated_meshes[2].get_mesh();
+		auto & anim_mesh = scene.animated_meshes[2];
 
 		if (anim_mesh.is_playing()) {
 			anim_mesh.stop_animation();

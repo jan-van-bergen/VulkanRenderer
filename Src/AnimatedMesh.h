@@ -75,7 +75,6 @@ struct AnimatedMesh {
 	u32 index_count;
 
 	std::unordered_map<std::string, Animation> animations;
-	Animation * current_animation = nullptr;
 	
 	struct Bone {
 		std::string name;
@@ -84,7 +83,6 @@ struct AnimatedMesh {
 		std::vector<int> children;
 
 		Matrix4 inv_bind_pose;
-		Matrix4 current_pose;
 	};
 	
 	std::vector<Bone> bones;
@@ -95,19 +93,12 @@ struct AnimatedMesh {
 
 	static void free();
 
-	void play_animation(std::string const & name);
-	void stop_animation();
-
-	void update(float time);
-
-	bool is_playing() const { return current_animation != nullptr; }
 };
 
 struct AnimatedMeshInstance {
 	std::string name;
 
 	AnimatedMeshHandle mesh_handle;
-
 	AnimatedMesh & get_mesh() const { return AnimatedMesh::meshes[mesh_handle]; }
 	
 	struct Material {
@@ -116,4 +107,18 @@ struct AnimatedMeshInstance {
 	} material;
 
 	Transform transform;
+	
+	float       current_time = 0.0f;
+	Animation * current_animation = nullptr;
+	
+	std::vector<Matrix4> bone_transforms;
+
+	void init();
+
+	void play_animation(std::string const & name, bool restart = false);
+	void stop_animation();
+	
+	void update(float time);
+
+	bool is_playing() const { return current_animation != nullptr; }
 };

@@ -426,11 +426,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		}
 
 		buffer_bones.resize(buffer_bones.size() + mesh.bones.size() * sizeof(Matrix4));
-
-		for (int i = 0; i < mesh.bones.size(); i++) {
-			auto bone_matrix = reinterpret_cast<Matrix4 *>(buffer_bones.data()) + bone_offset + i;
-			std::memcpy(bone_matrix, &mesh.bones[i].current_pose, sizeof(Matrix4));
-		}
+		std::memcpy(buffer_bones.data() + bone_offset * sizeof(Matrix4), mesh_instance.bone_transforms.data(), mesh_instance.bone_transforms.size() * sizeof(Matrix4));
 
 		bone_offset += mesh.bones.size();
 

@@ -5,7 +5,9 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	animated_meshes.push_back({ "Cowboy 2", asset_loader.load_animated_mesh("Data/Cowboy.fbx") });
 	animated_meshes.push_back({ "Arm",      asset_loader.load_animated_mesh("Data/test.fbx") });
 
-	animated_meshes[0].get_mesh().play_animation("Armature|Run");
+	for (auto & animated_mesh : animated_meshes) animated_mesh.init();
+
+	animated_meshes[0].play_animation("Armature|Run");
 
 	meshes.push_back({ "Monkey", asset_loader.load_mesh("Data/Monkey.obj"), { 0.9f, 0.0f }, Vector3( 0.0f, -10.0f, 0.0f) });
 	meshes.push_back({ "Cube 1", asset_loader.load_mesh("Data/Cube.obj"), { 0.9f, 0.0f }, Vector3( 10.0f, 0.0f, 0.0f) });
@@ -57,11 +59,8 @@ void Scene::update(float delta) {
 	if (spot_lights.size() > 0) spot_lights[0].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), 0.5f * delta) * spot_lights[0].direction;
 	if (spot_lights.size() > 1) spot_lights[1].direction = Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f),       -delta) * spot_lights[1].direction;
 
-	for (auto & animated_mesh : AnimatedMesh::meshes) {
-		animated_mesh.update(time);
-	}
-
 	for (auto & animated_mesh : animated_meshes) {
+		animated_mesh.update(delta);
 		animated_mesh.transform.update();
 	}
 
