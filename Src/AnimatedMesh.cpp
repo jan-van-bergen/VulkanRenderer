@@ -45,7 +45,7 @@ void AnimatedMeshInstance::update(float delta) {
 
 	auto const & mesh = get_mesh();
 
-	current_time += 15.0f * delta;
+	current_time += animation_speed * delta;
 
 	assert(bone_transforms.size() == mesh.bones.size());
 

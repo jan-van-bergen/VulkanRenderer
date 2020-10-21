@@ -16,8 +16,11 @@ layout(set = 1, binding = 0) uniform MaterialUBO {
 } material;
 
 void main() {
-	out_albedo = texture(sampler_diffuse, in_texcoord);
+	vec4 diffuse =  texture(sampler_diffuse, in_texcoord);
 
+	if (diffuse.a < 0.95f) discard;
+
+	out_albedo = diffuse;
 	out_normal_roughness_metallic = vec4(
 		pack_normal(in_normal),
 		material.roughness,

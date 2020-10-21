@@ -109,6 +109,8 @@ struct AnimatedMeshInstance {
 	
 	float       current_time = 0.0f;
 	Animation * current_animation = nullptr;
+
+	float animation_speed = 1.0f;
 	
 	std::vector<Matrix4> bone_transforms;
 
