@@ -183,7 +183,7 @@ void RenderTaskPostProcess::free() {
 
 void RenderTaskPostProcess::render(int image_index, VkCommandBuffer command_buffer, VkFramebuffer frame_buffer) {
 	VkClearValue clear[2] = { };
-	clear[0].color        = { 0.0f, 1.0f, 0.0f, 1.0f };
+	clear[0].color        = { 0.0f, 0.0f, 0.0f, 0.0f };
 	clear[1].depthStencil = { 1.0f, 0 };
 	
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };

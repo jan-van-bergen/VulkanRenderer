@@ -268,7 +268,7 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.shadow));
 	}
 	
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // HDR lighting
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VulkanContext::create_clear_value_colour()); // HDR lighting
 	
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);
@@ -419,9 +419,9 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		std::vector<std::byte> buf(scene.point_lights.size() * aligned_size);
 
 		// Bind Sphere to render Point Lights
-		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+		VkBuffer     vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
+		VkDeviceSize vertex_offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		
@@ -473,9 +473,9 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		std::vector<std::byte> buf(scene.spot_lights.size() * aligned_size);
 
 		// Bind Sphere to render Spot Lights
-		VkBuffer vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+		VkBuffer     vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
+		VkDeviceSize vertex_offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		

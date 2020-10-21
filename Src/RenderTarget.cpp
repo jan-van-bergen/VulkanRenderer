@@ -8,7 +8,7 @@
 
 #include "Util.h"
 
-void RenderTarget::add_attachment(int width, int height, VkFormat format, unsigned usage, VkImageLayout image_layout) {
+void RenderTarget::add_attachment(int width, int height, VkFormat format, unsigned usage, VkImageLayout image_layout, VkClearValue clear_value) {
 	auto device = VulkanContext::get_device();
 	
 	VkImageAspectFlags image_aspect_mask = 0;
@@ -64,6 +64,8 @@ void RenderTarget::add_attachment(int width, int height, VkFormat format, unsign
 	attachment.description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachment.description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	attachment.description.finalLayout = image_layout;
+
+	clear_values.push_back(clear_value);
 }
 
 void RenderTarget::init(int width, int height, VkRenderPass render_pass, VkFilter filter) {
@@ -108,6 +110,8 @@ void RenderTarget::free() {
 
 	vkDestroyFramebuffer(device, frame_buffer, nullptr);
 	vkDestroySampler    (device, sampler,      nullptr);
+
+	clear_values.clear();
 }
 
 std::vector<VkAttachmentDescription> RenderTarget::get_attachment_descriptions() {

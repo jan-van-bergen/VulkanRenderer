@@ -51,7 +51,8 @@ void RenderTaskShadow::init(VkDescriptorPool descriptor_pool, int swapchain_imag
 	for (auto & directional_light : scene.directional_lights) {
 		directional_light.shadow_map.render_target.add_attachment(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, depth_format,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VulkanContext::create_clear_value_depth()
 		);
 		directional_light.shadow_map.render_target.init(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, render_pass, VK_FILTER_LINEAR);
 	}
@@ -163,12 +164,6 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 
 		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-		VkViewport viewport = { 0.0f, 0.0f, float(SHADOW_MAP_WIDTH), float(SHADOW_MAP_HEIGHT), 0.0f, 1.0f };
-		VkRect2D   scissor = { 0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
-	
-		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-		vkCmdSetScissor (command_buffer, 0, 1, &scissor);
-
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadow_animated);
 	
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.shadow_animated, 1, 1, &descriptor_sets.bones[image_index], 0, nullptr);
@@ -181,7 +176,7 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 		
 			auto const & transform = mesh_instance.transform.matrix;
 			
-			ShadowPushConstants push_constants;
+			ShadowPushConstants push_constants = { };
 			push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;
 			push_constants.bone_offset = bone_offset;
 		
@@ -204,16 +199,16 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 			auto const & mesh_instance = scene.meshes[i];
 			auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
 
-			auto transform = mesh_instance.transform.matrix;
+			auto const & transform = mesh_instance.transform.matrix;
 			
-			ShadowPushConstants push_constants;
+			ShadowPushConstants push_constants = { };
 			push_constants.wvp = scene.directional_lights[0].get_light_matrix() * transform;
 
 			vkCmdPushConstants(command_buffer, pipeline_layouts.shadow_static, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &push_constants);
 			
-			VkBuffer vertex_buffers[] = { mesh.vertex_buffer.buffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+			VkBuffer     vertex_buffers[] = { mesh.vertex_buffer.buffer };
+			VkDeviceSize vertex_offsets[] = { 0 };
+			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 			vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 

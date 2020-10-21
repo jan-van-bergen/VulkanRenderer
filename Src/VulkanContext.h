@@ -85,6 +85,9 @@ namespace VulkanContext {
 
 	VkFramebuffer create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments);
 
+	VkClearValue create_clear_value_colour(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 0.0f);
+	VkClearValue create_clear_value_depth (float depth = 1.0f, u32 stencil = 0);
+
 	VkInstance get_instance();
 
 	VkPhysicalDevice get_physical_device();

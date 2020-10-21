@@ -519,6 +519,18 @@ VkFramebuffer VulkanContext::create_frame_buffer(int width, int height, VkRender
 	return frame_buffer;
 }
 
+VkClearValue VulkanContext::create_clear_value_colour(float r, float g, float b, float a) {
+	VkClearValue clear = { };
+	clear.color = { r, g, b, a };
+	return clear;
+}
+
+VkClearValue VulkanContext::create_clear_value_depth(float depth, u32 stencil) {
+	VkClearValue clear = { };
+	clear.depthStencil = { depth, stencil };
+	return clear;
+}
+
 VkInstance VulkanContext::get_instance() { return instance; }
 
 VkPhysicalDevice VulkanContext::get_physical_device() { return physical_device; }

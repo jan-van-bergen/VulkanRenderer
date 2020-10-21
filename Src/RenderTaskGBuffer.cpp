@@ -104,9 +104,13 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	}
 
 	// Initialize FrameBuffers and their attachments
-	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Albedo
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Normal (packed in xy) + Roughness + Metallic 
-	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL); // Depth
+	constexpr auto attachment_colour = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         | VK_IMAGE_USAGE_SAMPLED_BIT;
+	constexpr auto attachment_depth  = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	constexpr auto readonly = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    attachment_colour, readonly, VulkanContext::create_clear_value_colour()); // Albedo
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               attachment_colour, readonly, VulkanContext::create_clear_value_colour()); // Normal (packed in xy) + Roughness + Metallic 
+	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), attachment_depth,  readonly, VulkanContext::create_clear_value_depth());  // Depth
 
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);
@@ -411,9 +415,9 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 1, 1, &descriptor_set_material, 1, &offset);
 		num_unculled_mesh_instances++;
 				
-		VkBuffer vertex_buffers[] = { mesh.vertex_buffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+		VkBuffer     vertex_buffers[] = { mesh.vertex_buffer.buffer };
+		VkDeviceSize vertex_offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		
@@ -479,9 +483,9 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_static, 1, 1, &descriptor_set_material, 1, &offset);
 				num_unculled_mesh_instances++;
 				
-				VkBuffer vertex_buffers[] = { mesh.vertex_buffer.buffer };
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+				VkBuffer     vertex_buffers[] = { mesh.vertex_buffer.buffer };
+				VkDeviceSize vertex_offsets[] = { 0 };
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 				vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 			}
