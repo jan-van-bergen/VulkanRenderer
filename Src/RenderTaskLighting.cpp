@@ -354,20 +354,13 @@ void RenderTaskLighting::free() {
 }
 
 void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer) {
-	auto inv_view_projection = Matrix4::invert(scene.camera.get_view_projection());
-
-	VkClearValue clear[1] = { };
-	clear[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-	
-	assert(Util::array_element_count(clear) == render_target.attachments.size());
-
 	// Begin Light Render Pass
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderpass_begin_info.renderPass  = render_pass;
 	renderpass_begin_info.framebuffer = render_target.frame_buffer;
 	renderpass_begin_info.renderArea = { 0, 0, u32(width), u32(height) };
-	renderpass_begin_info.clearValueCount = Util::array_element_count(clear);
-	renderpass_begin_info.pClearValues    = clear;
+	renderpass_begin_info.clearValueCount = render_target.clear_values.size();
+	renderpass_begin_info.pClearValues    = render_target.clear_values.data();
 		
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -391,8 +384,8 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo->directional_light.colour       = directional_light.colour;
 			ubo->directional_light.direction    = directional_light.get_direction();
 			ubo->directional_light.light_matrix = directional_light.get_light_matrix();
-			ubo->camera_position = scene.camera.position;
-			ubo->inv_view_projection = inv_view_projection;
+			ubo->camera_position     = scene.camera.position;
+			ubo->inv_view_projection = scene.camera.get_inv_view_projection();
 
 			u32 offset = i * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set,                              1, &offset);	
@@ -438,8 +431,8 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo->point_light.colour   = point_light.colour;
 			ubo->point_light.position = point_light.position;
 			ubo->point_light.one_over_radius_squared = 1.0f / (point_light.radius * point_light.radius);
-			ubo->camera_position = scene.camera.position;
-			ubo->inv_view_projection = inv_view_projection;
+			ubo->camera_position     = scene.camera.position;
+			ubo->inv_view_projection = scene.camera.get_inv_view_projection();
 
 			// Draw Sphere
 			PointLightPushConstants push_constants = { };
@@ -494,8 +487,8 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo->spot_light.one_over_radius_squared = 1.0f / (spot_light.radius * spot_light.radius);
 			ubo->spot_light.cutoff_inner = std::cos(0.5f * spot_light.cutoff_inner);
 			ubo->spot_light.cutoff_outer = std::cos(0.5f * spot_light.cutoff_outer);
-			ubo->camera_position = scene.camera.position;
-			ubo->inv_view_projection = inv_view_projection;
+			ubo->camera_position     = scene.camera.position;
+			ubo->inv_view_projection = scene.camera.get_inv_view_projection();
 
 			PointLightPushConstants push_constants = { };
 			push_constants.wvp = scene.camera.get_view_projection() * Matrix4::create_translation(spot_light.position) * Matrix4::create_scale(spot_light.radius);

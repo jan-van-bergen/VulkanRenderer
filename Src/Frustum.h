@@ -18,7 +18,7 @@ struct Frustum {
 		}
 	} planes[6];
 
-	void from_view_projection(Matrix4 const & view_projection);
+	void from_matrix(Matrix4 const & view_projection);
 
 	IntersectionType intersect_aabb(Vector3 const & min, Vector3 const & max) const;
 	IntersectionType intersect_sphere(Vector3 const & center, float radius) const;

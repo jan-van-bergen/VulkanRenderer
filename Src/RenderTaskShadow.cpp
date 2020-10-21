@@ -151,21 +151,18 @@ void RenderTaskShadow::free() {
 
 void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 	for (auto const & directional_light : scene.directional_lights) {
-		VkClearValue clear = { };
-		clear.depthStencil = { 1.0f, 0 };
-		
 		VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		render_pass_begin_info.renderPass  = render_pass;
 		render_pass_begin_info.framebuffer = directional_light.shadow_map.render_target.frame_buffer;
 		render_pass_begin_info.renderArea.extent.width  = SHADOW_MAP_WIDTH;
 		render_pass_begin_info.renderArea.extent.height = SHADOW_MAP_HEIGHT;
-		render_pass_begin_info.clearValueCount = 1;
-		render_pass_begin_info.pClearValues    = &clear;
+		render_pass_begin_info.clearValueCount = directional_light.shadow_map.render_target.clear_values.size();
+		render_pass_begin_info.pClearValues    = directional_light.shadow_map.render_target.clear_values.data();
 
 		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadow_animated);
-	
+
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.shadow_animated, 1, 1, &descriptor_sets.bones[image_index], 0, nullptr);
 
 		int bone_offset = 0;

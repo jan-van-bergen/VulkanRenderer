@@ -2,13 +2,13 @@
 
 #include <immintrin.h>
 
-void Frustum::from_view_projection(Matrix4 const & view_projection) {
+void Frustum::from_matrix(Matrix4 const & matrix) {
 	// Based on: "Fast Extraction of Viewing Frustum Planes from the World-View-Projection Matrix" by Gil Gribb and Klaus Hartmann
 	auto calc_plane = [&](Plane * plane, int row_0, int row_1, bool neg) {
-		float A = (neg ? -1.0f : +1.0f) * view_projection(row_0, 0) + view_projection(row_1, 0);
-		float B = (neg ? -1.0f : +1.0f) * view_projection(row_0, 1) + view_projection(row_1, 1);
-		float C = (neg ? -1.0f : +1.0f) * view_projection(row_0, 2) + view_projection(row_1, 2);
-		float D = (neg ? -1.0f : +1.0f) * view_projection(row_0, 3) + view_projection(row_1, 3);
+		float A = (neg ? -1.0f : +1.0f) * matrix(row_0, 0) + matrix(row_1, 0);
+		float B = (neg ? -1.0f : +1.0f) * matrix(row_0, 1) + matrix(row_1, 1);
+		float C = (neg ? -1.0f : +1.0f) * matrix(row_0, 2) + matrix(row_1, 2);
+		float D = (neg ? -1.0f : +1.0f) * matrix(row_0, 3) + matrix(row_1, 3);
 
 		float normalization_factor = 1.0f / sqrtf(A*A + B*B + C*C);
 

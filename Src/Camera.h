@@ -7,8 +7,10 @@ class Camera {
 	float near;
 	float far;
 
-	Matrix4      projection;
+	Matrix4 projection;
+	Matrix4 projection_inv;
 	Matrix4 view_projection;
+	Matrix4 view_projection_inv;
 	
 	bool mouse_locked;
 
@@ -34,5 +36,6 @@ public:
 
 	void update(float delta);
 
-	inline Matrix4 const & get_view_projection() const { return view_projection; }
+	inline Matrix4 const & get_view_projection()     const { return view_projection; }
+	inline Matrix4 const & get_inv_view_projection() const { return view_projection_inv; }
 };

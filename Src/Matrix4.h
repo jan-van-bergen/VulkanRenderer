@@ -99,8 +99,7 @@ struct alignas(16) Matrix4 {
 	inline static Matrix4 perspective(float fov, float aspect, float near, float far) {
 		float tan_half_fov = tanf(0.5f * fov);
 
-		Matrix4 result = Matrix4::identity();
-
+		Matrix4 result = { };
 		result(0, 0) =  1.0f / (aspect * tan_half_fov);
 		result(1, 1) = -1.0f / tan_half_fov;
 		result(2, 2) = far / (near - far);
@@ -111,13 +110,36 @@ struct alignas(16) Matrix4 {
 		return result;
 	}
 
+	inline static Matrix4 perspective_inv(float fov, float aspect, float near, float far) {
+		float tan_half_fov = tanf(0.5f * fov);
+
+		Matrix4 result = { };
+		result(0, 0) =  aspect * tan_half_fov;
+		result(1, 1) = -tan_half_fov;
+		result(2, 2) =  0.0f;
+		result(3, 2) =  1.0f / far - 1.0f / near;
+		result(2, 3) = -1.0f;
+		result(3, 3) =  1.0f / near;
+
+		return result;
+	}
+
 	inline static Matrix4 orthographic(float width, float height, float near, float far) {
 		Matrix4 result = Matrix4::identity();
-
 		result(0, 0) =  2.0f / width;
 		result(1, 1) = -2.0f / height;
 		result(2, 2) = -1.0f / (far - near);
 		result(2, 3) = -near / (far - near);
+
+		return result;
+	}
+	
+	inline static Matrix4 orthographic_inv(float width, float height, float near, float far) {
+		Matrix4 result = Matrix4::identity();
+		result(0, 0) =  0.5f * width;
+		result(1, 1) = -0.5f * height;
+		result(2, 2) =  near - far;
+		result(2, 3) = -near;
 
 		return result;
 	}

@@ -360,21 +360,13 @@ void RenderTaskGBuffer::free() {
 }
 
 void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) {
-	// Clear values for all attachments written in the fragment shader
-	VkClearValue clear[3] = { };
-	clear[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clear[2].depthStencil = { 1.0f, 0 };
-
-	assert(Util::array_element_count(clear) == render_target.attachments.size());
-
 	VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	render_pass_begin_info.renderPass =  render_pass;
 	render_pass_begin_info.framebuffer = render_target.frame_buffer;
 	render_pass_begin_info.renderArea.extent.width  = width;
 	render_pass_begin_info.renderArea.extent.height = height;
-	render_pass_begin_info.clearValueCount = Util::array_element_count(clear);
-	render_pass_begin_info.pClearValues    = clear;
+	render_pass_begin_info.clearValueCount = render_target.clear_values.size();
+	render_pass_begin_info.pClearValues    = render_target.clear_values.data();
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 	

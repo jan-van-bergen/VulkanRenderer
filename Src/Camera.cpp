@@ -25,8 +25,9 @@ void Camera::set_locked(bool locked) {
 }
 
 void Camera::on_resize(int width, int height) {
-	projection = Matrix4::perspective(fov, static_cast<float>(width) / static_cast<float>(height), near, far);
-	
+	projection     = Matrix4::perspective    (fov, float(width) / float(height), near, far);
+	projection_inv = Matrix4::perspective_inv(fov, float(width) / float(height), near, far);
+
 	top_left_corner = Vector3(-0.5f * float(width),  0.5f * float(height), -far);
 }
 
@@ -77,5 +78,10 @@ void Camera::update(float delta) {
 		Matrix4::create_rotation(Quaternion::conjugate(rotation)) *
 		Matrix4::create_translation(-position);
 
-	frustum.from_view_projection(view_projection);
+	view_projection_inv = 
+		Matrix4::create_translation(position) *
+		Matrix4::create_rotation(rotation) *
+		projection_inv;
+
+	frustum.from_matrix(view_projection);
 }
