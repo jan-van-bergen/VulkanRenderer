@@ -32,7 +32,6 @@ private:
 
 	struct {
 		std::vector<VulkanMemory::Buffer> material;
-		std::vector<VulkanMemory::Buffer> bones;
 		std::vector<VulkanMemory::Buffer> sky;
 	} uniform_buffers;
 

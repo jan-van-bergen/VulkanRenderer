@@ -184,8 +184,8 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 	// Create Uniform Buffers
 	uniform_buffers.material.resize(swapchain_image_count);
-	uniform_buffers.bones   .resize(swapchain_image_count);
 	uniform_buffers.sky     .resize(swapchain_image_count);
+	AnimatedMesh::storage_buffer_bones.resize(swapchain_image_count);
 
 	auto aligned_size_material = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	auto aligned_size_sky      = Math::round_up(sizeof(SkyUBO),      VulkanContext::get_min_uniform_buffer_alignment());
@@ -201,13 +201,13 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 		
-		uniform_buffers.bones[i] = VulkanMemory::buffer_create(total_bone_count * sizeof(Matrix4),
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+		uniform_buffers.sky[i] = VulkanMemory::buffer_create(aligned_size_sky,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 
-		uniform_buffers.sky[i] = VulkanMemory::buffer_create(aligned_size_sky,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		AnimatedMesh::storage_buffer_bones[i] = VulkanMemory::buffer_create(total_bone_count * sizeof(Matrix4),
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 	}
@@ -283,7 +283,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			auto descriptor_set = descriptor_sets.bones[i];
 
 			VkDescriptorBufferInfo buffer_info = { };
-			buffer_info.buffer = uniform_buffers.bones[i].buffer;
+			buffer_info.buffer = AnimatedMesh::storage_buffer_bones[i].buffer;
 			buffer_info.offset = 0;
 			buffer_info.range  = total_bone_count * sizeof(Matrix4);
 
@@ -350,7 +350,6 @@ void RenderTaskGBuffer::free() {
 	vkDestroyPipeline(device, pipelines.sky,               nullptr);
 	
 	for (auto & uniform_buffer : uniform_buffers.material) VulkanMemory::buffer_free(uniform_buffer);
-	for (auto & uniform_buffer : uniform_buffers.bones)    VulkanMemory::buffer_free(uniform_buffer);
 	for (auto & uniform_buffer : uniform_buffers.sky)      VulkanMemory::buffer_free(uniform_buffer);
 
 	vkDestroyRenderPass(device, render_pass, nullptr);
@@ -433,7 +432,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		vkCmdDrawIndexed(command_buffer, mesh.index_count, 1, 0, 0, 0);
 	}
 	
-	if (buffer_bones.size() > 0) VulkanMemory::buffer_copy_direct(uniform_buffers.bones[image_index], buffer_bones.data(), buffer_bones.size());
+	if (buffer_bones.size() > 0) VulkanMemory::buffer_copy_direct(AnimatedMesh::storage_buffer_bones[image_index], buffer_bones.data(), buffer_bones.size());
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.geometry_static);
 	

@@ -91,6 +91,8 @@ struct AnimatedMesh {
 	
 	TextureHandle texture_handle;
 
+	static inline std::vector<VulkanMemory::Buffer> storage_buffer_bones;
+
 	static inline std::vector<AnimatedMesh> meshes;
 
 	static void free();

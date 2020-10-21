@@ -89,14 +89,14 @@ void Renderer::swapchain_create() {
 	pool_create_info.poolSizeCount = Util::array_element_count(descriptor_pool_sizes);
 	pool_create_info.pPoolSizes    = descriptor_pool_sizes;
 	pool_create_info.maxSets =
-		(1 + 1 + 3 + 1 + AnimatedMesh::meshes.size()) * swapchain_views.size() + // Sky + Materials + 3 Light types + Post Process + Bones
-		Texture::textures.size() +                                               // Textures
-		scene.directional_lights.size();                                         // Shadow map
+		(1 + 1 + 3 + 1 + 2 * AnimatedMesh::meshes.size()) * swapchain_views.size() + // Sky + Materials + 3 Light types + Post Process + Bones
+		Texture::textures.size() +                                                   // Textures
+		scene.directional_lights.size();                                             // Shadow map
 
 	VK_CHECK(vkCreateDescriptorPool(device, &pool_create_info, nullptr, &descriptor_pool));
 
 	render_task_gbuffer     .init(descriptor_pool, width, height, swapchain_views.size());
-	render_task_shadow      .init();
+	render_task_shadow      .init(descriptor_pool, swapchain_views.size());
 	render_task_lighting    .init(descriptor_pool, width, height, swapchain_views.size(), render_task_gbuffer .get_render_target());
 	render_task_post_process.init(descriptor_pool, width, height, swapchain_views.size(), render_task_lighting.get_render_target(), window);
 

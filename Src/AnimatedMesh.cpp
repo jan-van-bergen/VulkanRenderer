@@ -12,8 +12,9 @@ void AnimatedMesh::free() {
 		VulkanMemory::buffer_free(mesh.vertex_buffer);
 		VulkanMemory::buffer_free(mesh.index_buffer);
 	}
-
 	meshes.clear();
+
+	for (auto & storage_buffer : storage_buffer_bones) VulkanMemory::buffer_free(storage_buffer);
 }
 
 void AnimatedMeshInstance::init() {
