@@ -189,7 +189,7 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 
 	if (assimp_scene->mNumMeshes != 1) {
 		printf("ERROR: Animated Mesh %s contains more than one Sub Mesh, this is not supported for Animated Meshes!", filename.c_str());
-		abort();
+		//abort();
 	}
 
 	auto assimp_mesh = assimp_scene->mMeshes[0];
@@ -292,27 +292,27 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 		for (int c = 0; c < assimp_animation->mNumChannels; c++) {
 			auto assimp_channel = assimp_animation->mChannels[c];
 
-			assert(assimp_channel->mNumPositionKeys == assimp_channel->mNumRotationKeys);
+			auto & position_channel = animation.position_channels[std::string(assimp_channel->mNodeName.C_Str())];
+			auto & rotation_channel = animation.rotation_channels[std::string(assimp_channel->mNodeName.C_Str())];
 
-			auto & channel = animation.channels[std::string(assimp_channel->mNodeName.C_Str())];
+			for (int k = 0; k < assimp_channel->mNumPositionKeys; k++) {
+				auto const & assimp_key_position = assimp_channel->mPositionKeys[k];
 
-			int num_key_frames = assimp_channel->mNumPositionKeys;
-
-			std::vector<Animation::KeyFrame> key_frames(num_key_frames);
-
-			for (int k = 0; k < num_key_frames; k++) {
-				auto assimp_key_position = assimp_channel->mPositionKeys[k];
-				auto assimp_key_rotation = assimp_channel->mRotationKeys[k];
-
-				assert(assimp_key_position.mTime == assimp_key_rotation.mTime);
-
-				channel.key_frames.push_back({
+				position_channel.key_frames.push_back({
 					float(assimp_key_position.mTime),
 					Vector3(
 						assimp_key_position.mValue.x,
 						assimp_key_position.mValue.y,
 						assimp_key_position.mValue.z
-					),
+					)
+				});
+			}
+
+			for (int k = 0; k < assimp_channel->mNumRotationKeys; k++) {
+				auto const & assimp_key_rotation = assimp_channel->mRotationKeys[k];
+
+				rotation_channel.key_frames.push_back({
+					float(assimp_key_rotation.mTime),
 					Quaternion(
 						assimp_key_rotation.mValue.x,
 						assimp_key_rotation.mValue.y,
