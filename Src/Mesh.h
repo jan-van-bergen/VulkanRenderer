@@ -83,10 +83,12 @@ struct MeshInstance {
 	std::string name;
 
 	MeshHandle mesh_handle;
-
-	Mesh & get_mesh() const { return Mesh::meshes[mesh_handle]; }
 	
 	Material * material;
 
 	Transform transform;
+
+	MeshInstance(std::string const & name, MeshHandle mesh_handle, Material * material) : name(name), mesh_handle(mesh_handle), material(material) { }
+	
+	Mesh & get_mesh() const { return Mesh::meshes[mesh_handle]; }
 };

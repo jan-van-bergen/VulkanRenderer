@@ -102,7 +102,6 @@ struct AnimatedMeshInstance {
 	std::string name;
 
 	AnimatedMeshHandle mesh_handle;
-	AnimatedMesh & get_mesh() const { return AnimatedMesh::meshes[mesh_handle]; }
 	
 	Material * material;
 
@@ -113,12 +112,14 @@ struct AnimatedMeshInstance {
 	
 	std::vector<Matrix4> bone_transforms;
 
-	void init();
+	AnimatedMeshInstance(std::string const & name, AnimatedMeshHandle mesh_handle, Material * material);
 
 	void play_animation(std::string const & name, bool restart = false);
 	void stop_animation();
 	
 	void update(float time);
-
+	
 	bool is_playing() const { return current_animation != nullptr; }
+	
+	AnimatedMesh & get_mesh() const { return AnimatedMesh::meshes[mesh_handle]; }
 };

@@ -3,18 +3,16 @@
 Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) {
 	Material * material_diffuse = materials.emplace_back(std::make_unique<Material>(0.9f, 0.0f)).get();
 
-	animated_meshes.push_back({ "Cowboy 1", asset_loader.load_animated_mesh("Data/Cowboy.fbx") });
-	animated_meshes.push_back({ "Cowboy 2", asset_loader.load_animated_mesh("Data/Cowboy.fbx") });
-	animated_meshes.push_back({ "Arm",      asset_loader.load_animated_mesh("Data/test.fbx") });
-
-	for (auto & animated_mesh : animated_meshes) animated_mesh.init();
+	animated_meshes.emplace_back("Cowboy 1", asset_loader.load_animated_mesh("Data/Cowboy.fbx"), material_diffuse);
+	animated_meshes.emplace_back("Cowboy 2", asset_loader.load_animated_mesh("Data/Cowboy.fbx"), material_diffuse);
+	animated_meshes.emplace_back("Arm",      asset_loader.load_animated_mesh("Data/test.fbx"),   material_diffuse);
 
 	animated_meshes[0].play_animation("Armature|Run");
 
-	meshes.push_back({ "Monkey", asset_loader.load_mesh("Data/Monkey.obj"),        material_diffuse, Vector3(  0.0f, -10.0f, 0.0f) });
-	meshes.push_back({ "Cube 1", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse, Vector3( 10.0f,   0.0f, 0.0f) });
-	meshes.push_back({ "Cube 2", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse, Vector3(-10.0f,   0.0f, 0.0f) });
-	meshes.push_back({ "Sponza", asset_loader.load_mesh("Data/Sponza/sponza.obj"), material_diffuse, Vector3(  0.0f,  -7.5f, 0.0f) });
+	meshes.emplace_back("Monkey", asset_loader.load_mesh("Data/Monkey.obj"),        material_diffuse).transform.position = Vector3(  0.0f, -10.0f, 0.0f);
+	meshes.emplace_back("Cube 1", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3( 10.0f,   0.0f, 0.0f);
+	meshes.emplace_back("Cube 2", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3(-10.0f,   0.0f, 0.0f);
+	meshes.emplace_back("Sponza", asset_loader.load_mesh("Data/Sponza/sponza.obj"), material_diffuse).transform.position = Vector3(  0.0f,  -7.5f, 0.0f);
 
 	directional_lights.push_back({ Vector3(1.0f),
 		Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), std::tan(1.0f / 10.0f)) *

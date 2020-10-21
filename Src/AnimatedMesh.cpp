@@ -17,7 +17,7 @@ void AnimatedMesh::free() {
 	for (auto & storage_buffer : storage_buffer_bones) VulkanMemory::buffer_free(storage_buffer);
 }
 
-void AnimatedMeshInstance::init() {
+AnimatedMeshInstance::AnimatedMeshInstance(std::string const & name, AnimatedMeshHandle mesh_handle, Material * material) : name(name), mesh_handle(mesh_handle), material(material) {
 	auto const & mesh = get_mesh();
 
 	bone_transforms.resize(mesh.bones.size());
