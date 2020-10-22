@@ -243,13 +243,11 @@
     <CustomBuild Include="Shaders\geometry_static.vert">
       <Filter>Shaders</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\shadow_animated.vert">
+    <CustomBuild Include="Shaders\shadow_animated.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\shadow_static.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\shadow_static.vert">
       <Filter>Shaders</Filter>
-    </None>
+    </CustomBuild>
   </ItemGroup>
 </Project>
