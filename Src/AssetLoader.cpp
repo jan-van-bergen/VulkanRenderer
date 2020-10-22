@@ -26,7 +26,17 @@ MeshHandle AssetLoader::load_mesh(std::string const & filename) {
 	auto & mesh = Mesh::meshes.emplace_back();
 	
 	Assimp::Importer assimp_importer;
-	aiScene const * assimp_scene = assimp_importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
+		aiProcess_Triangulate | 
+		aiProcess_FlipUVs | 
+		aiProcess_JoinIdenticalVertices | 
+		aiProcess_GenSmoothNormals |
+		aiProcess_FindInvalidData |
+		aiProcess_ImproveCacheLocality |
+		aiProcess_LimitBoneWeights |
+		aiProcess_OptimizeGraph |
+		aiProcess_OptimizeMeshes
+	);
 	
 	if (assimp_scene == nullptr) {
 		printf("ERROR: Unable to load Mesh %s!\n", filename.c_str());

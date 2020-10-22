@@ -3,7 +3,7 @@
 #include <cmath>
 
 Vector3 Animation::ChannelPosition::get_position(float time, bool loop) {
-	assert(key_frames.size() > 0);
+	if (key_frames.size() == 0) return Vector3(0.0f, 0.0f, 0.0f);
 
 	auto total_length = key_frames[key_frames.size() - 1].time;
 
@@ -29,7 +29,7 @@ Vector3 Animation::ChannelPosition::get_position(float time, bool loop) {
 }
 
 Quaternion Animation::ChannelRotation::get_rotation(float time, bool loop) {
-	assert(key_frames.size() > 0);
+	if (key_frames.size() == 0) return Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
 
 	auto total_length = key_frames[key_frames.size() - 1].time;
 
