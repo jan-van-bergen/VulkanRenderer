@@ -382,7 +382,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	std::vector<std::byte> buffer_bones;
 
 	auto num_unculled_mesh_instances = 0;
-	u32  bone_offset = 0;
+	auto bone_offset = 0;
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.geometry_animated);
 	
@@ -394,38 +394,42 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		
 		GBufferPushConstants push_constants = { };
 		push_constants.world           = mesh_instance.transform.matrix;
-		push_constants.view_projection = scene.camera.get_view_projection();
+		push_constants.view_projection = scene.camera.get_view_projection();		
 		push_constants.bone_offset = bone_offset;
 
 		vkCmdPushConstants(command_buffer, pipeline_layouts.geometry_animated, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
-				
+			
 		auto ubo = reinterpret_cast<MaterialUBO *>(&buffer_material_ubo[num_unculled_mesh_instances * aligned_size]);
-		ubo->material_roughness = 0.9f;
-		ubo->material_metallic  = 0.0f;
+		ubo->material_roughness = mesh_instance.material->roughness;
+		ubo->material_metallic  = mesh_instance.material->metallic;
 
 		u32 offset = num_unculled_mesh_instances * aligned_size;
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 1, 1, &descriptor_set_material, 1, &offset);
 		num_unculled_mesh_instances++;
-				
+			
 		VkBuffer     vertex_buffers[] = { mesh.vertex_buffer.buffer };
 		VkDeviceSize vertex_offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		
-		if (last_texture_handle != mesh.texture_handle) {
-			last_texture_handle  = mesh.texture_handle;
-
-			auto const & texture = Texture::textures[mesh.texture_handle];
-			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 0, 1, &texture.descriptor_set, 0, nullptr);
-		}
-
 		buffer_bones.resize(buffer_bones.size() + mesh.bones.size() * sizeof(Matrix4));
 		std::memcpy(buffer_bones.data() + bone_offset * sizeof(Matrix4), mesh_instance.bone_transforms.data(), mesh_instance.bone_transforms.size() * sizeof(Matrix4));
 
-		bone_offset += mesh.bones.size();
+		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
+			auto const & sub_mesh = mesh.sub_meshes[j];
+			
+			if (last_texture_handle != sub_mesh.texture_handle) {
+				last_texture_handle  = sub_mesh.texture_handle;
 
-		vkCmdDrawIndexed(command_buffer, mesh.index_count, 1, 0, 0, 0);
+				auto const & texture = Texture::textures[sub_mesh.texture_handle];
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 0, 1, &texture.descriptor_set, 0, nullptr);
+			}
+
+			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, sub_mesh.index_offset, 0, 0);
+		}
+		
+		bone_offset += mesh.bones.size();
 	}
 	
 	if (buffer_bones.size() > 0) VulkanMemory::buffer_copy_direct(AnimatedMesh::storage_buffer_bones[image_index], buffer_bones.data(), buffer_bones.size());

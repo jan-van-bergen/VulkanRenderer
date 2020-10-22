@@ -74,23 +74,28 @@ struct AnimatedMesh {
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
 	
-	u32 index_count;
-
-	std::unordered_map<std::string, Animation> animations;
-	
 	struct Bone {
 		std::string name;
 
 		int parent;
-		std::vector<int> children;
-
+		
 		Matrix4 inv_bind_pose;
 	};
 	
 	std::vector<Bone> bones;
 	
-	TextureHandle texture_handle;
+	struct SubMesh {
+		int index_offset;
+		int index_count;
 
+		TextureHandle texture_handle;
+	};
+
+	std::vector<SubMesh> sub_meshes;
+	
+	std::unordered_map<std::string, int> animation_names;
+	std::vector<Animation>               animations;
+	
 	static inline std::vector<VulkanMemory::Buffer> storage_buffer_bones;
 
 	static inline std::vector<AnimatedMesh> meshes;
@@ -116,6 +121,7 @@ struct AnimatedMeshInstance {
 
 	AnimatedMeshInstance(std::string const & name, AnimatedMeshHandle mesh_handle, Material * material);
 
+	void play_animation(int index,                bool restart = false);
 	void play_animation(std::string const & name, bool restart = false);
 	void stop_animation();
 	

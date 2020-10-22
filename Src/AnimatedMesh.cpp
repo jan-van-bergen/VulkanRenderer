@@ -24,16 +24,27 @@ AnimatedMeshInstance::AnimatedMeshInstance(std::string const & name, AnimatedMes
 	std::fill(bone_transforms.begin(), bone_transforms.end(), Matrix4::identity());
 }
 
+void AnimatedMeshInstance::play_animation(int index, bool restart) {
+	auto & mesh = get_mesh();
+
+	if (index >= 0 && index < mesh.animations.size()) {
+		current_animation = &mesh.animations[index];
+		
+		if (restart) current_time = 0.0f;
+	} else {
+		printf("WARNING: Trying to play non-existent animation with index %i!\n", index);
+	}
+
+}
+
 void AnimatedMeshInstance::play_animation(std::string const & name, bool restart) {
 	auto & mesh = get_mesh();
 
-	if (mesh.animations.find(name) != mesh.animations.end()) {
-		current_animation = &mesh.animations[name];
+	if (mesh.animation_names.find(name) != mesh.animation_names.end()) {
+		play_animation(mesh.animation_names[name], restart);
 	} else {
-		printf("WARNING: Trying to play non-existent animation %s!\n", name.c_str());
+		printf("WARNING: Trying to play non-existent animation '%s'!\n", name.c_str());
 	}
-
-	if (restart) current_time = 0.0f;
 }
 
 void AnimatedMeshInstance::stop_animation() {
@@ -47,8 +58,6 @@ void AnimatedMeshInstance::update(float delta) {
 
 	current_time += animation_speed * delta;
 
-	assert(bone_transforms.size() == mesh.bones.size());
-
 	for (int i = 0; i < mesh.bones.size(); i++) {
 		auto const & bone = mesh.bones[i];
 
@@ -59,8 +68,12 @@ void AnimatedMeshInstance::update(float delta) {
 		auto local = Matrix4::create_translation(position) * Matrix4::create_rotation(rotation);
 
 		if (bone.parent == -1) {
-			bone_transforms[i] = y_to_z * local;
+			assert(i == 0); // Root Bone
+
+			bone_transforms[i] = local;
 		} else {
+			assert(bone.parent < i); // Parent should have been transformed BEFORE the current Bone
+
 			bone_transforms[i] = bone_transforms[bone.parent] * local;
 		}
 	}

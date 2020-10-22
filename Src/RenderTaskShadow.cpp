@@ -187,7 +187,11 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 
 			vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		
-			vkCmdDrawIndexed(command_buffer, mesh.index_count, 1, 0, 0, 0);
+			for (int j = 0; j < mesh.sub_meshes.size(); j++) {
+				auto const & sub_mesh = mesh.sub_meshes[j];
+
+				vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, sub_mesh.index_offset, 0, 0);
+			}
 		}
 
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.shadow_static);
