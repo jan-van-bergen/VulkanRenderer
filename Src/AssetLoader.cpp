@@ -18,11 +18,11 @@
 MeshHandle AssetLoader::load_mesh(std::string const & filename) {
 	auto & mesh_handle = cached_meshes[filename];
 
-	if (mesh_handle != 0 && Mesh::meshes.size() > 0) return mesh_handle;
+	if (mesh_handle != 0) return mesh_handle - 1;
 	
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
-	mesh_handle = Mesh::meshes.size();
+	mesh_handle = Mesh::meshes.size() + 1;
 	auto & mesh = Mesh::meshes.emplace_back();
 	
 	Assimp::Importer assimp_importer;
@@ -132,7 +132,7 @@ MeshHandle AssetLoader::load_mesh(std::string const & filename) {
 		return a.texture_handle < b.texture_handle;
 	});
 
-	return mesh_handle;
+	return mesh_handle - 1;
 }
 
 void init_bone_hierarchy(AnimatedMesh & mesh, aiNode const * assimp_node, int parent_index, std::vector<int> & displacement, int * new_index) {
@@ -406,7 +406,7 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 TextureHandle AssetLoader::load_texture(std::string const & filename) {
 	auto & texture_handle = cached_textures[filename];
 
-	if (texture_handle != 0 && Texture::textures.size() > 0) return texture_handle;
+	if (texture_handle != 0) return texture_handle - 1;
 
 	int texture_width;
 	int texture_height;
@@ -430,7 +430,7 @@ TextureHandle AssetLoader::load_texture(std::string const & filename) {
 
 	stbi_image_free(pixels);
 
-	texture_handle = Texture::textures.size();
+	texture_handle = Texture::textures.size() + 1;
 	auto & texture = Texture::textures.emplace_back();
 
 	auto mip_levels = 1 + u32(std::log2(std::max(texture_width, texture_height)));
@@ -476,5 +476,5 @@ TextureHandle AssetLoader::load_texture(std::string const & filename) {
 
 	VK_CHECK(vkCreateSampler(device, &sampler_create_info, nullptr, &texture.sampler));
 
-	return texture_handle;
+	return texture_handle - 1;
 }
