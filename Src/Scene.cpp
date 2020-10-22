@@ -7,10 +7,14 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	animated_meshes.emplace_back("XNA Dude", asset_loader.load_animated_mesh("Data/xnadude.fbx"), material_diffuse);
 	animated_meshes.emplace_back("Arm",      asset_loader.load_animated_mesh("Data/test.fbx"),    material_diffuse);
 
-	animated_meshes[0].animation_speed = 15.0f;
+	animated_meshes[0].loop = false;
+	animated_meshes[0].animation_speed = 2.0f;
 	animated_meshes[1].animation_speed = 15.0f;
 	animated_meshes[0].play_animation("Armature|Run");
 	animated_meshes[1].play_animation(0);
+
+	animated_meshes[0].transform.rotation = Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), DEG_TO_RAD(-90.0f));
+	animated_meshes[1].transform.scale = 0.1f;
 
 	meshes.emplace_back("Monkey", asset_loader.load_mesh("Data/Monkey.obj"),        material_diffuse).transform.position = Vector3(  0.0f, -10.0f, 0.0f);
 	meshes.emplace_back("Cube 1", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3( 10.0f,   0.0f, 0.0f);

@@ -63,7 +63,7 @@ void AnimatedMeshInstance::update(float delta) {
 
 		Vector3    position;
 		Quaternion rotation;
-		current_animation->get_pose(bone.name, current_time, &position, &rotation);
+		current_animation->get_pose(bone.name, current_time, &position, &rotation, loop);
 
 		auto local = Matrix4::create_translation(position) * Matrix4::create_rotation(rotation);
 
