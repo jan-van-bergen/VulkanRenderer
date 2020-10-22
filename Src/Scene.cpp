@@ -8,8 +8,11 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	animated_meshes.emplace_back("Arm",      asset_loader.load_animated_mesh("Data/test.fbx"),    material_diffuse);
 
 	animated_meshes[0].loop = false;
+
 	animated_meshes[0].animation_speed = 2.0f;
 	animated_meshes[1].animation_speed = 15.0f;
+	animated_meshes[2].animation_speed = 100.0f;
+
 	animated_meshes[0].play_animation("Armature|Run");
 	animated_meshes[1].play_animation(0);
 

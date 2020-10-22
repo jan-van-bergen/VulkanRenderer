@@ -337,10 +337,13 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 		for (int c = 0; c < assimp_animation->mNumChannels; c++) {
 			auto assimp_channel = assimp_animation->mChannels[c];
 
+			auto & position_channel = animation.position_channels.emplace_back();
+			auto & rotation_channel = animation.rotation_channels.emplace_back();
+			
 			auto node_name = std::string(assimp_channel->mNodeName.C_Str());
 
-			auto & position_channel = animation.position_channels[node_name];
-			auto & rotation_channel = animation.rotation_channels[node_name];
+			position_channel.name = node_name;
+			rotation_channel.name = node_name;
 
 			for (int k = 0; k < assimp_channel->mNumPositionKeys; k++) {
 				auto const & assimp_position_key = assimp_channel->mPositionKeys[k];
@@ -389,6 +392,51 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 	for (int i = 0; i < bones_copy.size(); i++) bones_copy[displacement[i]] = mesh.bones[i];
 
 	mesh.bones = std::move(bones_copy);
+	
+	// Reorder Animation Channels so that they have the same order as the Bones,
+	// allowing the Channels to be indexed using the same index as the Bones
+	for (int a = 0; a < mesh.animations.size(); a++) {
+		auto & animation = mesh.animations[a];
+
+		if (animation.position_channels.size() != animation.rotation_channels.size()) {
+			printf("ERROR: Number of Position Channels is different from the number of Rotation Channels!\n");
+			abort();
+		}
+		if (animation.position_channels.size() < mesh.bones.size()) {
+			printf("ERROR: Number of Animation Channels is smaller than the number of Bones!\n");
+			abort();
+		}
+
+		std::vector<Animation::ChannelPosition> position_channels_copy(mesh.bones.size());
+		std::vector<Animation::ChannelRotation> rotation_channels_copy(mesh.bones.size());
+
+		for (int c = 0; c < animation.position_channels.size(); c++) {
+			auto & channel = animation.position_channels[c];
+
+			for (int b = 0; b < mesh.bones.size(); b++) {
+				if (channel.name == mesh.bones[b].name) {
+					position_channels_copy[b] = channel;
+
+					break;
+				}
+			}
+		}
+
+		for (int c = 0; c < animation.rotation_channels.size(); c++) {
+			auto & channel = animation.rotation_channels[c];
+
+			for (int b = 0; b < mesh.bones.size(); b++) {
+				if (channel.name == mesh.bones[b].name) {
+					rotation_channels_copy[b] = channel;
+
+					break;
+				}
+			}
+		}
+
+		animation.position_channels = std::move(position_channels_copy);
+		animation.rotation_channels = std::move(rotation_channels_copy);
+	}
 
 	// Upload Vertex and Index Buffer
 	auto buffer_size_vertices = Util::vector_size_in_bytes(vertices);

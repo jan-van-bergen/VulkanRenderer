@@ -61,10 +61,9 @@ void AnimatedMeshInstance::update(float delta) {
 	for (int i = 0; i < mesh.bones.size(); i++) {
 		auto const & bone = mesh.bones[i];
 
-		Vector3    position;
-		Quaternion rotation;
-		current_animation->get_pose(bone.name, current_time, &position, &rotation, loop);
-
+		Vector3    position = current_animation->position_channels[i].get_position(current_time, loop);
+		Quaternion rotation = current_animation->rotation_channels[i].get_rotation(current_time, loop);
+		
 		auto local = Matrix4::create_translation(position) * Matrix4::create_rotation(rotation);
 
 		if (bone.parent == -1) {

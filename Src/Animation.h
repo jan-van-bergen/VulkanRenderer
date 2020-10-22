@@ -10,6 +10,7 @@ struct Animation {
 	struct KeyFrameRotation { float time; Quaternion rotation; };
 
 	struct ChannelPosition {
+		std::string name;
 		std::vector<KeyFramePosition> key_frames;
 
 		int current_frame = 0;
@@ -18,6 +19,7 @@ struct Animation {
 	};
 
 	struct ChannelRotation {
+		std::string name;
 		std::vector<KeyFrameRotation> key_frames;
 
 		int current_frame = 0;
@@ -25,8 +27,6 @@ struct Animation {
 		Quaternion get_rotation(float time, bool loop);
 	};
 
-	std::unordered_map<std::string, ChannelPosition> position_channels;
-	std::unordered_map<std::string, ChannelRotation> rotation_channels;
-
-	void get_pose(std::string const & bone_name, float time, Vector3 * position, Quaternion * rotation, bool loop);
+	std::vector<ChannelPosition> position_channels;
+	std::vector<ChannelRotation> rotation_channels;
 };

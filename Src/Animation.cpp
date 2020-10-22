@@ -53,17 +53,3 @@ Quaternion Animation::ChannelRotation::get_rotation(float time, bool loop) {
 
 	return Quaternion::nlerp(key_frame_curr.rotation, key_frame_next.rotation, t);
 }
-
-void Animation::get_pose(std::string const & bone_name, float time, Vector3 * position, Quaternion * rotation, bool loop) {
-	if (position_channels.find(bone_name) != position_channels.end()) {
-		*position = position_channels[bone_name].get_position(time, loop);
-	} else {
-		*position = Vector3();
-	}
-
-	if (rotation_channels.find(bone_name) != rotation_channels.end()) {
-		*rotation = rotation_channels[bone_name].get_rotation(time, loop);
-	} else {
-		*rotation = Quaternion();
-	}
-}
