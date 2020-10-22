@@ -1,12 +1,5 @@
 #include "AnimatedMesh.h"
 
-static Matrix4 const y_to_z = { // -90 deg rotation around x-axis
-	1.0f,  0.0f, 0.0f, 0.0f,
-	0.0f,  0.0f, 1.0f, 0.0f,
-	0.0f, -1.0f, 0.0f, 0.0f,
-	0.0f,  0.0f, 0.0f, 1.0f
-};
-
 void AnimatedMesh::free() {
 	for (auto & mesh : meshes) {
 		VulkanMemory::buffer_free(mesh.vertex_buffer);
@@ -34,7 +27,6 @@ void AnimatedMeshInstance::play_animation(int index, bool restart) {
 	} else {
 		printf("WARNING: Trying to play non-existent animation with index %i!\n", index);
 	}
-
 }
 
 void AnimatedMeshInstance::play_animation(std::string const & name, bool restart) {

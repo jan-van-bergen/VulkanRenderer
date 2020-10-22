@@ -17,7 +17,7 @@ namespace VulkanContext {
 	void init(GLFWwindow * window);
 	void destroy();
 
-	VkSwapchainKHR create_swapchain(u32 width, u32 height);
+	[[nodiscard]] VkSwapchainKHR create_swapchain(u32 width, u32 height);
 
 	VkFormat get_supported_depth_format();
 
@@ -26,16 +26,16 @@ namespace VulkanContext {
 		VkPipelineShaderStageCreateInfo stage_create_info;
 	};
 
-	Shader shader_load(std::string const & filename, VkShaderStageFlagBits stage);
+	[[nodiscard]] Shader shader_load(std::string const & filename, VkShaderStageFlagBits stage);
 	
-	VkRenderPass create_render_pass(std::vector<VkAttachmentDescription> const & attachments);
+	[[nodiscard]] VkRenderPass create_render_pass(std::vector<VkAttachmentDescription> const & attachments);
 
 	struct PipelineLayoutDetails {
 		std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
 
 		std::vector<VkPushConstantRange> push_constants;
 	};
-	VkPipelineLayout create_pipeline_layout(PipelineLayoutDetails const & details);
+	[[nodiscard]] VkPipelineLayout create_pipeline_layout(PipelineLayoutDetails const & details);
 
 	struct PipelineDetails {
 		std::vector<VkVertexInputBindingDescription>   vertex_bindings;
@@ -81,9 +81,9 @@ namespace VulkanContext {
 		VkPipelineLayout pipeline_layout;
 		VkRenderPass     render_pass;
 	};
-	VkPipeline create_pipeline(PipelineDetails const & details);
+	[[nodiscard]] VkPipeline create_pipeline(PipelineDetails const & details);
 
-	VkFramebuffer create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments);
+	[[nodiscard]] VkFramebuffer create_frame_buffer(int width, int height, VkRenderPass render_pass, std::vector<VkImageView> const & attachments);
 
 	VkClearValue create_clear_value_colour(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 0.0f);
 	VkClearValue create_clear_value_depth (float depth = 1.0f, u32 stencil = 0);

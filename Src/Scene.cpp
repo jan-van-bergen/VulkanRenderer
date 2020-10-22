@@ -11,7 +11,7 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 
 	animated_meshes[0].animation_speed = 2.0f;
 	animated_meshes[1].animation_speed = 15.0f;
-	animated_meshes[2].animation_speed = 100.0f;
+	animated_meshes[2].animation_speed = 200.0f;
 
 	animated_meshes[0].play_animation("Armature|Run");
 	animated_meshes[1].play_animation(0);
