@@ -72,6 +72,9 @@
     <ClCompile Include="Src\AnimatedMesh.cpp">
       <Filter>Rendering\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Gizmo.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Types.h" />
@@ -176,6 +179,9 @@
     <ClInclude Include="Src\Material.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Gizmo.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">
@@ -249,5 +255,13 @@
     <CustomBuild Include="Shaders\shadow_static.vert">
       <Filter>Shaders</Filter>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\gizmo.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\gizmo.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -15,6 +15,10 @@ struct Quaternion {
 	inline Quaternion() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) { }
 	inline Quaternion(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) { }
 	
+	inline static Quaternion identity() {
+		return Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+
 	inline static float length(const Quaternion & quaternion) {
 		return sqrtf(quaternion.x*quaternion.x + quaternion.y*quaternion.y + quaternion.z*quaternion.z + quaternion.w*quaternion.w);
 	}

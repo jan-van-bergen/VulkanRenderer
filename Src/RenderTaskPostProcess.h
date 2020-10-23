@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Scene.h"
+#include "Gizmo.h"
 
 struct RenderTaskPostProcess {
 private:
@@ -18,8 +19,19 @@ private:
 	VkDescriptorSetLayout        descriptor_set_layout;
 	std::vector<VkDescriptorSet> descriptor_sets;
 
-	VkPipelineLayout pipeline_layout;
-	VkPipeline       pipeline;
+	struct {
+		VkPipelineLayout tonemap;
+		VkPipelineLayout gizmo;
+	} pipeline_layouts;
+
+	struct {
+		VkPipeline tonemap;
+		VkPipeline gizmo;
+	} pipelines;
+
+	Gizmo gizmo_position;
+	Gizmo gizmo_rotation;
+	Gizmo gizmo_scale;
 
 	VkRenderPass render_pass;
 

@@ -9,20 +9,35 @@
 
 #include "Util.h"
 
+struct GizmoPushConstants {
+	alignas(16) Matrix4 wvp;
+	alignas(16) Vector3 colour;
+};
+
 RenderTaskPostProcess::RenderTaskPostProcess(Scene & scene) : scene(scene) {
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
+
+	gizmo_position = Gizmo::generate_position();
+	gizmo_rotation = Gizmo::generate_rotation();
 }
 
 RenderTaskPostProcess::~RenderTaskPostProcess() {
 	ImGui::DestroyContext();
+
+	Gizmo gizmos[] = { gizmo_position, gizmo_rotation };
+
+	for (auto & gizmo : gizmos) {
+		VulkanMemory::buffer_free(gizmo.vertex_buffer);
+		VulkanMemory::buffer_free(gizmo.index_buffer);
+	}
 }
 
 void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, int height, int swapchain_image_count, RenderTarget const & render_target_input, GLFWwindow * window) {
 	auto device = VulkanContext::get_device();
-
+	
 	this->width  = width;
 	this->height = height;
 
@@ -65,13 +80,23 @@ void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, in
 
 	render_pass = VulkanContext::create_render_pass(attachments);
 
-	// Create Pipeline Layout
+	// Create Pipeline Layouts
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details = { };
 	pipeline_layout_details.descriptor_set_layouts = { descriptor_set_layout };
 
-	pipeline_layout = VulkanContext::create_pipeline_layout(pipeline_layout_details);
+	pipeline_layouts.tonemap = VulkanContext::create_pipeline_layout(pipeline_layout_details);
 
-	// Create Pipeline
+	VkPushConstantRange push_constants;
+	push_constants.offset = 0;
+	push_constants.size = sizeof(GizmoPushConstants);
+	push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	pipeline_layout_details.descriptor_set_layouts = { };
+	pipeline_layout_details.push_constants = { push_constants };
+
+	pipeline_layouts.gizmo = VulkanContext::create_pipeline_layout(pipeline_layout_details);
+
+	// Create Pipelines
 	VulkanContext::PipelineDetails pipeline_details;
 	pipeline_details.width  = width;
 	pipeline_details.height = height;
@@ -83,10 +108,34 @@ void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, in
 	};
 	pipeline_details.enable_depth_test  = false;
 	pipeline_details.enable_depth_write = false;
-	pipeline_details.pipeline_layout = pipeline_layout;
+	pipeline_details.pipeline_layout = pipeline_layouts.tonemap;
 	pipeline_details.render_pass     = render_pass;
 
-	pipeline = VulkanContext::create_pipeline(pipeline_details);
+	pipelines.tonemap = VulkanContext::create_pipeline(pipeline_details);
+
+	std::vector<VkVertexInputBindingDescription> gizmo_vertex_bindings(1);
+	gizmo_vertex_bindings[0].binding = 0;
+	gizmo_vertex_bindings[0].stride = sizeof(Vector3);
+	gizmo_vertex_bindings[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	std::vector<VkVertexInputAttributeDescription> gizmo_vertex_attributes(1);
+	gizmo_vertex_attributes[0].binding  = 0;
+	gizmo_vertex_attributes[0].location = 0;
+	gizmo_vertex_attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	gizmo_vertex_attributes[0].offset = 0;
+	
+	pipeline_details.vertex_bindings   = Gizmo::Vertex::get_binding_descriptions();
+	pipeline_details.vertex_attributes = Gizmo::Vertex::get_attribute_descriptions();
+	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
+	pipeline_details.shaders = {
+		{ "Shaders/gizmo.vert.spv", VK_SHADER_STAGE_VERTEX_BIT },
+		{ "Shaders/gizmo.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT }
+	};
+	pipeline_details.enable_depth_test  = true;
+	pipeline_details.enable_depth_write = true;
+	pipeline_details.pipeline_layout = pipeline_layouts.gizmo;
+
+	pipelines.gizmo = VulkanContext::create_pipeline(pipeline_details);
 
 	// Allocate and update Descriptor Sets
 	std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layout);
@@ -170,8 +219,11 @@ void RenderTaskPostProcess::free() {
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 	
-	vkDestroyPipeline      (device, pipeline,        nullptr);
-	vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
+	vkDestroyPipelineLayout(device, pipeline_layouts.tonemap, nullptr);
+	vkDestroyPipelineLayout(device, pipeline_layouts.gizmo,   nullptr);
+
+	vkDestroyPipeline(device, pipelines.tonemap, nullptr);
+	vkDestroyPipeline(device, pipelines.gizmo,   nullptr);
 
 	vkDestroyRenderPass(device, render_pass, nullptr);
 	
@@ -196,11 +248,42 @@ void RenderTaskPostProcess::render(int image_index, VkCommandBuffer command_buff
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Render tonemapped image
-	vkCmdBindPipeline      (command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[image_index], 0, nullptr);
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.tonemap);
 
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.tonemap, 0, 1, &descriptor_sets[image_index], 0, nullptr);
 	vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
+	// Render Gizmos
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.gizmo);
+	
+	static Quaternion axis_rotations[3] = {
+		Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), DEG_TO_RAD(-90)),
+		Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), DEG_TO_RAD(+90)),
+		Quaternion::identity()
+	};
+	static Vector3 axis_colours[3] = { Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f) };
+
+	Gizmo gizmos[] = { gizmo_position, gizmo_rotation };
+
+	for (auto const & gizmo : gizmos) {
+		VkBuffer     vertex_buffers[] = { gizmo.vertex_buffer.buffer };
+		VkDeviceSize vertex_offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
+
+		vkCmdBindIndexBuffer(command_buffer, gizmo.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		for (int axis = 0; axis < 3; axis++) {
+			GizmoPushConstants push_constants = { };
+			push_constants.wvp    = scene.camera.get_view_projection() * Matrix4::create_rotation(axis_rotations[axis]);
+			push_constants.colour = axis_colours[axis];
+
+			vkCmdPushConstants(command_buffer, pipeline_layouts.gizmo, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GizmoPushConstants), &push_constants);
+	
+			vkCmdDrawIndexed(command_buffer, gizmo.index_count, 1, 0, 0, 0);
+		}
+	}
+
+	// Render GUI
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 	
 	vkCmdEndRenderPass(command_buffer);
