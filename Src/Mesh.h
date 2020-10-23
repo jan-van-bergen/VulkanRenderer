@@ -8,6 +8,7 @@
 
 #include "Types.h"
 
+#include "AABB.h"
 #include "Vector2.h"
 #include "Transform.h"
 
@@ -64,10 +65,7 @@ struct Mesh {
 		int index_offset;
 		int index_count;
 
-		struct AABB {
-			Vector3 min;
-			Vector3 max;
-		} aabb;
+		AABB aabb;
 
 		TextureHandle texture_handle;
 	};

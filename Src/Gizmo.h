@@ -2,9 +2,16 @@
 
 #include <vector>
 
-#include "Vector3.h"
+#include "AABB.h"
+#include "Camera.h"
 
 struct Gizmo {
+private:
+	AABB aabb;
+
+	void calc_aabb();
+
+public:
 	struct Vertex {
 		Vector3 position;
 
@@ -34,7 +41,10 @@ struct Gizmo {
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
 
-	int index_count;
+	std::vector<Vertex> vertices;
+	std::vector<int>    indices;
+
+	bool intersects_mouse(Camera const & camera, int mouse_x, int mouse_y);
 
 	static Gizmo generate_position();
 	static Gizmo generate_rotation();

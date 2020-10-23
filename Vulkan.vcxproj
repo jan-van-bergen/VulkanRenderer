@@ -209,6 +209,7 @@
     <ClInclude Include="include\Imgui\imstb_rectpack.h" />
     <ClInclude Include="include\Imgui\imstb_textedit.h" />
     <ClInclude Include="include\Imgui\imstb_truetype.h" />
+    <ClInclude Include="Src\AABB.h" />
     <ClInclude Include="Src\AnimatedMesh.h" />
     <ClInclude Include="Src\Animation.h" />
     <ClInclude Include="Src\AssetLoader.h" />

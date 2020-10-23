@@ -279,7 +279,7 @@ void RenderTaskPostProcess::render(int image_index, VkCommandBuffer command_buff
 
 			vkCmdPushConstants(command_buffer, pipeline_layouts.gizmo, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GizmoPushConstants), &push_constants);
 	
-			vkCmdDrawIndexed(command_buffer, gizmo.index_count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(command_buffer, gizmo.indices.size(), 1, 0, 0, 0);
 		}
 	}
 

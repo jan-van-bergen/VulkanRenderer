@@ -28,9 +28,9 @@ bool Input::is_key_released(int key) {
 	return !keyboard_state_curr[key] && keyboard_state_prev[key];
 }
 
-void Input::get_mouse_pos(int & x, int & y) {
-	x = mouse_x;
-	y = mouse_y;
+void Input::get_mouse_pos(int * x, int * y) {
+	*x = mouse_x;
+	*y = mouse_y;
 }
 
 void Input::set_mouse_pos(int x, int y) {

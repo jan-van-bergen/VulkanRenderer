@@ -21,14 +21,19 @@ void Camera::set_locked(bool locked) {
 
 	Input::set_mouse_enabled(!locked);
 
-	if (locked) Input::get_mouse_pos(mouse_prev_x, mouse_prev_y);
+	if (locked) Input::get_mouse_pos(&mouse_prev_x, &mouse_prev_y);
 }
 
 void Camera::on_resize(int width, int height) {
-	projection     = Matrix4::perspective    (fov, float(width) / float(height), near, far);
-	projection_inv = Matrix4::perspective_inv(fov, float(width) / float(height), near, far);
+	this->width  = float(width);
+	this->height = float(height);
 
-	top_left_corner = Vector3(-0.5f * float(width),  0.5f * float(height), -far);
+	float aspect = this->width / this->height;
+
+	projection     = Matrix4::perspective    (fov, aspect, near, far);
+	projection_inv = Matrix4::perspective_inv(fov, aspect, near, far);
+
+	top_left_corner = Vector3(-0.5f * this->width,  0.5f * this->height, -far);
 }
 
 void Camera::update(float delta) {
@@ -57,7 +62,7 @@ void Camera::update(float delta) {
 	
 	// If mouse is locked rotate Camera based on mouse movement
 	if (mouse_locked) {
-		int mouse_x, mouse_y; Input::get_mouse_pos(mouse_x, mouse_y);
+		int mouse_x, mouse_y; Input::get_mouse_pos(&mouse_x, &mouse_y);
 		
 		angle_x -= delta * float(mouse_x - mouse_prev_x);
 		angle_y -= delta * float(mouse_y - mouse_prev_y);

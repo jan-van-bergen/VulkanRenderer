@@ -507,9 +507,9 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.sky, 0, 1, &descriptor_set_sky, 0, nullptr);
 
 	SkyUBO sky_ubo = { };
-	sky_ubo.camera_top_left_corner = scene.camera.rotation * scene.camera.top_left_corner;
-	sky_ubo.camera_x               = scene.camera.rotation * Vector3(float(width), 0.0f, 0.0f);
-	sky_ubo.camera_y               = scene.camera.rotation * Vector3(0.0f, -float(height), 0.0f);
+	sky_ubo.camera_top_left_corner = scene.camera.get_top_left_corner();
+	sky_ubo.camera_x               = scene.camera.get_x_axis();
+	sky_ubo.camera_y               = scene.camera.get_y_axis();
 	sky_ubo.sun_direction = -scene.directional_lights[0].get_direction();
 
 	VulkanMemory::buffer_copy_direct(uniform_buffer_sky, &sky_ubo, sizeof(sky_ubo));

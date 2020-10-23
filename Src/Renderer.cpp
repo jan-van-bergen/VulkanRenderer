@@ -11,6 +11,7 @@
 #include "Vector3.h"
 #include "Matrix4.h"
 
+#include "Input.h"
 #include "Util.h"
 
 Renderer::Renderer(GLFWwindow * window, u32 width, u32 height) : 
@@ -159,6 +160,11 @@ void Renderer::swapchain_destroy() {
 
 void Renderer::update(float delta) {
 	scene.update(delta);
+
+	int mouse_x, mouse_y; Input::get_mouse_pos(&mouse_x, &mouse_y);
+	if (render_task_post_process.gizmo_position.intersects_mouse(scene.camera, mouse_x, mouse_y)) {
+		printf("test");
+	}
 
 	// Update Timing
 	timing.frame_delta = delta;

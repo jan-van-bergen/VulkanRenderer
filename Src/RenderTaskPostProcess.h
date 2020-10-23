@@ -29,13 +29,13 @@ private:
 		VkPipeline gizmo;
 	} pipelines;
 
+	VkRenderPass render_pass;
+
+public:
 	Gizmo gizmo_position;
 	Gizmo gizmo_rotation;
 	Gizmo gizmo_scale;
 
-	VkRenderPass render_pass;
-
-public:
 	RenderTaskPostProcess(Scene & scene);
 	~RenderTaskPostProcess();
 
