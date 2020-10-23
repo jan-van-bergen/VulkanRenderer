@@ -254,34 +254,34 @@ void RenderTaskPostProcess::render(int image_index, VkCommandBuffer command_buff
 	vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
 	// Render Gizmos
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.gizmo);
-	
-	static Quaternion axis_rotations[3] = {
-		Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), DEG_TO_RAD(-90)),
-		Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), DEG_TO_RAD(+90)),
-		Quaternion::identity()
-	};
-	static Vector3 axis_colours[3] = { Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f) };
+	//vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.gizmo);
+	//
+	//static Quaternion axis_rotations[3] = {
+	//	Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), DEG_TO_RAD(-90)),
+	//	Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), DEG_TO_RAD(+90)),
+	//	Quaternion::identity()
+	//};
+	//static Vector3 axis_colours[3] = { Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f) };
 
-	Gizmo gizmos[] = { gizmo_position, gizmo_rotation };
+	//Gizmo gizmos[] = { gizmo_position, gizmo_rotation };
 
-	for (auto const & gizmo : gizmos) {
-		VkBuffer     vertex_buffers[] = { gizmo.vertex_buffer.buffer };
-		VkDeviceSize vertex_offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
+	//for (auto const & gizmo : gizmos) {
+	//	VkBuffer     vertex_buffers[] = { gizmo.vertex_buffer.buffer };
+	//	VkDeviceSize vertex_offsets[] = { 0 };
+	//	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
-		vkCmdBindIndexBuffer(command_buffer, gizmo.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+	//	vkCmdBindIndexBuffer(command_buffer, gizmo.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		for (int axis = 0; axis < 3; axis++) {
-			GizmoPushConstants push_constants = { };
-			push_constants.wvp    = scene.camera.get_view_projection() * Matrix4::create_rotation(axis_rotations[axis]);
-			push_constants.colour = axis_colours[axis];
+	//	for (int axis = 0; axis < 3; axis++) {
+	//		GizmoPushConstants push_constants = { };
+	//		push_constants.wvp    = scene.camera.get_view_projection() * Matrix4::create_rotation(axis_rotations[axis]);
+	//		push_constants.colour = axis_colours[axis];
 
-			vkCmdPushConstants(command_buffer, pipeline_layouts.gizmo, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GizmoPushConstants), &push_constants);
-	
-			vkCmdDrawIndexed(command_buffer, gizmo.indices.size(), 1, 0, 0, 0);
-		}
-	}
+	//		vkCmdPushConstants(command_buffer, pipeline_layouts.gizmo, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GizmoPushConstants), &push_constants);
+	//
+	//		vkCmdDrawIndexed(command_buffer, gizmo.indices.size(), 1, 0, 0, 0);
+	//	}
+	//}
 
 	// Render GUI
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
