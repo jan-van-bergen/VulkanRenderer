@@ -186,7 +186,17 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 	auto & mesh = AnimatedMesh::meshes.emplace_back();
 
 	Assimp::Importer assimp_importer;
-	aiScene const * assimp_scene = assimp_importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
+		aiProcess_Triangulate | 
+		aiProcess_FlipUVs | 
+		aiProcess_JoinIdenticalVertices | 
+		aiProcess_GenSmoothNormals |
+		aiProcess_FindInvalidData |
+		aiProcess_ImproveCacheLocality |
+		aiProcess_LimitBoneWeights |
+		aiProcess_OptimizeGraph |
+		aiProcess_OptimizeMeshes
+	);
 	
 	if (assimp_scene == nullptr) {
 		printf("ERROR: Unable to load Mesh %s!\n", filename.c_str());
@@ -284,15 +294,7 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 					bone_offset++;
 
 					if (bone_offset == AnimatedMesh::Vertex::MAX_BONES_PER_VERTEX) {
-						bone_valid = false; // Maximum number of bones exceeded!
-						
-						// Re-normalize so the weight add up to 1
-						auto weight_sum = 0.0f;
-
-						for (int i = 0; i < AnimatedMesh::Vertex::MAX_BONES_PER_VERTEX; i++) weight_sum += vertex.bone_weights[i];
-						for (int i = 0; i < AnimatedMesh::Vertex::MAX_BONES_PER_VERTEX; i++) vertex.bone_weights[i] /= weight_sum;
-
-						break;
+						abort(); // Shouldn't happen because Assimp already ensures a maximum number of Bones per Vertex
 					}
 				}
 
