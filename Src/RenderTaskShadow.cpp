@@ -98,7 +98,9 @@ void RenderTaskShadow::init(VkDescriptorPool descriptor_pool, int swapchain_imag
 	// Allocate and update Descriptor Sets
 	auto total_bone_count = 0;
 
-	for (auto const & mesh_instance : scene.animated_meshes) total_bone_count += mesh_instance.get_mesh().bones.size();
+	for (auto const & mesh_instance : scene.animated_meshes) {
+		total_bone_count += scene.asset_manager.get_animated_mesh(mesh_instance.mesh_handle).bones.size();
+	}
 
 	std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.shadow_animated);
 
@@ -114,7 +116,7 @@ void RenderTaskShadow::init(VkDescriptorPool descriptor_pool, int swapchain_imag
 		auto descriptor_set = descriptor_sets.bones[i];
 
 		VkDescriptorBufferInfo buffer_info = { };
-		buffer_info.buffer = AnimatedMesh::storage_buffer_bones[i].buffer;
+		buffer_info.buffer = scene.asset_manager.storage_buffer_bones[i].buffer;
 		buffer_info.offset = 0;
 		buffer_info.range  = total_bone_count * sizeof(Matrix4);
 
@@ -169,7 +171,7 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 
 		for (int i = 0; i < scene.animated_meshes.size(); i++) {
 			auto const & mesh_instance = scene.animated_meshes[i];
-			auto const & mesh = mesh_instance.get_mesh();
+			auto const & mesh          = scene.asset_manager.get_animated_mesh(mesh_instance.mesh_handle);
 		
 			auto const & transform = mesh_instance.transform.matrix;
 			
@@ -198,7 +200,7 @@ void RenderTaskShadow::render(int image_index, VkCommandBuffer command_buffer) {
 
 		for (int i = 0; i < scene.meshes.size(); i++) {
 			auto const & mesh_instance = scene.meshes[i];
-			auto const & mesh = Mesh::meshes[mesh_instance.mesh_handle];
+			auto const & mesh = scene.asset_manager.get_mesh(mesh_instance.mesh_handle);
 
 			auto const & transform = mesh_instance.transform.matrix;
 			

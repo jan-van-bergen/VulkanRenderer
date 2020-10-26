@@ -70,7 +70,7 @@ struct AnimatedMesh {
 			return attribute_descriptions;
 		}
 	};
-	
+
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
 	
@@ -95,15 +95,11 @@ struct AnimatedMesh {
 	
 	std::unordered_map<std::string, int> animation_names;
 	std::vector<Animation>               animations;
-	
-	static inline std::vector<VulkanMemory::Buffer> storage_buffer_bones;
-
-	static inline std::vector<AnimatedMesh> meshes;
-
-	static void free();
 };
 
 struct AnimatedMeshInstance {
+	struct Scene & scene;
+	
 	std::string name;
 
 	AnimatedMeshHandle mesh_handle;
@@ -120,7 +116,7 @@ struct AnimatedMeshInstance {
 	
 	std::vector<Matrix4> bone_transforms;
 
-	AnimatedMeshInstance(std::string const & name, AnimatedMeshHandle mesh_handle, Material * material);
+	AnimatedMeshInstance(struct Scene & scene, std::string const & name, AnimatedMeshHandle mesh_handle, Material * material);
 
 	void play_animation(int index,                bool restart = false);
 	void play_animation(std::string const & name, bool restart = false);
@@ -129,6 +125,4 @@ struct AnimatedMeshInstance {
 	void update(float time);
 	
 	bool is_playing() const { return current_animation != nullptr; }
-	
-	AnimatedMesh & get_mesh() const { return AnimatedMesh::meshes[mesh_handle]; }
 };

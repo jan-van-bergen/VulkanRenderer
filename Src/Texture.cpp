@@ -98,16 +98,3 @@ void Texture::generate_mipmaps(int width, int height, int mip_levels) {
 
 	VulkanMemory::command_buffer_single_use_end(command_buffer);
 }
-
-void Texture::free() {
-	auto device = VulkanContext::get_device();
-
-	for (auto & texture : textures) {
-		vkDestroySampler  (device, texture.sampler,      nullptr);
-		vkDestroyImageView(device, texture.image_view,   nullptr);
-		vkDestroyImage    (device, texture.image,        nullptr);
-		vkFreeMemory      (device, texture.image_memory, nullptr);
-	}
-
-	textures.clear();
-}

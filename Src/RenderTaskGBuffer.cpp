@@ -189,7 +189,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	// Create Uniform Buffers
 	uniform_buffers.material.resize(swapchain_image_count);
 	uniform_buffers.sky     .resize(swapchain_image_count);
-	AnimatedMesh::storage_buffer_bones.resize(swapchain_image_count);
+	scene.asset_manager.storage_buffer_bones.resize(swapchain_image_count);
 
 	auto aligned_size_material = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	auto aligned_size_sky      = Math::round_up(sizeof(SkyUBO),      VulkanContext::get_min_uniform_buffer_alignment());
@@ -197,7 +197,9 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	auto total_mesh_count = scene.animated_meshes.size() + scene.meshes.size();
 	auto total_bone_count = 0;
 
-	for (auto const & mesh_instance : scene.animated_meshes) total_bone_count += mesh_instance.get_mesh().bones.size();
+	for (auto const & mesh_instance : scene.animated_meshes) {
+		total_bone_count += scene.asset_manager.get_animated_mesh(mesh_instance.mesh_handle).bones.size();
+	}
 
 	for (int i = 0; i < swapchain_image_count; i++) {
 		uniform_buffers.material[i] = VulkanMemory::buffer_create(total_mesh_count * aligned_size_material,
@@ -210,14 +212,14 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 
-		AnimatedMesh::storage_buffer_bones[i] = VulkanMemory::buffer_create(total_bone_count * sizeof(Matrix4),
+		scene.asset_manager.storage_buffer_bones[i] = VulkanMemory::buffer_create(total_bone_count * sizeof(Matrix4),
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 	}
 
 	// Allocate and update Descriptor Sets
-	for (auto & texture : Texture::textures) {
+	for (auto & texture : scene.asset_manager.textures) {
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		alloc_info.descriptorPool = descriptor_pool;
 		alloc_info.descriptorSetCount = 1;
@@ -287,7 +289,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			auto descriptor_set = descriptor_sets.bones[i];
 
 			VkDescriptorBufferInfo buffer_info = { };
-			buffer_info.buffer = AnimatedMesh::storage_buffer_bones[i].buffer;
+			buffer_info.buffer = scene.asset_manager.storage_buffer_bones[i].buffer;
 			buffer_info.offset = 0;
 			buffer_info.range  = total_bone_count * sizeof(Matrix4);
 
@@ -390,7 +392,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 
 	for (int i = 0; i < scene.animated_meshes.size(); i++) {
 		auto const & mesh_instance = scene.animated_meshes[i];
-		auto const & mesh = mesh_instance.get_mesh();
+		auto const & mesh          = scene.asset_manager.get_animated_mesh(mesh_instance.mesh_handle);
 		
 		GBufferPushConstants push_constants = { };
 		push_constants.world           = mesh_instance.transform.matrix;
@@ -422,7 +424,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 			if (last_texture_handle != sub_mesh.texture_handle) {
 				last_texture_handle  = sub_mesh.texture_handle;
 
-				auto const & texture = Texture::textures[sub_mesh.texture_handle];
+				auto const & texture = scene.asset_manager.textures[sub_mesh.texture_handle];
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 0, 1, &texture.descriptor_set, 0, nullptr);
 			}
 
@@ -432,14 +434,13 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		bone_offset += mesh.bones.size();
 	}
 	
-	if (buffer_bones.size() > 0) VulkanMemory::buffer_copy_direct(AnimatedMesh::storage_buffer_bones[image_index], buffer_bones.data(), buffer_bones.size());
+	if (buffer_bones.size() > 0) VulkanMemory::buffer_copy_direct(scene.asset_manager.storage_buffer_bones[image_index], buffer_bones.data(), buffer_bones.size());
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.geometry_static);
 	
-	// Render Renderables
 	for (int i = 0; i < scene.meshes.size(); i++) {
 		auto const & mesh_instance = scene.meshes[i];
-		auto const & mesh = mesh_instance.get_mesh();
+		auto const & mesh          = scene.asset_manager.get_mesh(mesh_instance.mesh_handle);
 
 		auto     transform = mesh_instance.transform.matrix;
 		auto abs_transform = Matrix4::abs(transform);
@@ -489,7 +490,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 			if (last_texture_handle != sub_mesh.texture_handle) {
 				last_texture_handle  = sub_mesh.texture_handle;
 
-				auto const & texture = Texture::textures[sub_mesh.texture_handle];
+				auto const & texture = scene.asset_manager.textures[sub_mesh.texture_handle];
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_static, 0, 1, &texture.descriptor_set, 0, nullptr);
 			}
 			

@@ -1,11 +1,11 @@
 #include "Scene.h"
 
-Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) {
+Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height), asset_manager(*this) {
 	Material * material_diffuse = materials.emplace_back(std::make_unique<Material>(0.9f, 0.0f)).get();
 
-	animated_meshes.emplace_back("Cowboy",   asset_loader.load_animated_mesh("Data/Cowboy2.fbx"), material_diffuse);
-	animated_meshes.emplace_back("XNA Dude", asset_loader.load_animated_mesh("Data/xnadude.fbx"), material_diffuse);
-	animated_meshes.emplace_back("Arm",      asset_loader.load_animated_mesh("Data/test.fbx"),    material_diffuse);
+	animated_meshes.emplace_back(*this, "Cowboy",   asset_manager.load_animated_mesh("Data/Cowboy2.fbx"), material_diffuse);
+	animated_meshes.emplace_back(*this, "XNA Dude", asset_manager.load_animated_mesh("Data/xnadude.fbx"), material_diffuse);
+	animated_meshes.emplace_back(*this, "Arm",      asset_manager.load_animated_mesh("Data/test.fbx"),    material_diffuse);
 
 	animated_meshes[0].loop = false;
 
@@ -19,10 +19,10 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height) 
 	animated_meshes[0].transform.rotation = Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), DEG_TO_RAD(-90.0f));
 	animated_meshes[1].transform.scale = 0.1f;
 
-	meshes.emplace_back("Monkey", asset_loader.load_mesh("Data/Monkey.obj"),        material_diffuse).transform.position = Vector3(  0.0f, -10.0f, 0.0f);
-	meshes.emplace_back("Cube 1", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3( 10.0f,   0.0f, 0.0f);
-	meshes.emplace_back("Cube 2", asset_loader.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3(-10.0f,   0.0f, 0.0f);
-	meshes.emplace_back("Sponza", asset_loader.load_mesh("Data/Sponza/sponza.obj"), material_diffuse).transform.position = Vector3(  0.0f,  -7.5f, 0.0f);
+	meshes.emplace_back("Monkey", asset_manager.load_mesh("Data/Monkey.obj"),        material_diffuse).transform.position = Vector3(  0.0f, -10.0f, 0.0f);
+	meshes.emplace_back("Cube 1", asset_manager.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3( 10.0f,   0.0f, 0.0f);
+	meshes.emplace_back("Cube 2", asset_manager.load_mesh("Data/Cube.obj"),          material_diffuse).transform.position = Vector3(-10.0f,   0.0f, 0.0f);
+	meshes.emplace_back("Sponza", asset_manager.load_mesh("Data/Sponza/sponza.obj"), material_diffuse).transform.position = Vector3(  0.0f,  -7.5f, 0.0f);
 
 	directional_lights.push_back({ Vector3(1.0f),
 		Quaternion::axis_angle(Vector3(0.0f, 0.0f, 1.0f), std::tan(1.0f / 10.0f)) *

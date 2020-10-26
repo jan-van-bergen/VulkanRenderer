@@ -71,10 +71,6 @@ struct Mesh {
 	};
 
 	std::vector<SubMesh> sub_meshes;
-
-	static inline std::vector<Mesh> meshes;
-
-	static void free();
 };
 
 struct MeshInstance {
@@ -87,6 +83,4 @@ struct MeshInstance {
 	Transform transform;
 
 	MeshInstance(std::string const & name, MeshHandle mesh_handle, Material * material) : name(name), mesh_handle(mesh_handle), material(material) { }
-	
-	Mesh & get_mesh() const { return Mesh::meshes[mesh_handle]; }
 };

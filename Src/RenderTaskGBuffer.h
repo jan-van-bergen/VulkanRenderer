@@ -9,7 +9,7 @@ private:
 	int width;
 	int height;
 
-	Scene const & scene;
+	Scene & scene;
 	
 	struct {
 		VkDescriptorSetLayout geometry;
@@ -45,7 +45,7 @@ private:
 	VkRenderPass render_pass;
 
 public:
-	RenderTaskGBuffer(Scene const & scene) : scene(scene) { }
+	RenderTaskGBuffer(Scene & scene) : scene(scene) { }
 
 	void init(VkDescriptorPool descriptor_pool, int width, int height, int swapchain_image_count);
 	void free();

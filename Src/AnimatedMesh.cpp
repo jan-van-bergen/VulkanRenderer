@@ -1,24 +1,16 @@
 #include "AnimatedMesh.h"
 
-void AnimatedMesh::free() {
-	for (auto & mesh : meshes) {
-		VulkanMemory::buffer_free(mesh.vertex_buffer);
-		VulkanMemory::buffer_free(mesh.index_buffer);
-	}
-	meshes.clear();
+#include "Scene.h"
 
-	for (auto & storage_buffer : storage_buffer_bones) VulkanMemory::buffer_free(storage_buffer);
-}
-
-AnimatedMeshInstance::AnimatedMeshInstance(std::string const & name, AnimatedMeshHandle mesh_handle, Material * material) : name(name), mesh_handle(mesh_handle), material(material) {
-	auto const & mesh = get_mesh();
+AnimatedMeshInstance::AnimatedMeshInstance(Scene & scene, std::string const & name, AnimatedMeshHandle mesh_handle, Material * material) : scene(scene), name(name), mesh_handle(mesh_handle), material(material) {
+	auto const & mesh = scene.asset_manager.get_animated_mesh(mesh_handle);
 
 	bone_transforms.resize(mesh.bones.size());
 	std::fill(bone_transforms.begin(), bone_transforms.end(), Matrix4::identity());
 }
 
 void AnimatedMeshInstance::play_animation(int index, bool restart) {
-	auto & mesh = get_mesh();
+	auto & mesh = scene.asset_manager.get_animated_mesh(mesh_handle);
 
 	if (index >= 0 && index < mesh.animations.size()) {
 		current_animation = &mesh.animations[index];
@@ -30,7 +22,7 @@ void AnimatedMeshInstance::play_animation(int index, bool restart) {
 }
 
 void AnimatedMeshInstance::play_animation(std::string const & name, bool restart) {
-	auto & mesh = get_mesh();
+	auto & mesh = scene.asset_manager.get_animated_mesh(mesh_handle);
 
 	if (mesh.animation_names.find(name) != mesh.animation_names.end()) {
 		play_animation(mesh.animation_names[name], restart);
@@ -46,7 +38,7 @@ void AnimatedMeshInstance::stop_animation() {
 void AnimatedMeshInstance::update(float delta) {
 	if (current_animation == nullptr) return;
 
-	auto const & mesh = get_mesh();
+	auto const & mesh = scene.asset_manager.get_animated_mesh(mesh_handle);
 
 	current_time += animation_speed * delta;
 

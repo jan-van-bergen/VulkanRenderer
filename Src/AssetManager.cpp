@@ -1,4 +1,4 @@
-#include "AssetLoader.h"
+#include "AssetManager.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -15,15 +15,41 @@
 #include "VulkanCheck.h"
 #include "VulkanContext.h"
 
-MeshHandle AssetLoader::load_mesh(std::string const & filename) {
+AssetManager::~AssetManager() {
+	auto device = VulkanContext::get_device();
+
+	// Clean up Meshes
+	for (auto & mesh : meshes) {
+		VulkanMemory::buffer_free(mesh.vertex_buffer);
+		VulkanMemory::buffer_free(mesh.index_buffer);
+	}
+
+	// Clean up Animated Meshes
+	for (auto & mesh : animated_meshes) {
+		VulkanMemory::buffer_free(mesh.vertex_buffer);
+		VulkanMemory::buffer_free(mesh.index_buffer);
+	}
+
+	for (auto & storage_buffer : storage_buffer_bones) VulkanMemory::buffer_free(storage_buffer);
+
+	// Clean up Textures
+	for (auto & texture : textures) {
+		vkDestroySampler  (device, texture.sampler,      nullptr);
+		vkDestroyImageView(device, texture.image_view,   nullptr);
+		vkDestroyImage    (device, texture.image,        nullptr);
+		vkFreeMemory      (device, texture.image_memory, nullptr);
+	}
+}
+
+MeshHandle AssetManager::load_mesh(std::string const & filename) {
 	auto & mesh_handle = cached_meshes[filename];
 
 	if (mesh_handle != 0) return mesh_handle - 1;
 	
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
-	mesh_handle = Mesh::meshes.size() + 1;
-	auto & mesh = Mesh::meshes.emplace_back();
+	mesh_handle = meshes.size() + 1;
+	auto & mesh = meshes.emplace_back();
 	
 	Assimp::Importer assimp_importer;
 	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
@@ -175,15 +201,15 @@ void init_bone_hierarchy(AnimatedMesh & mesh, aiNode const * assimp_node, int pa
 	}
 }
 
-AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename) {
+AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename) {
 	auto & mesh_handle = cached_animated_meshes[filename];
 
 	if (mesh_handle != 0) return mesh_handle - 1;
 	
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
-	mesh_handle = AnimatedMesh::meshes.size() + 1;
-	auto & mesh = AnimatedMesh::meshes.emplace_back();
+	mesh_handle = animated_meshes.size() + 1;
+	auto & mesh = animated_meshes.emplace_back();
 
 	Assimp::Importer assimp_importer;
 	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
@@ -463,7 +489,7 @@ AnimatedMeshHandle AssetLoader::load_animated_mesh(std::string const & filename)
 	return mesh_handle - 1;
 }
 
-TextureHandle AssetLoader::load_texture(std::string const & filename) {
+TextureHandle AssetManager::load_texture(std::string const & filename) {
 	auto & texture_handle = cached_textures[filename];
 
 	if (texture_handle != 0) return texture_handle - 1;
@@ -490,8 +516,8 @@ TextureHandle AssetLoader::load_texture(std::string const & filename) {
 
 	stbi_image_free(pixels);
 
-	texture_handle = Texture::textures.size() + 1;
-	auto & texture = Texture::textures.emplace_back();
+	texture_handle = textures.size() + 1;
+	auto & texture = textures.emplace_back();
 
 	auto mip_levels = 1 + u32(std::log2(std::max(texture_width, texture_height)));
 

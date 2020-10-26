@@ -183,13 +183,12 @@
     <ClCompile Include="include\Imgui\imgui_widgets.cpp" />
     <ClCompile Include="Src\AnimatedMesh.cpp" />
     <ClCompile Include="Src\Animation.cpp" />
-    <ClCompile Include="Src\AssetLoader.cpp" />
+    <ClCompile Include="Src\AssetManager.cpp" />
     <ClCompile Include="Src\Camera.cpp" />
     <ClCompile Include="Src\Frustum.cpp" />
     <ClCompile Include="Src\Gizmo.cpp" />
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
-    <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\Lights.cpp" />
     <ClCompile Include="Src\RenderTarget.cpp" />
     <ClCompile Include="Src\RenderTaskGBuffer.cpp" />
@@ -214,7 +213,7 @@
     <ClInclude Include="Src\AABB.h" />
     <ClInclude Include="Src\AnimatedMesh.h" />
     <ClInclude Include="Src\Animation.h" />
-    <ClInclude Include="Src\AssetLoader.h" />
+    <ClInclude Include="Src\AssetManager.h" />
     <ClInclude Include="Src\Camera.h" />
     <ClInclude Include="Src\Frustum.h" />
     <ClInclude Include="Src\Gizmo.h" />

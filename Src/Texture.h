@@ -14,9 +14,5 @@ struct Texture {
 
 	VkDescriptorSet descriptor_set;
 
-	static inline std::vector<Texture> textures;
-
 	void generate_mipmaps(int width, int height, int mip_levels);
-
-	static void free();
 };

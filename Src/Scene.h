@@ -5,10 +5,10 @@
 #include "Mesh.h"
 #include "Lights.h"
 
-#include "AssetLoader.h"
+#include "AssetManager.h"
 
 struct Scene {
-	AssetLoader asset_loader;
+	AssetManager asset_manager;
 
 	Camera camera;
 	

@@ -9,9 +9,6 @@
     <ClCompile Include="Src\VulkanContext.cpp">
       <Filter>Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Mesh.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="include\Imgui\imgui.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
@@ -66,13 +63,13 @@
     <ClCompile Include="Src\Animation.cpp">
       <Filter>Rendering\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Src\AssetLoader.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Src\AnimatedMesh.cpp">
       <Filter>Rendering\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Src\Gizmo.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\AssetManager.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
   </ItemGroup>
@@ -170,9 +167,6 @@
     <ClInclude Include="Src\Animation.h">
       <Filter>Rendering\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Src\AssetLoader.h">
-      <Filter>Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Src\AnimatedMesh.h">
       <Filter>Rendering\Animation</Filter>
     </ClInclude>
@@ -184,6 +178,9 @@
     </ClInclude>
     <ClInclude Include="Src\AABB.h">
       <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\AssetManager.h">
+      <Filter>Rendering</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
