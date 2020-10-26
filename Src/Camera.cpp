@@ -74,6 +74,13 @@ void Camera::update(float delta) {
 		mouse_prev_y = mouse_y;
 	}
 	
+	// For debugging purposes
+	if (Input::is_key_pressed(GLFW_KEY_F)) {
+		printf("camera.position = Vector3(%ff, %ff, %ff);\n", position.x, position.y, position.z);
+		printf("camera.angle_x = %ff;\n", angle_x);
+		printf("camera.angle_y = %ff;\n", angle_y);
+	}
+
 	rotation =
 		Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), angle_x) *
 		Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), angle_y);

@@ -19,9 +19,6 @@ private:
 
 	bool mouse_locked;
 
-	float angle_x;
-	float angle_y;
-
 	int mouse_prev_x;
 	int mouse_prev_y;
 
@@ -31,6 +28,9 @@ public:
 	Vector3    position;
 	Quaternion rotation;
 	
+	float angle_x;
+	float angle_y;
+
 	Frustum frustum;
 
 	Camera(float fov, int width, int height, float near = 0.1f, float far = 500.0f);

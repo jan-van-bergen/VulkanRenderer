@@ -258,13 +258,11 @@
     <CustomBuild Include="Shaders\shadow_static.vert">
       <Filter>Shaders</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\gizmo.frag">
+    <CustomBuild Include="Shaders\gizmo.vert">
       <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\gizmo.vert">
+    </CustomBuild>
+    <CustomBuild Include="Shaders\gizmo.frag">
       <Filter>Shaders</Filter>
-    </None>
+    </CustomBuild>
   </ItemGroup>
 </Project>

@@ -211,7 +211,8 @@ void Renderer::update(float delta) {
 	ImGui::Text("FPS:   %d", timing.fps);
 	ImGui::End();
 
-	static MeshInstance * selected_mesh = nullptr;
+	static AnimatedMeshInstance * selected_animated_mesh = nullptr;
+	static MeshInstance         * selected_mesh          = nullptr;
 
 	ImGui::Begin("Scene");
 
@@ -229,13 +230,32 @@ void Renderer::update(float delta) {
 		}
 	}
 
+	for (auto & mesh : scene.animated_meshes) {
+		if (ImGui::Button(mesh.name.c_str())) {
+			selected_mesh = nullptr;
+			selected_animated_mesh = & mesh;
+		}
+	}
+
 	for (auto & mesh : scene.meshes) {
 		if (ImGui::Button(mesh.name.c_str())) {
 			selected_mesh = &mesh;
+			selected_animated_mesh = nullptr;
 		}
 	}
 	
-	if (selected_mesh) {
+	if (selected_animated_mesh) {
+		ImGui::Text("Selected Animated Mesh: %s", selected_animated_mesh->name.c_str());
+		ImGui::SliderFloat3("Position", selected_animated_mesh->transform.position.data, -10.0f, 10.0f);
+		ImGui::SliderFloat4("Rotation", selected_animated_mesh->transform.rotation.data,  -1.0f, -1.0f);
+		ImGui::SliderFloat ("Scale",   &selected_animated_mesh->transform.scale, 0.0f, 10.0f);
+
+		ImGui::Text("Material:");
+		ImGui::SliderFloat("Roughness", &selected_animated_mesh->material->roughness, 0.0f, 1.0f);
+		ImGui::SliderFloat("Metallic",  &selected_animated_mesh->material->metallic,  0.0f, 1.0f);
+
+		ImGui::Text("Animation:");
+	} else if (selected_mesh) {
 		ImGui::Text("Selected Mesh: %s", selected_mesh->name.c_str());
 		ImGui::SliderFloat3("Position", selected_mesh->transform.position.data, -10.0f, 10.0f);
 		ImGui::SliderFloat4("Rotation", selected_mesh->transform.rotation.data,  -1.0f, -1.0f);

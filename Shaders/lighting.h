@@ -59,17 +59,12 @@ float calc_shadow(sampler2D shadow_map, mat4 light_matrix, vec3 world_position) 
 	return result;
 }
 
-float D(float roughness, float n_dot_h) {
-	float alpha  = roughness * roughness;
-	float alpha2 = alpha * alpha;
-
-	float tmp = n_dot_h * n_dot_h * (alpha2 - 1.0f) + 1.0f;
-
-	return alpha2 / (PI * tmp*tmp); 
+vec3 F(vec3 f_0, float f_90, float cos_theta) {
+	return f_0 + (f_90 - f_0) * pow(1.0f - cos_theta, 5);
 }
 
 float G(float roughness, float n_dot_l, float n_dot_v) {
-	float k = (roughness + 1.0f) * (roughness + 1.0f) / 8.0;
+	float k = (roughness + 1.0f) * (roughness + 1.0f) / 8.0f;
 
 	float G1_l = n_dot_l / (n_dot_l * (1.0f - k) + k);
 	float G1_v = n_dot_v / (n_dot_v * (1.0f - k) + k);
@@ -77,8 +72,13 @@ float G(float roughness, float n_dot_l, float n_dot_v) {
 	return G1_l * G1_v;
 }
 
-vec3 F(vec3 F_0, float cos_theta) {
-	return F_0 + (1.0f - F_0) * pow(1.0f - cos_theta, 5.0f);
+float D(float roughness, float n_dot_h) {
+	float alpha  = roughness * roughness;
+	float alpha2 = alpha * alpha;
+
+	float tmp = n_dot_h * n_dot_h * (alpha2 - 1.0f) + 1.0f;
+
+	return alpha2 / (PI * tmp*tmp); 
 }
 
 vec3 brdf(Light light, Material material, vec3 l, vec3 v, vec3 n) {	
@@ -91,18 +91,30 @@ vec3 brdf(Light light, Material material, vec3 l, vec3 v, vec3 n) {
 
 	if (n_dot_l <= 0.0) return vec3(0.0f);
 
-	float roughness = max(0.05f, material.roughness);
+	float linear_roughness = max(0.05f, material.roughness);
+	float roughness = linear_roughness * linear_roughness;
 
-	vec3 F_0 = mix(vec3(0.04f), material.albedo, material.metallic);
+	// Specular
+	vec3 f_0 = mix(vec3(0.04f), material.albedo, material.metallic);
 
-	float d = D(roughness, n_dot_h);
+	vec3  f = F(f_0, 1.0f, l_dot_h);
 	float g = G(roughness, n_dot_l, n_dot_v);
-	vec3  f = F(F_0, n_dot_v);
+	float d = D(roughness, n_dot_h);
 
-	vec3 diffuse  = material.albedo / PI;
-	vec3 specular = d * f * g / (4.0f * n_dot_l * n_dot_v);
+	vec3 specular = f * g * d / (4.0f * n_dot_l * n_dot_v);
 
-	return light.colour * (diffuse + specular) * n_dot_l;
+	// Diffuse
+	float energy_bias   = mix(0.0f, 0.5f,         linear_roughness);
+	float energy_factor = mix(1.0f, 1.0f / 1.51f, linear_roughness);
+
+	float f_90 = energy_bias + 2.0f * l_dot_h * l_dot_h * linear_roughness;
+
+	float light_scatter = F(vec3(1.0f), f_90, n_dot_l).r;
+	float view_scatter  = F(vec3(1.0f), f_90, n_dot_v).r; 
+
+	vec3 diffuse = energy_factor * light_scatter * view_scatter * material.albedo / PI;
+
+	return light.colour * (specular + diffuse) * n_dot_l;
 }
 
 vec3 calc_directional_light(DirectionalLight directional_light, Material material, vec3 position, vec3 normal, vec3 camera_position, sampler2D shadow_map) {
