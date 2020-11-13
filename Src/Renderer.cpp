@@ -137,6 +137,10 @@ void Renderer::swapchain_destroy() {
 	render_task_shadow      .free();
 	render_task_lighting    .free();
 	render_task_post_process.free();
+	
+	for (auto & storage_buffer : scene.asset_manager.storage_buffer_bones) {
+		VulkanMemory::buffer_free(storage_buffer);
+	}
 
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);

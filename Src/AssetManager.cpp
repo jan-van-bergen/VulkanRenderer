@@ -30,8 +30,6 @@ AssetManager::~AssetManager() {
 		VulkanMemory::buffer_free(mesh.index_buffer);
 	}
 
-	for (auto & storage_buffer : storage_buffer_bones) VulkanMemory::buffer_free(storage_buffer);
-
 	// Clean up Textures
 	for (auto & texture : textures) {
 		vkDestroySampler  (device, texture.sampler,      nullptr);
