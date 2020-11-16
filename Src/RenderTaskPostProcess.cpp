@@ -14,25 +14,19 @@ struct GizmoPushConstants {
 	alignas(16) Vector3 colour;
 };
 
-RenderTaskPostProcess::RenderTaskPostProcess(Scene & scene) : scene(scene) {
+RenderTaskPostProcess::RenderTaskPostProcess(Scene & scene) : 
+	scene(scene),
+	gizmo_position(std::move(Gizmo::generate_position())),
+	gizmo_rotation(std::move(Gizmo::generate_rotation()))
+{
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
-
-	gizmo_position = Gizmo::generate_position();
-	gizmo_rotation = Gizmo::generate_rotation();
 }
 
 RenderTaskPostProcess::~RenderTaskPostProcess() {
 	ImGui::DestroyContext();
-
-	Gizmo gizmos[] = { gizmo_position, gizmo_rotation };
-
-	for (auto & gizmo : gizmos) {
-		VulkanMemory::buffer_free(gizmo.vertex_buffer);
-		VulkanMemory::buffer_free(gizmo.index_buffer);
-	}
 }
 
 void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, int height, int swapchain_image_count, RenderTarget const & render_target_input, GLFWwindow * window) {

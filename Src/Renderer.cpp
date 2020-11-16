@@ -28,7 +28,7 @@ Renderer::Renderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
-	PointLight::init_sphere();
+	PointLight::sphere = std::make_unique<PointLight::Sphere>();
 
 	swapchain_create();
 
@@ -50,7 +50,7 @@ Renderer::~Renderer() {
 
 	swapchain_destroy();
 
-	PointLight::free_sphere();
+	PointLight::sphere.release();
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
@@ -138,9 +138,7 @@ void Renderer::swapchain_destroy() {
 	render_task_lighting    .free();
 	render_task_post_process.free();
 	
-	for (auto & storage_buffer : scene.asset_manager.storage_buffer_bones) {
-		VulkanMemory::buffer_free(storage_buffer);
-	}
+	scene.asset_manager.storage_buffer_bones.clear();
 
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);

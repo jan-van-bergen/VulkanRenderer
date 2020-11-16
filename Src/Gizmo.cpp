@@ -4,6 +4,18 @@
 
 static constexpr int VERTICES_PER_CIRCLE = 12;
 
+Gizmo::Gizmo(std::vector<Vertex> && vertices, std::vector<int> && indices) : 
+	vertices(vertices), 
+	indices (indices),
+	vertex_buffer(Util::vector_size_in_bytes(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+	index_buffer (Util::vector_size_in_bytes(indices),  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+{
+	VulkanMemory::buffer_copy_staged(vertex_buffer, vertices.data(), Util::vector_size_in_bytes(vertices));
+	VulkanMemory::buffer_copy_staged(index_buffer,  indices .data(), Util::vector_size_in_bytes(indices));
+
+	calc_aabb();
+}
+
 void Gizmo::calc_aabb() {
 	aabb.min = Vector3(+INFINITY);
 	aabb.max = Vector3(-INFINITY);
@@ -20,10 +32,8 @@ Gizmo Gizmo::generate_position() {
 	constexpr float LENGTH_TAIL = 2.0f;
 	constexpr float LENTGH_HEAD = 0.5f;
 	
-	Gizmo gizmo;
-
-	gizmo.vertices = { { Vector3(0, 0, -1) }, { Vector3(3, 0, -2) }, { Vector3(2, 2, -1) } };
-	gizmo.indices = { 0, 1, 2 };
+	std::vector<Vertex> vertices = { { Vector3(0, 0, -1) }, { Vector3(3, 0, -2) }, { Vector3(2, 2, -1) } };
+	std::vector<int>    indices  = { 0, 1, 2 };
 
 	/*
 	gizmo.vertices.resize(3 * VERTICES_PER_CIRCLE + 2);
@@ -105,18 +115,7 @@ Gizmo Gizmo::generate_position() {
 	gizmo.indices.push_back(2 * VERTICES_PER_CIRCLE + 1);
 	*/
 
-	auto buffer_size_vertices = Util::vector_size_in_bytes(gizmo.vertices);
-	auto buffer_size_indices  = Util::vector_size_in_bytes(gizmo.indices);
-
-	gizmo.vertex_buffer = VulkanMemory::buffer_create(buffer_size_vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	gizmo.index_buffer  = VulkanMemory::buffer_create(buffer_size_indices,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VulkanMemory::buffer_copy_staged(gizmo.vertex_buffer, gizmo.vertices.data(), buffer_size_vertices);
-	VulkanMemory::buffer_copy_staged(gizmo.index_buffer,  gizmo.indices .data(), buffer_size_indices);
-
-	gizmo.calc_aabb();
-
-	return gizmo;
+	return Gizmo(std::move(vertices), std::move(indices));
 }
 
 Gizmo Gizmo::generate_rotation() {
@@ -124,74 +123,61 @@ Gizmo Gizmo::generate_rotation() {
 	constexpr float RADIUS_OUTER = 2.2f;
 	constexpr float HALF_DEPTH   = 0.1f;
 	
-	Gizmo gizmo;
-	gizmo.vertices.resize(4 * VERTICES_PER_CIRCLE);
-	gizmo.indices.reserve(4 * 2 * 3 * VERTICES_PER_CIRCLE); // 4 sides, each with 2 triangles
+	std::vector<Vertex> vertices(4 * VERTICES_PER_CIRCLE);
+	std::vector<int>    indices;
+	indices.reserve(4 * 2 * 3 * VERTICES_PER_CIRCLE); // 4 sides, each with 2 triangles
 
 	// Generate Vertices
-	std::vector<Vector3> vertices();
-	
 	for (int i = 0; i < VERTICES_PER_CIRCLE; i++) {
 		auto angle = TWO_PI * float(i) / float(VERTICES_PER_CIRCLE);
 		auto x = std::cos(angle);
 		auto y = std::sin(angle);
 
-		gizmo.vertices[i].position                           = Vector3(RADIUS_INNER * x, RADIUS_INNER * y,  HALF_DEPTH);
-		gizmo.vertices[i + 1 * VERTICES_PER_CIRCLE].position = Vector3(RADIUS_INNER * x, RADIUS_INNER * y, -HALF_DEPTH);
-		gizmo.vertices[i + 2 * VERTICES_PER_CIRCLE].position = Vector3(RADIUS_OUTER * x, RADIUS_OUTER * y, -HALF_DEPTH);
-		gizmo.vertices[i + 3 * VERTICES_PER_CIRCLE].position = Vector3(RADIUS_OUTER * x, RADIUS_OUTER * y,  HALF_DEPTH);
+		vertices[i].position                           = Vector3(RADIUS_INNER * x, RADIUS_INNER * y,  HALF_DEPTH);
+		vertices[i + 1 * VERTICES_PER_CIRCLE].position = Vector3(RADIUS_INNER * x, RADIUS_INNER * y, -HALF_DEPTH);
+		vertices[i + 2 * VERTICES_PER_CIRCLE].position = Vector3(RADIUS_OUTER * x, RADIUS_OUTER * y, -HALF_DEPTH);
+		vertices[i + 3 * VERTICES_PER_CIRCLE].position = Vector3(RADIUS_OUTER * x, RADIUS_OUTER * y,  HALF_DEPTH);
 	}
 
 	for (int i = 0; i < VERTICES_PER_CIRCLE; i++) {
 		// Quad 1
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
 
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
 
 		// Quad 2
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
 
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
 
 		// Quad 3
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
 
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 2);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
 
 		// Quad 4
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE);
 
-		gizmo.indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
-		gizmo.indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
+		indices.push_back((i)     % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
+		indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
 	}
 	
-	auto buffer_size_vertices = Util::vector_size_in_bytes(gizmo.vertices);
-	auto buffer_size_indices  = Util::vector_size_in_bytes(gizmo.indices);
-
-	gizmo.vertex_buffer = VulkanMemory::buffer_create(buffer_size_vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	gizmo.index_buffer  = VulkanMemory::buffer_create(buffer_size_indices,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VulkanMemory::buffer_copy_staged(gizmo.vertex_buffer, gizmo.vertices.data(), buffer_size_vertices);
-	VulkanMemory::buffer_copy_staged(gizmo.index_buffer,  gizmo.indices .data(), buffer_size_indices);
-
-	gizmo.calc_aabb();
-
-	return gizmo;
+	return Gizmo(std::move(vertices), std::move(indices));
 }
 
 static bool triangle_intersect(

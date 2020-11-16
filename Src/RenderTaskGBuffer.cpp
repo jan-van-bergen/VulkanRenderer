@@ -187,9 +187,9 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	pipelines.sky = VulkanContext::create_pipeline(pipeline_details);
 
 	// Create Uniform Buffers
-	uniform_buffers.material.resize(swapchain_image_count);
-	uniform_buffers.sky     .resize(swapchain_image_count);
-	scene.asset_manager.storage_buffer_bones.resize(swapchain_image_count);
+	uniform_buffers.material.reserve(swapchain_image_count);
+	uniform_buffers.sky     .reserve(swapchain_image_count);
+	scene.asset_manager.storage_buffer_bones.reserve(swapchain_image_count);
 
 	auto aligned_size_material = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	auto aligned_size_sky      = Math::round_up(sizeof(SkyUBO),      VulkanContext::get_min_uniform_buffer_alignment());
@@ -202,20 +202,20 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	}
 
 	for (int i = 0; i < swapchain_image_count; i++) {
-		uniform_buffers.material[i] = VulkanMemory::buffer_create(total_mesh_count * aligned_size_material,
+		uniform_buffers.material.push_back(VulkanMemory::Buffer(total_mesh_count * aligned_size_material,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
+		));
 		
-		uniform_buffers.sky[i] = VulkanMemory::buffer_create(aligned_size_sky,
+		uniform_buffers.sky.push_back(VulkanMemory::Buffer(aligned_size_sky,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
+		));
 
-		scene.asset_manager.storage_buffer_bones[i] = VulkanMemory::buffer_create(total_bone_count * sizeof(Matrix4),
+		scene.asset_manager.storage_buffer_bones.push_back(VulkanMemory::Buffer(total_bone_count * sizeof(Matrix4),
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
+		));
 	}
 
 	// Allocate and update Descriptor Sets
@@ -355,8 +355,8 @@ void RenderTaskGBuffer::free() {
 	vkDestroyPipeline(device, pipelines.geometry_animated, nullptr);
 	vkDestroyPipeline(device, pipelines.sky,               nullptr);
 	
-	for (auto & uniform_buffer : uniform_buffers.material) VulkanMemory::buffer_free(uniform_buffer);
-	for (auto & uniform_buffer : uniform_buffers.sky)      VulkanMemory::buffer_free(uniform_buffer);
+	uniform_buffers.material.clear();
+	uniform_buffers.sky     .clear();
 
 	vkDestroyRenderPass(device, render_pass, nullptr);
 }

@@ -34,7 +34,7 @@ private:
 public:
 	Gizmo gizmo_position;
 	Gizmo gizmo_rotation;
-	Gizmo gizmo_scale;
+//	Gizmo gizmo_scale;
 
 	RenderTaskPostProcess(Scene & scene);
 	~RenderTaskPostProcess();

@@ -72,6 +72,9 @@
     <ClCompile Include="Src\AssetManager.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Mesh.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Src\Types.h" />

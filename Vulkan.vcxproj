@@ -190,6 +190,7 @@
     <ClCompile Include="Src\Input.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Lights.cpp" />
+    <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\RenderTarget.cpp" />
     <ClCompile Include="Src\RenderTaskGBuffer.cpp" />
     <ClCompile Include="Src\RenderTaskLighting.cpp" />

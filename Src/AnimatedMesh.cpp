@@ -2,6 +2,25 @@
 
 #include "Scene.h"
 
+AnimatedMesh::AnimatedMesh(
+	std::vector<Vertex> const & vertices,
+	std::vector<int>    const & indices,
+	std::vector<Bone>    && bones,
+	std::vector<SubMesh> && sub_meshes,
+	std::unordered_map<std::string, int> && animation_names,
+	std::vector<Animation>               && animations
+) :
+	vertex_buffer(Util::vector_size_in_bytes(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+	index_buffer (Util::vector_size_in_bytes(indices),  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+	bones(bones),
+	sub_meshes(sub_meshes),
+	animation_names(animation_names),
+	animations(animations)
+{
+	VulkanMemory::buffer_copy_staged(vertex_buffer, vertices.data(), Util::vector_size_in_bytes(vertices));
+	VulkanMemory::buffer_copy_staged(index_buffer,  indices .data(), Util::vector_size_in_bytes(indices));
+}
+
 AnimatedMeshInstance::AnimatedMeshInstance(Scene & scene, std::string const & name, AnimatedMeshHandle mesh_handle, Material * material) : scene(scene), name(name), mesh_handle(mesh_handle), material(material) {
 	auto const & mesh = scene.asset_manager.get_animated_mesh(mesh_handle);
 

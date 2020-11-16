@@ -17,7 +17,7 @@ u32 VulkanMemory::find_memory_type(u32 type_filter, VkMemoryPropertyFlags proper
 	abort();
 }
 
-VulkanMemory::Buffer VulkanMemory::buffer_create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+VulkanMemory::Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
 	auto device = VulkanContext::get_device();
 
 	VkBufferCreateInfo buffer_create_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -25,31 +25,32 @@ VulkanMemory::Buffer VulkanMemory::buffer_create(VkDeviceSize size, VkBufferUsag
 	buffer_create_info.usage = usage;
 	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	Buffer buffer; VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer.buffer));
+	VK_CHECK(vkCreateBuffer(device, &buffer_create_info, nullptr, &buffer));
 
-	VkMemoryRequirements requirements; vkGetBufferMemoryRequirements(device, buffer.buffer, &requirements);
+	VkMemoryRequirements requirements; vkGetBufferMemoryRequirements(device, buffer, &requirements);
 
 	VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	alloc_info.allocationSize = requirements.size;
 	alloc_info.memoryTypeIndex = find_memory_type(requirements.memoryTypeBits, properties);
 
-	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &buffer.memory));
+	VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &memory));
 
-	VK_CHECK(vkBindBufferMemory(device, buffer.buffer, buffer.memory, 0));
-
-	return buffer;
+	VK_CHECK(vkBindBufferMemory(device, buffer, memory, 0));
 }
 
-void VulkanMemory::buffer_free(Buffer & buffer) {
+VulkanMemory::Buffer::~Buffer() {
 	auto device = VulkanContext::get_device();
 
-	vkDestroyBuffer(device, buffer.buffer, nullptr);
-	vkFreeMemory   (device, buffer.memory, nullptr);
+	if (buffer) vkDestroyBuffer(device, buffer, nullptr);
+	if (memory) vkFreeMemory   (device, memory, nullptr);
+
+	buffer = nullptr;
+	memory = nullptr;
 }
 
 void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size) {	
 	// Create temporary staging buffer
-	auto staging_buffer = VulkanMemory::buffer_create(
+	auto staging_buffer = VulkanMemory::Buffer(
 		size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -67,8 +68,6 @@ void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * da
 	vkCmdCopyBuffer(copy_command_buffer, staging_buffer.buffer, buffer_dst.buffer, 1, &buffer_copy);
 
 	command_buffer_single_use_end(copy_command_buffer);
-
-	buffer_free(staging_buffer);
 }
 
 void VulkanMemory::buffer_copy_direct(Buffer const & buffer_dst, void const * data_src, size_t size) {

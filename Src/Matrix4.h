@@ -81,6 +81,16 @@ struct alignas(16) Matrix4 {
 		return result;
 	}
 
+	inline static Matrix4 create_scale(const Vector3 & scale) {
+		Matrix4 result = Matrix4::identity();
+
+		result(0, 0) = scale.x;
+		result(1, 1) = scale.y;
+		result(2, 2) = scale.z;
+
+		return result;
+	}
+
 	inline static Matrix4 look_at(const Vector3 & eye, const Vector3 & target, const Vector3 & up) {
         auto z = Vector3::normalize(eye - target);
         auto x = Vector3::normalize(Vector3::cross(up, z));

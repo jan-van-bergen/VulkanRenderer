@@ -18,17 +18,8 @@
 AssetManager::~AssetManager() {
 	auto device = VulkanContext::get_device();
 
-	// Clean up Meshes
-	for (auto & mesh : meshes) {
-		VulkanMemory::buffer_free(mesh.vertex_buffer);
-		VulkanMemory::buffer_free(mesh.index_buffer);
-	}
-
-	// Clean up Animated Meshes
-	for (auto & mesh : animated_meshes) {
-		VulkanMemory::buffer_free(mesh.vertex_buffer);
-		VulkanMemory::buffer_free(mesh.index_buffer);
-	}
+	meshes         .clear();
+	animated_meshes.clear();
 
 	// Clean up Textures
 	for (auto & texture : textures) {
@@ -46,9 +37,6 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 	
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
-	mesh_handle = meshes.size() + 1;
-	auto & mesh = meshes.emplace_back();
-	
 	Assimp::Importer assimp_importer;
 	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
 		aiProcess_Triangulate | 
@@ -79,8 +67,10 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 	}
 
 	std::vector<Mesh::Vertex> vertices(total_num_vertices);
-	std::vector<u32>          indices (total_num_indices);
+	std::vector<int>          indices (total_num_indices);
 		
+	std::vector<Mesh::SubMesh> sub_meshes;
+
 	auto offset_vertex = 0;
 	auto offset_index  = 0;
 
@@ -90,7 +80,7 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 		int num_vertices = assimp_mesh->mNumVertices;
 		int num_indices  = assimp_mesh->mNumFaces * 3;
 
-		auto & sub_mesh = mesh.sub_meshes.emplace_back();
+		auto & sub_mesh = sub_meshes.emplace_back();
 		sub_mesh.index_offset = offset_index;
 		sub_mesh.index_count  = num_indices;
 
@@ -150,30 +140,18 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 
 	assert(offset_vertex == total_num_vertices);
 	assert(offset_index  == total_num_indices);
-
-	// Upload Vertex and Index Buffer
-	auto buffer_size_vertices = Util::vector_size_in_bytes(vertices);
-	auto buffer_size_indices  = Util::vector_size_in_bytes(indices);
-
-	mesh.vertex_buffer = VulkanMemory::buffer_create(buffer_size_vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	mesh.index_buffer  = VulkanMemory::buffer_create(buffer_size_indices,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VulkanMemory::buffer_copy_staged(mesh.vertex_buffer, vertices.data(), buffer_size_vertices);
-	VulkanMemory::buffer_copy_staged(mesh.index_buffer,  indices .data(), buffer_size_indices);
-
-	// Sort Submeshes so that Submeshes with the same Texture are contiguous
-	std::sort(mesh.sub_meshes.begin(), mesh.sub_meshes.end(), [](auto const & a, auto const & b) {
-		return a.texture_handle < b.texture_handle;
-	});
-
+	
+	meshes.emplace_back(vertices, indices, std::move(sub_meshes));
+	mesh_handle = meshes.size();
+	
 	return mesh_handle - 1;
 }
 
-void init_bone_hierarchy(AnimatedMesh & mesh, aiNode const * assimp_node, int parent_index, std::vector<int> & displacement, int * new_index) {
+void init_bone_hierarchy(std::vector<AnimatedMesh::Bone> & bones, aiNode const * assimp_node, int parent_index, std::vector<int> & displacement, int * new_index) {
 	auto bone_index = -1;
 
-	for (int b = 0; b < mesh.bones.size(); b++) {
-		if (strcmp(mesh.bones[b].name.c_str(), assimp_node->mName.C_Str()) == 0) {
+	for (int b = 0; b < bones.size(); b++) {
+		if (strcmp(bones[b].name.c_str(), assimp_node->mName.C_Str()) == 0) {
 			bone_index = b;
 
 			break;
@@ -182,20 +160,20 @@ void init_bone_hierarchy(AnimatedMesh & mesh, aiNode const * assimp_node, int pa
 
 	if (bone_index == -1) {
 		for (int c = 0; c < assimp_node->mNumChildren; c++) {
-			init_bone_hierarchy(mesh, assimp_node->mChildren[c], parent_index, displacement, new_index);
+			init_bone_hierarchy(bones, assimp_node->mChildren[c], parent_index, displacement, new_index);
 		}
 
 		return;
 	}
 
-	auto & bone = mesh.bones[bone_index];
+	auto & bone = bones[bone_index];
 	bone.parent = parent_index;
 
 	assert(*new_index < displacement.size());
 	displacement[bone_index] = (*new_index)++;
 	
 	for (int c = 0; c < assimp_node->mNumChildren; c++) {
-		init_bone_hierarchy(mesh, assimp_node->mChildren[c], displacement[bone_index], displacement, new_index);
+		init_bone_hierarchy(bones, assimp_node->mChildren[c], displacement[bone_index], displacement, new_index);
 	}
 }
 
@@ -205,9 +183,6 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 	if (mesh_handle != 0) return mesh_handle - 1;
 	
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
-
-	mesh_handle = animated_meshes.size() + 1;
-	auto & mesh = animated_meshes.emplace_back();
 
 	Assimp::Importer assimp_importer;
 	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
@@ -239,9 +214,15 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 	}
 
 	std::vector<AnimatedMesh::Vertex> vertices(total_num_vertices);
-	std::vector<u32>                  indices (total_num_indices);
+	std::vector<int>                  indices (total_num_indices);
 	
-	std::unordered_map<std::string, int> bones;
+	std::unordered_map<std::string, int> bone_cache;
+
+	std::vector<AnimatedMesh::SubMesh> sub_meshes;
+	std::vector<AnimatedMesh::Bone>    bones;
+
+	std::unordered_map<std::string, int> animation_names;
+	std::vector<Animation>               animations;
 
 	auto offset_vertex = 0;
 	auto offset_index  = 0;
@@ -253,7 +234,7 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		auto num_indices  = assimp_mesh->mNumFaces * 3;
 		auto num_bones    = assimp_mesh->mNumBones;
 
-		auto & sub_mesh = mesh.sub_meshes.emplace_back();
+		auto & sub_mesh = sub_meshes.emplace_back();
 		sub_mesh.index_offset = offset_index;
 		sub_mesh.index_count  = num_indices;
 
@@ -294,16 +275,16 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 
 			int bone_index;
 			
-			if (bones.find(bone_name) == bones.end()) {
-				bone_index  = mesh.bones.size();
-				auto & bone = mesh.bones.emplace_back();
+			if (bone_cache.find(bone_name) == bone_cache.end()) {
+				bone_index  = bones.size();
+				auto & bone = bones.emplace_back();
 				
 				bone.name = bone_name;
 				std::memcpy(&bone.inv_bind_pose.cells, &assimp_bone->mOffsetMatrix, 4 * 4 * sizeof(float));
 
-				bones.insert(std::make_pair(bone_name, bone_index));
+				bone_cache.insert(std::make_pair(bone_name, bone_index));
 			} else {
-				bone_index = bones[bone_name];
+				bone_index = bone_cache[bone_name];
 			}
 
 			for (int w = 0; w < assimp_bone->mNumWeights; w++) {
@@ -367,8 +348,8 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 	for (int a = 0; a < assimp_scene->mNumAnimations; a++) {
 		auto assimp_animation = assimp_scene->mAnimations[a];
 
-		mesh.animation_names[std::string(assimp_animation->mName.C_Str())] = mesh.animations.size();
-		auto & animation = mesh.animations.emplace_back();
+		animation_names[std::string(assimp_animation->mName.C_Str())] = animations.size();
+		auto & animation = animations.emplace_back();
 
 		for (int c = 0; c < assimp_animation->mNumChannels; c++) {
 			auto assimp_channel = assimp_animation->mChannels[c];
@@ -411,8 +392,8 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 	}
 	
 	int new_index = 0;
-	std::vector<int> displacement(mesh.bones.size());
-	init_bone_hierarchy(mesh, assimp_scene->mRootNode, -1, displacement, &new_index);
+	std::vector<int> displacement(bones.size());
+	init_bone_hierarchy(bones, assimp_scene->mRootNode, -1, displacement, &new_index);
 	
 	for (int v = 0; v < vertices.size(); v++) {
 		auto & vertex = vertices[v];
@@ -424,33 +405,33 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		}
 	}
 
-	std::vector<AnimatedMesh::Bone> bones_copy(mesh.bones.size());
-	for (int i = 0; i < bones_copy.size(); i++) bones_copy[displacement[i]] = mesh.bones[i];
+	std::vector<AnimatedMesh::Bone> bones_copy(bones.size());
+	for (int i = 0; i < bones_copy.size(); i++) bones_copy[displacement[i]] = bones[i];
 
-	mesh.bones = std::move(bones_copy);
-	
+	bones = std::move(bones_copy);
+
 	// Reorder Animation Channels so that they have the same order as the Bones,
 	// allowing the Channels to be indexed using the same index as the Bones
-	for (int a = 0; a < mesh.animations.size(); a++) {
-		auto & animation = mesh.animations[a];
+	for (int a = 0; a < animations.size(); a++) {
+		auto & animation = animations[a];
 
 		if (animation.position_channels.size() != animation.rotation_channels.size()) {
 			printf("ERROR: Number of Position Channels is different from the number of Rotation Channels!\n");
 			abort();
 		}
-		if (animation.position_channels.size() < mesh.bones.size()) {
+		if (animation.position_channels.size() < bones.size()) {
 			printf("ERROR: Number of Animation Channels is smaller than the number of Bones!\n");
 			abort();
 		}
 
-		std::vector<Animation::ChannelPosition> position_channels_copy(mesh.bones.size());
-		std::vector<Animation::ChannelRotation> rotation_channels_copy(mesh.bones.size());
+		std::vector<Animation::ChannelPosition> position_channels_copy(bones.size());
+		std::vector<Animation::ChannelRotation> rotation_channels_copy(bones.size());
 
 		for (int c = 0; c < animation.position_channels.size(); c++) {
 			auto & channel = animation.position_channels[c];
 
-			for (int b = 0; b < mesh.bones.size(); b++) {
-				if (channel.name == mesh.bones[b].name) {
+			for (int b = 0; b < bones.size(); b++) {
+				if (channel.name == bones[b].name) {
 					position_channels_copy[b] = channel;
 
 					break;
@@ -461,8 +442,8 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		for (int c = 0; c < animation.rotation_channels.size(); c++) {
 			auto & channel = animation.rotation_channels[c];
 
-			for (int b = 0; b < mesh.bones.size(); b++) {
-				if (channel.name == mesh.bones[b].name) {
+			for (int b = 0; b < bones.size(); b++) {
+				if (channel.name == bones[b].name) {
 					rotation_channels_copy[b] = channel;
 
 					break;
@@ -473,16 +454,9 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		animation.position_channels = std::move(position_channels_copy);
 		animation.rotation_channels = std::move(rotation_channels_copy);
 	}
-
-	// Upload Vertex and Index Buffer
-	auto buffer_size_vertices = Util::vector_size_in_bytes(vertices);
-	auto buffer_size_indices  = Util::vector_size_in_bytes(indices);
-
-	mesh.vertex_buffer = VulkanMemory::buffer_create(buffer_size_vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	mesh.index_buffer  = VulkanMemory::buffer_create(buffer_size_indices,  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VulkanMemory::buffer_copy_staged(mesh.vertex_buffer, vertices.data(), buffer_size_vertices);
-	VulkanMemory::buffer_copy_staged(mesh.index_buffer,  indices .data(), buffer_size_indices);
+	
+	animated_meshes.emplace_back(vertices, indices, std::move(bones), std::move(sub_meshes), std::move(animation_names), std::move(animations));
+	mesh_handle = animated_meshes.size();
 
 	return mesh_handle - 1;
 }
@@ -505,7 +479,7 @@ TextureHandle AssetManager::load_texture(std::string const & filename) {
 
 	auto texture_size = texture_width * texture_height * 4;
 	
-	auto staging_buffer = VulkanMemory::buffer_create(texture_size,
+	auto staging_buffer = VulkanMemory::Buffer(texture_size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
@@ -537,8 +511,6 @@ TextureHandle AssetManager::load_texture(std::string const & filename) {
 	texture.generate_mipmaps(texture_width, texture_height, mip_levels);
 
 	auto device = VulkanContext::get_device();
-
-	VulkanMemory::buffer_free(staging_buffer);
 
 	texture.image_view = VulkanMemory::create_image_view(texture.image, mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 	

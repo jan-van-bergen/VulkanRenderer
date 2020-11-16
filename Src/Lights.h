@@ -34,15 +34,15 @@ struct PointLight : Light {
 	Vector3 position;
 	float   radius;
 
-	inline static struct Sphere {
+	struct Sphere {
 		VulkanMemory::Buffer vertex_buffer;
 		VulkanMemory::Buffer index_buffer;
 
 		size_t index_count;
-	} sphere;
 
-	static void init_sphere();
-	static void free_sphere();
+		Sphere();
+	};
+	inline static std::unique_ptr<Sphere> sphere;
 };
 
 struct SpotLight : PointLight {

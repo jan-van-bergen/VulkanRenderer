@@ -7,15 +7,36 @@ namespace VulkanMemory {
 	struct Buffer {
 		VkBuffer       buffer;
 		VkDeviceMemory memory;
+
+		Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+		~Buffer();
+
+		Buffer(Buffer const & other) noexcept = delete;
+		Buffer(Buffer      && other) noexcept {
+			buffer = other.buffer;
+			memory = other.memory;
+
+			other.buffer = nullptr;
+			other.memory = nullptr;
+		}
+ 
+		Buffer & operator=(Buffer const & other) noexcept = delete;
+ 
+		Buffer & operator=(Buffer && other) noexcept {
+			buffer = other.buffer;
+			memory = other.memory;
+
+			other.buffer = nullptr;
+			other.memory = nullptr;
+
+			return *this;
+		}
 	};
 
 	VkCommandBuffer command_buffer_single_use_begin();
 	void            command_buffer_single_use_end(VkCommandBuffer command_buffer);
 
 	u32 find_memory_type(u32 type_filter, VkMemoryPropertyFlags properties);
-
-	Buffer buffer_create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	void   buffer_free(Buffer & buffer);
 
 	void buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size);
 	void buffer_copy_direct(Buffer const & buffer_dst, void const * data_src, size_t size);

@@ -61,9 +61,7 @@ void RenderTaskLighting::LightPass::free() {
 	vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
 	vkDestroyPipeline      (device, pipeline,        nullptr);
 	
-	for (int i = 0; i < uniform_buffers.size(); i++) {
-		VulkanMemory::buffer_free(uniform_buffers[i]);
-	}
+	uniform_buffers.clear();
 }
 
 RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
@@ -115,15 +113,15 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 	light_pass.pipeline = VulkanContext::create_pipeline(pipeline_details);
 
 	// Create Uniform Buffers
-	light_pass.uniform_buffers.resize(swapchain_image_count);
+	light_pass.uniform_buffers.reserve(swapchain_image_count);
 
 	auto aligned_size = Math::round_up(sizeof(PointLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	
 	for (int i = 0; i < swapchain_image_count; i++) {
-		light_pass.uniform_buffers[i] = VulkanMemory::buffer_create(scene.point_lights.size() * aligned_size,
+		light_pass.uniform_buffers.push_back(VulkanMemory::Buffer(scene.point_lights.size() * aligned_size,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
+		));
 	}
 
 	// Allocate and update Descriptor Sets
@@ -412,11 +410,11 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		std::vector<std::byte> buf(scene.point_lights.size() * aligned_size);
 
 		// Bind Sphere to render Point Lights
-		VkBuffer     vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
+		VkBuffer     vertex_buffers[] = { PointLight::sphere->vertex_buffer.buffer };
 		VkDeviceSize vertex_offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
-		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		
 		int num_unculled_lights = 0;
 
@@ -443,7 +441,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			u32 offset = num_unculled_lights * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_point.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
-			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(command_buffer, PointLight::sphere->index_count, 1, 0, 0, 0);
 
 			num_unculled_lights++;
 		}
@@ -466,11 +464,11 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		std::vector<std::byte> buf(scene.spot_lights.size() * aligned_size);
 
 		// Bind Sphere to render Spot Lights
-		VkBuffer     vertex_buffers[] = { PointLight::sphere.vertex_buffer.buffer };
+		VkBuffer     vertex_buffers[] = { PointLight::sphere->vertex_buffer.buffer };
 		VkDeviceSize vertex_offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
-		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(command_buffer, PointLight::sphere->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 		
 		int num_unculled_lights = 0;
 
@@ -498,7 +496,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			u32 offset = num_unculled_lights * aligned_size;
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_spot.pipeline_layout, 0, 1, &descriptor_set, 1, &offset);
 
-			vkCmdDrawIndexed(command_buffer, PointLight::sphere.index_count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(command_buffer, PointLight::sphere->index_count, 1, 0, 0, 0);
 
 			num_unculled_lights++;
 		}	

@@ -95,6 +95,29 @@ struct AnimatedMesh {
 	
 	std::unordered_map<std::string, int> animation_names;
 	std::vector<Animation>               animations;
+
+	explicit AnimatedMesh(
+		std::vector<Vertex> const & vertices,
+		std::vector<int>    const & indices,
+		std::vector<Bone>    && bones,
+		std::vector<SubMesh> && sub_meshes,
+		std::unordered_map<std::string, int> && animation_names,
+		std::vector<Animation>               && animations
+	);
+	
+	explicit AnimatedMesh(AnimatedMesh const & other) = delete;
+
+	explicit AnimatedMesh(AnimatedMesh && other) noexcept : 
+		vertex_buffer(std::move(other.vertex_buffer)), 
+		index_buffer (std::move(other.index_buffer)),
+		bones     (std::move(other.bones)),
+		sub_meshes(std::move(other.sub_meshes)),
+		animation_names(std::move(other.animation_names)),
+		animations     (std::move(other.animations))
+	{ }
+
+	AnimatedMesh & operator=(AnimatedMesh const & other) noexcept = delete;
+	AnimatedMesh & operator=(AnimatedMesh      && other) noexcept = default;
 };
 
 struct AnimatedMeshInstance {

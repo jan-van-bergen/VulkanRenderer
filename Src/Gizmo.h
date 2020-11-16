@@ -44,6 +44,9 @@ public:
 	std::vector<Vertex> vertices;
 	std::vector<int>    indices;
 
+	Gizmo(Gizmo && gizmo) = default;
+	Gizmo(std::vector<Vertex> && vertices, std::vector<int> && indices);
+
 	bool intersects_mouse(Camera const & camera, int mouse_x, int mouse_y);
 
 	static Gizmo generate_position();

@@ -71,6 +71,8 @@ struct Mesh {
 	};
 
 	std::vector<SubMesh> sub_meshes;
+
+	Mesh(std::vector<Vertex> const & vertices, std::vector<int> const & indices, std::vector<SubMesh> && sub_meshes);
 };
 
 struct MeshInstance {
