@@ -50,7 +50,7 @@ Renderer::~Renderer() {
 
 	swapchain_destroy();
 
-	PointLight::sphere.release();
+	PointLight::sphere.reset();
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
