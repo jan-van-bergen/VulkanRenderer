@@ -30,9 +30,6 @@
     <ClCompile Include="Src\Texture.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Lights.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Src\RenderTarget.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>

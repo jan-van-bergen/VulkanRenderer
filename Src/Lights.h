@@ -33,16 +33,6 @@ public:
 struct PointLight : Light {
 	Vector3 position;
 	float   radius;
-
-	struct Sphere {
-		VulkanMemory::Buffer vertex_buffer;
-		VulkanMemory::Buffer index_buffer;
-
-		size_t index_count;
-
-		Sphere();
-	};
-	inline static std::unique_ptr<Sphere> sphere;
 };
 
 struct SpotLight : PointLight {

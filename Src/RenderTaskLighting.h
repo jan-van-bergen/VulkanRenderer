@@ -14,6 +14,15 @@ private:
 
 	Scene & scene;
 
+	struct PointLightSphere {
+		VulkanMemory::Buffer vertex_buffer;
+		VulkanMemory::Buffer index_buffer;
+
+		size_t index_count;
+
+		PointLightSphere();
+	} point_light_sphere;
+
 	struct LightPass {
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;

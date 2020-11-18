@@ -28,8 +28,6 @@ Renderer::Renderer(GLFWwindow * window, u32 width, u32 height) :
 
 	this->window = window;
 
-	PointLight::sphere = std::make_unique<PointLight::Sphere>();
-
 	swapchain_create();
 
 	VkSemaphoreCreateInfo semaphore_create_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -49,8 +47,6 @@ Renderer::~Renderer() {
 	auto device = VulkanContext::get_device();
 
 	swapchain_destroy();
-
-	PointLight::sphere.reset();
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, semaphores_image_available[i], nullptr);
