@@ -1,0 +1,77 @@
+#version 450
+
+layout (constant_id = 0) const int MAX_LOD_LEVEL = 5;
+
+// Same layout as VkDrawIndexedIndirectCommand
+struct IndexedIndirectCommand {
+	uint index_count;
+	uint instance_count;
+	uint first_index;
+	uint vertex_offset;
+	uint first_instance;
+};
+
+layout (binding = 0, std430) writeonly buffer IndirectCommands { // Output
+	IndexedIndirectCommand indirect_draws[];
+};
+
+layout (binding = 1) uniform Camera {
+	vec4 frustum_planes[6];
+} camera;
+
+layout (binding = 2) buffer Stats {
+	uint draw_count;
+} stats;
+
+struct Model {
+	vec3 position;
+	uint index_count;
+};
+
+layout (binding = 3) readonly buffer Models {
+	Model models[];
+};
+
+bool frustum_check(vec4 pos, float radius) {
+	for (int i = 0; i < 6; i++) 
+	{
+		if (dot(pos, camera.frustum_planes[i]) + radius < 0.0f) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+layout (local_size_x = 16) in;
+
+void main() {
+	uint index = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+
+	// Clear stats on first invocation
+	if (index == 0) {
+		atomicExchange(stats.draw_count, 0);
+	}
+
+	Model model = models[index];
+
+	vec4 pos = vec4(model.position.xyz, 1.0f);
+
+	IndexedIndirectCommand indirect_draw;
+	indirect_draw.index_count = model.index_count;
+
+	// Check if object is within current viewing frustum
+	if (frustum_check(pos, 1.0f)) {
+		indirect_draw.instance_count = 1;
+
+		atomicAdd(stats.draw_count, 1);
+	} else {
+		indirect_draw.instance_count = 0;
+	}
+
+	indirect_draw.first_index    = 0;
+	indirect_draw.vertex_offset  = 0;
+	indirect_draw.first_instance = 0;
+	
+	indirect_draws[index] = indirect_draw;
+}

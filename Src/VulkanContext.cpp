@@ -18,9 +18,11 @@ static VkDevice device;
 static VkSurfaceKHR surface;
 
 static u32 queue_family_graphics;
+static u32 queue_family_compute;
 static u32 queue_family_present;
 
 static VkQueue queue_graphics;
+static VkQueue queue_compute;
 static VkQueue queue_present;
 
 static VkCommandPool command_pool;
@@ -45,8 +47,11 @@ static VkBool32 debug_callback(
 	VkDebugUtilsMessengerCallbackDataEXT const * callback_data,
 	void                                       * user_data
 ) {
-	printf("VULKAN Debug Callback: '%s'\n", callback_data->pMessage);
-	__debugbreak();
+	if (msg_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+		printf("VULKAN Debug Callback: '%s'\n", callback_data->pMessage);
+
+		__debugbreak();
+	}
 
 	return VK_FALSE;
 }
@@ -152,25 +157,30 @@ static void init_queue_families() {
 	std::vector<VkQueueFamilyProperties> queue_families(queue_families_count); vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_families.data());
 	
 	std::optional<u32> opt_queue_family_graphics;
+	std::optional<u32> opt_queue_family_compute;
 	std::optional<u32> opt_queue_family_present;
 
 	for (int i = 0; i < queue_families_count; i++) {
-		VkBool32 supports_graphics = queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
-		VkBool32 supports_present  = false;
+		bool supports_graphics = queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+		bool supports_compute  = queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
+
+		VkBool32 supports_present = false;
 		VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_present));
 
 		if (supports_graphics) opt_queue_family_graphics = i;
+		if (supports_compute)  opt_queue_family_compute  = i;
 		if (supports_present)  opt_queue_family_present  = i;
 
-		if (opt_queue_family_graphics.has_value() && opt_queue_family_present.has_value()) break;
+		if (opt_queue_family_graphics.has_value() && opt_queue_family_compute.has_value() && opt_queue_family_present.has_value()) break;
 	}
 
-	if (!opt_queue_family_graphics.has_value() || !opt_queue_family_present.has_value()) {
+	if (!opt_queue_family_graphics.has_value() || !opt_queue_family_compute.has_value() || !opt_queue_family_present.has_value()) {
 		printf("Failed to create queue families!\n");	
 		abort();
 	}
 
 	queue_family_graphics = opt_queue_family_graphics.value();
+	queue_family_compute  = opt_queue_family_compute .value();
 	queue_family_present  = opt_queue_family_present .value();
 }
 
@@ -217,6 +227,7 @@ static void init_device() {
 
 static void init_queues() {
 	vkGetDeviceQueue(device, queue_family_graphics, 0, &queue_graphics);
+	vkGetDeviceQueue(device, queue_family_compute,  0, &queue_compute);
 	vkGetDeviceQueue(device, queue_family_present,  0, &queue_present);
 }
 

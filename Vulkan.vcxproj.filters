@@ -182,6 +182,9 @@
     <ClInclude Include="Src\AssetManager.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Vector4.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Math">
@@ -259,6 +262,9 @@
       <Filter>Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="Shaders\gizmo.frag">
+      <Filter>Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\cull.comp">
       <Filter>Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

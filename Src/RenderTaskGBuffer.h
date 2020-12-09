@@ -12,6 +12,7 @@ private:
 	Scene & scene;
 	
 	struct {
+		VkDescriptorSetLayout cull;
 		VkDescriptorSetLayout geometry;
 		VkDescriptorSetLayout material;
 		VkDescriptorSetLayout bones;
@@ -19,23 +20,33 @@ private:
 	} descriptor_set_layouts;
 	
 	struct {
+		VkPipelineLayout cull;
 		VkPipelineLayout geometry_static;
 		VkPipelineLayout geometry_animated;
 		VkPipelineLayout sky;
 	} pipeline_layouts;
 
 	struct {
+		VkPipeline cull;
 		VkPipeline geometry_static;
 		VkPipeline geometry_animated;
 		VkPipeline sky;
 	} pipelines;
 
 	struct {
+		std::vector<VulkanMemory::Buffer> camera;
 		std::vector<VulkanMemory::Buffer> material;
 		std::vector<VulkanMemory::Buffer> sky;
 	} uniform_buffers;
 
 	struct {
+		std::vector<VulkanMemory::Buffer> cull_commands;
+		std::vector<VulkanMemory::Buffer> cull_stats;
+		std::vector<VulkanMemory::Buffer> cull_model;
+	} storage_buffers;
+
+	struct {
+		std::vector<VkDescriptorSet> cull;
 		std::vector<VkDescriptorSet> material;
 		std::vector<VkDescriptorSet> bones;
 		std::vector<VkDescriptorSet> sky;

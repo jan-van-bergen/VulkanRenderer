@@ -3,12 +3,31 @@
 #include "VulkanCheck.h"
 #include "VulkanContext.h"
 
+#include "Vector4.h"
 #include "Matrix4.h"
 
 #include "Mesh.h"
 #include "Texture.h"
 
 #include "Util.h"
+
+// Same layout as VkDrawIndexedIndirectCommand
+struct IndexedIndirectCommand {
+	unsigned index_count;
+	unsigned instance_count;
+	unsigned first_index;
+	unsigned vertex_offset;
+	unsigned first_instance;
+};
+
+struct Stats {
+	unsigned draw_count;
+};
+
+struct Model {
+	Vector3  position;
+	unsigned index_count;
+};
 
 struct GBufferPushConstants {
 	alignas(16) Matrix4 world;
@@ -17,6 +36,10 @@ struct GBufferPushConstants {
 		alignas(16) Matrix4 view_projection;
 	};
 	alignas(4) int bone_offset;
+};
+
+struct CameraUBO {
+	alignas(16) Vector4 frustum_planes[6];
 };
 
 struct MaterialUBO {
@@ -39,6 +62,37 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	this->height = height;
 
 	// Create Descriptor Set Layouts
+	{
+		// Compute Culling
+		VkDescriptorSetLayoutBinding layout_bindings_cull[4] = { };
+
+		layout_bindings_cull[0].binding = 0;
+		layout_bindings_cull[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		layout_bindings_cull[0].descriptorCount = 1;
+		layout_bindings_cull[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		
+		layout_bindings_cull[1].binding = 1;
+		layout_bindings_cull[1].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		layout_bindings_cull[1].descriptorCount = 1;
+		layout_bindings_cull[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT
+			;
+		layout_bindings_cull[2].binding = 2;
+		layout_bindings_cull[2].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		layout_bindings_cull[2].descriptorCount = 1;
+		layout_bindings_cull[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+		layout_bindings_cull[3].binding = 3;
+		layout_bindings_cull[3].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		layout_bindings_cull[3].descriptorCount = 1;
+		layout_bindings_cull[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layout_create_info.bindingCount = Util::array_element_count(layout_bindings_cull);
+		layout_create_info.pBindings    = layout_bindings_cull;
+
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.cull));
+	}
+
 	{
 		// Static Geometry
 		VkDescriptorSetLayoutBinding layout_bindings_geometry[1] = { };
@@ -121,6 +175,16 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VulkanContext::PipelineLayoutDetails pipeline_layout_details;
+
+	// Cull Pipeline Layout
+	pipeline_layout_details.descriptor_set_layouts = {
+		descriptor_set_layouts.cull
+	};
+	pipeline_layout_details.push_constants = { };
+
+	pipeline_layouts.cull = VulkanContext::create_pipeline_layout(pipeline_layout_details);
+	
+	// Static Geometry Pipeline Layout
 	pipeline_layout_details.descriptor_set_layouts = {
 		descriptor_set_layouts.geometry,
 		descriptor_set_layouts.material
@@ -129,6 +193,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 	pipeline_layouts.geometry_static = VulkanContext::create_pipeline_layout(pipeline_layout_details);
 
+	// Animated Geometry Pipeline Layout
 	pipeline_layout_details.descriptor_set_layouts = {
 		descriptor_set_layouts.geometry,
 		descriptor_set_layouts.material,
@@ -137,13 +202,15 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 	pipeline_layouts.geometry_animated = VulkanContext::create_pipeline_layout(pipeline_layout_details);
 
+	// Sky Pipeline Layout
 	pipeline_layout_details.descriptor_set_layouts = { descriptor_set_layouts.sky };
 	pipeline_layout_details.push_constants = { };
 
 	pipeline_layouts.sky = VulkanContext::create_pipeline_layout(pipeline_layout_details);
 
-	// Create Pipeline
+	// Create Pipelines
 	VulkanContext::PipelineDetails pipeline_details;
+
 	pipeline_details.vertex_bindings   = Mesh::Vertex::get_binding_descriptions();
 	pipeline_details.vertex_attributes = Mesh::Vertex::get_attribute_descriptions();
 	pipeline_details.width  = width;
@@ -189,11 +256,16 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	// Create Uniform Buffers
 	uniform_buffers.material.reserve(swapchain_image_count);
 	uniform_buffers.sky     .reserve(swapchain_image_count);
+	storage_buffers.cull_commands.reserve(swapchain_image_count);
 	scene.asset_manager.storage_buffer_bones.reserve(swapchain_image_count);
 
-	auto aligned_size_material = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
-	auto aligned_size_sky      = Math::round_up(sizeof(SkyUBO),      VulkanContext::get_min_uniform_buffer_alignment());
-	
+	auto aligned_size_camera       = Math::round_up(sizeof(CameraUBO),              VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_material     = Math::round_up(sizeof(MaterialUBO),            VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_sky          = Math::round_up(sizeof(SkyUBO),                 VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_cull_command = Math::round_up(sizeof(IndexedIndirectCommand), VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_cull_stats   = Math::round_up(sizeof(Stats),                  VulkanContext::get_min_uniform_buffer_alignment());
+	auto aligned_size_cull_model   = Math::round_up(sizeof(Model),                  VulkanContext::get_min_uniform_buffer_alignment());
+
 	auto total_mesh_count = scene.animated_meshes.size() + scene.meshes.size();
 	auto total_bone_count = 0;
 
@@ -202,6 +274,12 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	}
 
 	for (int i = 0; i < swapchain_image_count; i++) {
+		// Uniform Buffers
+		uniform_buffers.camera.push_back(VulkanMemory::Buffer(aligned_size_camera,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		));
+
 		uniform_buffers.material.push_back(VulkanMemory::Buffer(total_mesh_count * aligned_size_material,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -210,6 +288,22 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 		uniform_buffers.sky.push_back(VulkanMemory::Buffer(aligned_size_sky,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		));
+		
+		// Storage Buffers
+		storage_buffers.cull_commands.push_back(VulkanMemory::Buffer(total_mesh_count * aligned_size_cull_command,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		));
+
+		storage_buffers.cull_stats.push_back(VulkanMemory::Buffer(aligned_size_cull_stats,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		));
+		
+		storage_buffers.cull_model.push_back(VulkanMemory::Buffer(aligned_size_cull_model,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, ////////////////////////////////////////////////////////////////////////////// VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		));
 
 		scene.asset_manager.storage_buffer_bones.push_back(VulkanMemory::Buffer(total_bone_count * sizeof(Matrix4),
@@ -241,6 +335,78 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 		write_descriptor_set.pImageInfo      = &image_info;
 
 		vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
+	}
+	
+	{
+		std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.cull);
+
+		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		alloc_info.descriptorPool = descriptor_pool;
+		alloc_info.descriptorSetCount = layouts.size();
+		alloc_info.pSetLayouts        = layouts.data();
+
+		descriptor_sets.cull.resize(swapchain_image_count);
+		VK_CHECK(vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets.cull.data()));
+
+		for (int i = 0; i < descriptor_sets.cull.size(); i++) {
+			auto descriptor_set = descriptor_sets.cull[i];
+			
+			VkWriteDescriptorSet write_descriptors[4] = { };
+			
+			VkDescriptorBufferInfo descriptor_commands = { };
+			descriptor_commands.buffer = storage_buffers.cull_commands[i].buffer;
+			descriptor_commands.offset = 0;
+			descriptor_commands.range = sizeof(IndexedIndirectCommand);
+
+			write_descriptors[0].sType = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			write_descriptors[0].dstSet = descriptor_set;
+			write_descriptors[0].dstBinding = 0;
+			write_descriptors[0].dstArrayElement = 0;
+			write_descriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			write_descriptors[0].descriptorCount = 1;
+			write_descriptors[0].pBufferInfo     = &descriptor_commands;
+			
+			VkDescriptorBufferInfo descriptor_camera = { };
+			descriptor_camera.buffer = uniform_buffers.camera[i].buffer;
+			descriptor_camera.offset = 0;
+			descriptor_camera.range = sizeof(CameraUBO);
+
+			write_descriptors[1].sType = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			write_descriptors[1].dstSet = descriptor_set;
+			write_descriptors[1].dstBinding = 1;
+			write_descriptors[1].dstArrayElement = 0;
+			write_descriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			write_descriptors[1].descriptorCount = 1;
+			write_descriptors[1].pBufferInfo     = &descriptor_camera;
+			
+			VkDescriptorBufferInfo descriptor_stats = { };
+			descriptor_stats.buffer = storage_buffers.cull_stats[i].buffer;
+			descriptor_stats.offset = 0;
+			descriptor_stats.range = sizeof(CameraUBO);
+
+			write_descriptors[2].sType = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			write_descriptors[2].dstSet = descriptor_set;
+			write_descriptors[2].dstBinding = 2;
+			write_descriptors[2].dstArrayElement = 0;
+			write_descriptors[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			write_descriptors[2].descriptorCount = 1;
+			write_descriptors[2].pBufferInfo     = &descriptor_stats;
+			
+			VkDescriptorBufferInfo descriptor_model = { };
+			descriptor_model.buffer = storage_buffers.cull_model[i].buffer;
+			descriptor_model.offset = 0;
+			descriptor_model.range = sizeof(CameraUBO);
+
+			write_descriptors[3].sType = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			write_descriptors[3].dstSet = descriptor_set;
+			write_descriptors[3].dstBinding = 3;
+			write_descriptors[3].dstArrayElement = 0;
+			write_descriptors[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			write_descriptors[3].descriptorCount = 1;
+			write_descriptors[3].pBufferInfo     = &descriptor_model;
+
+			vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptors), write_descriptors, 0, nullptr);
+		}
 	}
 
 	{
@@ -342,15 +508,18 @@ void RenderTaskGBuffer::free() {
 
 	render_target.free();
 	
+	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.cull,     nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.geometry, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.material, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.bones,    nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.sky,      nullptr);
 	
+	vkDestroyPipelineLayout(device, pipeline_layouts.cull,              nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.geometry_static,   nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.geometry_animated, nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.sky,               nullptr);
 
+	vkDestroyPipeline(device, pipelines.cull,              nullptr);
 	vkDestroyPipeline(device, pipelines.geometry_static,   nullptr);
 	vkDestroyPipeline(device, pipelines.geometry_animated, nullptr);
 	vkDestroyPipeline(device, pipelines.sky,               nullptr);
@@ -451,14 +620,14 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 			auto const & sub_mesh = mesh.sub_meshes[j];
 
 			// Transform AABB into world space for culling
-			Vector3 center = 0.5f * (sub_mesh.aabb.min + sub_mesh.aabb.max);
-			Vector3 extent = 0.5f * (sub_mesh.aabb.max - sub_mesh.aabb.min);
+			auto center = 0.5f * (sub_mesh.aabb.min + sub_mesh.aabb.max);
+			auto extent = 0.5f * (sub_mesh.aabb.max - sub_mesh.aabb.min);
 
-			Vector3 new_center = Matrix4::transform_position (    transform, center);
-			Vector3 new_extent = Matrix4::transform_direction(abs_transform, extent);
+			auto new_center = Matrix4::transform_position (    transform, center);
+			auto new_extent = Matrix4::transform_direction(abs_transform, extent);
 
-			Vector3 aabb_world_min = new_center - new_extent;
-			Vector3 aabb_world_max = new_center + new_extent;
+			auto aabb_world_min = new_center - new_extent;
+			auto aabb_world_max = new_center + new_extent;
 
 			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 
@@ -501,8 +670,8 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	if (num_unculled_mesh_instances > 0) VulkanMemory::buffer_copy_direct(uniform_buffer_material, buffer_material_ubo.data(), num_unculled_mesh_instances * aligned_size);
 	
 	// Render Sky
-	auto & uniform_buffer_sky = uniform_buffers.sky[image_index];
-	auto & descriptor_set_sky = descriptor_sets.sky[image_index];
+	auto const & uniform_buffer_sky = uniform_buffers.sky[image_index];
+	auto const & descriptor_set_sky = descriptor_sets.sky[image_index];
 
 	vkCmdBindPipeline      (command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.sky);
 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.sky, 0, 1, &descriptor_set_sky, 0, nullptr);
