@@ -48,7 +48,7 @@ VulkanMemory::Buffer::~Buffer() {
 	memory = nullptr;
 }
 
-void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size) {	
+void VulkanMemory::buffer_copy_staged(Buffer const & buffer_dst, void const * data_src, size_t size) {
 	// Create temporary staging buffer
 	auto staging_buffer = VulkanMemory::Buffer(
 		size,
@@ -133,7 +133,7 @@ void VulkanMemory::create_image(u32 width, u32 height, u32 mip_levels, VkFormat 
 	image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_create_info.flags = 0;
-	
+
 	VkDevice device = VulkanContext::get_device();
 
 	VK_CHECK(vkCreateImage(device, &image_create_info, nullptr, &image));
@@ -155,7 +155,7 @@ VkImageView VulkanMemory::create_image_view(VkImage image, u32 mip_levels, VkFor
 	image_view_create_info.image = image;
 	image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	image_view_create_info.format = format;
-	
+
 	image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 	image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 	image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -227,7 +227,7 @@ void VulkanMemory::buffer_copy_to_image(VkBuffer buffer, VkImage image, u32 widt
 	region.bufferOffset = 0;
 	region.bufferRowLength = 0;
 	region.bufferImageHeight = 0;
-	
+
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.mipLevel = 0;
 	region.imageSubresource.baseArrayLayer = 0;

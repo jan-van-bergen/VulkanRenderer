@@ -41,7 +41,7 @@ struct Mesh {
 			attribute_descriptions[0].location = 0;
 			attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attribute_descriptions[0].offset = offsetof(Vertex, position);
-		
+
 			// Texture Coordinates
 			attribute_descriptions[1].binding  = 0;
 			attribute_descriptions[1].location = 1;
@@ -57,7 +57,7 @@ struct Mesh {
 			return attribute_descriptions;
 		}
 	};
-	
+
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
 
@@ -79,7 +79,7 @@ struct MeshInstance {
 	std::string name;
 
 	MeshHandle mesh_handle;
-	
+
 	Material * material;
 
 	Transform transform;

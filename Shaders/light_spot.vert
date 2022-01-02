@@ -10,7 +10,7 @@ layout(binding = 0, push_constant, row_major) uniform PushConstants {
 
 void main() {
 	gl_Position = wvp * vec4(in_position, 1.0f);
-	
+
 	// Perspective divide and convert from [-1, 1] to [0, 1]
     out_uv = 0.5f + 0.5f * gl_Position.xy / gl_Position.w;
 }

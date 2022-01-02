@@ -11,7 +11,7 @@ struct Scene {
 	AssetManager asset_manager;
 
 	Camera camera;
-	
+
 	std::vector<std::unique_ptr<Material>> materials;
 
 	std::vector<MeshInstance>         meshes;

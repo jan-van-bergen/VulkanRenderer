@@ -40,9 +40,9 @@ int main() {
 	VulkanContext::init(window);
 	{
 		Renderer renderer(window, screen_width, screen_height);
-		
+
 		glfwSetWindowUserPointer(window, &renderer);
-		
+
 		double time_curr = 0.0f;
 		double time_prev = 0.0f;
 		double time_delta;
@@ -65,7 +65,7 @@ int main() {
 		VK_CHECK(vkDeviceWaitIdle(VulkanContext::get_device()));
 	}
 	VulkanContext::destroy();
-	
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 

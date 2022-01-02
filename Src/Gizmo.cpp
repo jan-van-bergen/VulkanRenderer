@@ -4,8 +4,8 @@
 
 static constexpr int VERTICES_PER_CIRCLE = 12;
 
-Gizmo::Gizmo(std::vector<Vertex> && vertices, std::vector<int> && indices) : 
-	vertices(vertices), 
+Gizmo::Gizmo(std::vector<Vertex> && vertices, std::vector<int> && indices) :
+	vertices(vertices),
 	indices (indices),
 	vertex_buffer(Util::vector_size_in_bytes(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
 	index_buffer (Util::vector_size_in_bytes(indices),  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
@@ -19,7 +19,7 @@ Gizmo::Gizmo(std::vector<Vertex> && vertices, std::vector<int> && indices) :
 void Gizmo::calc_aabb() {
 	aabb.min = Vector3(+INFINITY);
 	aabb.max = Vector3(-INFINITY);
-	
+
 	for (auto const & vertex : vertices) {
 		aabb.min = Vector3::min(aabb.min, vertex.position);
 		aabb.max = Vector3::max(aabb.max, vertex.position);
@@ -31,7 +31,7 @@ Gizmo Gizmo::generate_position() {
 	constexpr float RADIUS_HEAD = 0.25f;
 	constexpr float LENGTH_TAIL = 2.0f;
 	constexpr float LENTGH_HEAD = 0.5f;
-	
+
 	std::vector<Vertex> vertices = { { Vector3(0, 0, -1) }, { Vector3(3, 0, -2) }, { Vector3(2, 2, -1) } };
 	std::vector<int>    indices  = { 0, 1, 2 };
 
@@ -122,7 +122,7 @@ Gizmo Gizmo::generate_rotation() {
 	constexpr float RADIUS_INNER = 2.0f;
 	constexpr float RADIUS_OUTER = 2.2f;
 	constexpr float HALF_DEPTH   = 0.1f;
-	
+
 	std::vector<Vertex> vertices(4 * VERTICES_PER_CIRCLE);
 	std::vector<int>    indices;
 	indices.reserve(4 * 2 * 3 * VERTICES_PER_CIRCLE); // 4 sides, each with 2 triangles
@@ -176,7 +176,7 @@ Gizmo Gizmo::generate_rotation() {
 		indices.push_back((i + 1) % VERTICES_PER_CIRCLE + VERTICES_PER_CIRCLE * 3);
 		indices.push_back((i + 1) % VERTICES_PER_CIRCLE);
 	}
-	
+
 	return Gizmo(std::move(vertices), std::move(indices));
 }
 

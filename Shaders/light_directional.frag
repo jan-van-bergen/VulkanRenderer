@@ -12,7 +12,7 @@ layout(binding = 2) uniform sampler2D sampler_depth;
 
 layout(binding = 3, row_major) uniform UniformBuffer {
 	DirectionalLight directional_light;
-	
+
 	vec3 camera_position;
 
 	mat4 inv_view_projection;

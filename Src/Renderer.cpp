@@ -14,7 +14,7 @@
 #include "Input.h"
 #include "Util.h"
 
-Renderer::Renderer(GLFWwindow * window, u32 width, u32 height) : 
+Renderer::Renderer(GLFWwindow * window, u32 width, u32 height) :
 	scene(width, height),
 	render_task_gbuffer     (scene),
 	render_task_shadow      (scene),
@@ -71,7 +71,7 @@ void Renderer::swapchain_create() {
 	for (int i = 0; i < swapchain_image_count; i++) {
 		swapchain_views[i] = VulkanMemory::create_image_view(swapchain_images[i], 1, VulkanContext::FORMAT.format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
-	
+
 	// Create Descriptor Pool
 	VkDescriptorPoolSize descriptor_pool_sizes[] = {
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
@@ -128,27 +128,27 @@ void Renderer::swapchain_create() {
 void Renderer::swapchain_destroy() {
 	auto device       = VulkanContext::get_device();
 	auto command_pool = VulkanContext::get_command_pool();
-	
+
 	render_task_gbuffer     .free();
 	render_task_shadow      .free();
 	render_task_lighting    .free();
 	render_task_post_process.free();
-	
+
 	scene.asset_manager.storage_buffer_bones.clear();
 
 	vkDestroyImage    (device, depth_image,        nullptr);
 	vkDestroyImageView(device, depth_image_view,   nullptr);
 	vkFreeMemory      (device, depth_image_memory, nullptr);
-	
+
 	vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
 
 	vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
-	
+
 	for (int i = 0; i < swapchain_views.size(); i++) {
 		vkDestroyFramebuffer(device, frame_buffers[i], nullptr);
 		vkDestroyImageView  (device, swapchain_views[i], nullptr);
 	}
-	
+
 	vkDestroySwapchainKHR(device, swapchain, nullptr);
 }
 
@@ -170,7 +170,7 @@ void Renderer::update(float delta) {
 	} else {
 		timing.frame_times[timing.frame_index++ % FRAME_HISTORY_LENGTH] = delta;
 	}
-	
+
 	timing.frame_avg = 0.0f;
 	timing.frame_min = INFINITY;
 	timing.frame_max = 0.0f;
@@ -191,7 +191,7 @@ void Renderer::update(float delta) {
 		timing.fps = timing.frames_since_last_second;
 		timing.frames_since_last_second = 0;
 	}
-	
+
 	// Update GUI
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -237,7 +237,7 @@ void Renderer::update(float delta) {
 			selected_animated_mesh = nullptr;
 		}
 	}
-	
+
 	if (selected_animated_mesh) {
 		ImGui::Text("Selected Animated Mesh: %s", selected_animated_mesh->name.c_str());
 		ImGui::SliderFloat3("Position", selected_animated_mesh->transform.position.data, -10.0f, 10.0f);
@@ -276,7 +276,7 @@ void Renderer::render() {
 
 	// Wait until previous Frame is done
 	VK_CHECK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-	
+
 	u32 image_index; VK_CHECK(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, semaphore_image_available, VK_NULL_HANDLE, &image_index));
 
 	// Recrod Command buffer
@@ -302,7 +302,7 @@ void Renderer::render() {
 	// Submit Command buffer
 	VkSemaphore          wait_semaphores[] = { semaphore_image_available };
 	VkPipelineStageFlags wait_stages    [] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		
+
 	VkSemaphore signal_semaphores[] = { semaphore_render_done };
 
 	VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -329,7 +329,7 @@ void Renderer::render() {
 	present_info.pResults = nullptr;
 
 	auto result = vkQueuePresentKHR(queue_present, &present_info);
-	
+
 	// Check if we need to resize the Swapchain
 	if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_needs_resize) {
 		int w, h;
@@ -344,7 +344,7 @@ void Renderer::render() {
 
 		width  = w;
 		height = h;
-		
+
 		VK_CHECK(vkDeviceWaitIdle(device));
 
 		swapchain_destroy();

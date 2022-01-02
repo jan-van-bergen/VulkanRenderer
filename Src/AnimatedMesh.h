@@ -42,7 +42,7 @@ struct AnimatedMesh {
 			attribute_descriptions[0].location = 0;
 			attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attribute_descriptions[0].offset = offsetof(Vertex, position);
-		
+
 			// Texture Coordinates
 			attribute_descriptions[1].binding  = 0;
 			attribute_descriptions[1].location = 1;
@@ -60,7 +60,7 @@ struct AnimatedMesh {
 			attribute_descriptions[3].location = 3;
 			attribute_descriptions[3].format = VK_FORMAT_R32G32B32A32_SINT;
 			attribute_descriptions[3].offset = offsetof(Vertex, bone_indices);
-		
+
 			// Bone Weights
 			attribute_descriptions[4].binding  = 0;
 			attribute_descriptions[4].location = 4;
@@ -73,17 +73,17 @@ struct AnimatedMesh {
 
 	VulkanMemory::Buffer vertex_buffer;
 	VulkanMemory::Buffer index_buffer;
-	
+
 	struct Bone {
 		std::string name;
 
 		int parent;
-		
+
 		Matrix4 inv_bind_pose;
 	};
-	
+
 	std::vector<Bone> bones;
-	
+
 	struct SubMesh {
 		int index_offset;
 		int index_count;
@@ -92,7 +92,7 @@ struct AnimatedMesh {
 	};
 
 	std::vector<SubMesh> sub_meshes;
-	
+
 	std::unordered_map<std::string, int> animation_names;
 	std::vector<Animation>               animations;
 
@@ -104,11 +104,11 @@ struct AnimatedMesh {
 		std::unordered_map<std::string, int> && animation_names,
 		std::vector<Animation>               && animations
 	);
-	
+
 	explicit AnimatedMesh(AnimatedMesh const & other) = delete;
 
-	explicit AnimatedMesh(AnimatedMesh && other) noexcept : 
-		vertex_buffer(std::move(other.vertex_buffer)), 
+	explicit AnimatedMesh(AnimatedMesh && other) noexcept :
+		vertex_buffer(std::move(other.vertex_buffer)),
 		index_buffer (std::move(other.index_buffer)),
 		bones     (std::move(other.bones)),
 		sub_meshes(std::move(other.sub_meshes)),
@@ -122,21 +122,21 @@ struct AnimatedMesh {
 
 struct AnimatedMeshInstance {
 	struct Scene & scene;
-	
+
 	std::string name;
 
 	AnimatedMeshHandle mesh_handle;
-	
+
 	Material * material;
 
 	Transform transform;
-	
+
 	float       current_time = 0.0f;
 	Animation * current_animation = nullptr;
 
 	bool  loop = true;
 	float animation_speed = 1.0f;
-	
+
 	std::vector<Matrix4> bone_transforms;
 
 	AnimatedMeshInstance(struct Scene & scene, std::string const & name, AnimatedMeshHandle mesh_handle, Material * material);
@@ -144,8 +144,8 @@ struct AnimatedMeshInstance {
 	void play_animation(int index,                bool restart = false);
 	void play_animation(std::string const & name, bool restart = false);
 	void stop_animation();
-	
+
 	void update(float time);
-	
+
 	bool is_playing() const { return current_animation != nullptr; }
 };

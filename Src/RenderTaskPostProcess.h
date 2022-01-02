@@ -13,7 +13,7 @@ private:
 	int height;
 
 	Scene & scene;
-	
+
 	VkDescriptorPool descriptor_pool_gui;
 
 	VkDescriptorSetLayout        descriptor_set_layout;

@@ -14,7 +14,7 @@ struct Quaternion {
 
 	inline Quaternion() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) { }
 	inline Quaternion(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) { }
-	
+
 	inline static Quaternion identity() {
 		return Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
 	}
@@ -114,13 +114,13 @@ struct Quaternion {
 
 	inline static Quaternion nlerp(const Quaternion & a, const Quaternion & b, float t) {
 		float dot = a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
-		
+
 		float one_minus_t = dot >= 0.0f ? 1.0f - t : t - 1.0f; // Negate if a and b are on opposite sides of the hypersphere
 
 		return normalize(Quaternion(
-			one_minus_t * a.x + t * b.x, 
-			one_minus_t * a.y + t * b.y, 
-			one_minus_t * a.z + t * b.z, 
+			one_minus_t * a.x + t * b.x,
+			one_minus_t * a.y + t * b.y,
+			one_minus_t * a.z + t * b.z,
 			one_minus_t * a.w + t * b.w
 		));
 	}

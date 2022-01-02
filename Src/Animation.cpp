@@ -38,7 +38,7 @@ Quaternion Animation::ChannelRotation::get_rotation(float time, bool loop) {
 
 		current_frame = 0;
 	}
-	
+
 	if (time < key_frames[0].time)                     return key_frames[0].rotation;
 	if (time > key_frames[key_frames.size() - 1].time) return key_frames[key_frames.size() - 1].rotation;
 

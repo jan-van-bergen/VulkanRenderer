@@ -5,7 +5,7 @@
 
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <assimp/Importer.hpp> 
+#include <assimp/Importer.hpp>
 #include <assimp/material.h>
 #include <assimp/pbrmaterial.h>
 
@@ -34,14 +34,14 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 	auto & mesh_handle = cached_meshes[filename];
 
 	if (mesh_handle != 0) return mesh_handle - 1;
-	
+
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
 	Assimp::Importer assimp_importer;
 	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
-		aiProcess_Triangulate | 
-		aiProcess_FlipUVs | 
-		aiProcess_JoinIdenticalVertices | 
+		aiProcess_Triangulate |
+		aiProcess_FlipUVs |
+		aiProcess_JoinIdenticalVertices |
 		aiProcess_GenSmoothNormals |
 		aiProcess_FindInvalidData |
 		aiProcess_ImproveCacheLocality |
@@ -49,7 +49,7 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 		aiProcess_OptimizeGraph |
 		aiProcess_OptimizeMeshes
 	);
-	
+
 	if (assimp_scene == nullptr) {
 		printf("ERROR: Unable to load Mesh %s!\n", filename.c_str());
 		abort();
@@ -68,7 +68,7 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 
 	std::vector<Mesh::Vertex> vertices(total_num_vertices);
 	std::vector<int>          indices (total_num_indices);
-		
+
 	std::vector<Mesh::SubMesh> sub_meshes;
 
 	auto offset_vertex = 0;
@@ -76,7 +76,7 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 
 	for (int m = 0; m < assimp_scene->mNumMeshes; m++) {
 		auto assimp_mesh = assimp_scene->mMeshes[m];
-		
+
 		int num_vertices = assimp_mesh->mNumVertices;
 		int num_indices  = assimp_mesh->mNumFaces * 3;
 
@@ -126,7 +126,7 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 		if (material_id != -1) {
 			auto assimp_material = assimp_scene->mMaterials[material_id];
 
-			aiString texture_path; 
+			aiString texture_path;
 			auto has_texture = assimp_material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_path) == AI_SUCCESS;
 
 			if (has_texture) sub_mesh.texture_handle = load_texture(path + std::string(texture_path.C_Str()));
@@ -140,10 +140,10 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 
 	assert(offset_vertex == total_num_vertices);
 	assert(offset_index  == total_num_indices);
-	
+
 	meshes.emplace_back(vertices, indices, std::move(sub_meshes));
 	mesh_handle = meshes.size();
-	
+
 	return mesh_handle - 1;
 }
 
@@ -171,7 +171,7 @@ void init_bone_hierarchy(std::vector<AnimatedMesh::Bone> & bones, aiNode const *
 
 	assert(*new_index < displacement.size());
 	displacement[bone_index] = (*new_index)++;
-	
+
 	for (int c = 0; c < assimp_node->mNumChildren; c++) {
 		init_bone_hierarchy(bones, assimp_node->mChildren[c], displacement[bone_index], displacement, new_index);
 	}
@@ -181,14 +181,14 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 	auto & mesh_handle = cached_animated_meshes[filename];
 
 	if (mesh_handle != 0) return mesh_handle - 1;
-	
+
 	std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
 	Assimp::Importer assimp_importer;
 	aiScene const * assimp_scene = assimp_importer.ReadFile(filename,
-		aiProcess_Triangulate | 
-		aiProcess_FlipUVs | 
-		aiProcess_JoinIdenticalVertices | 
+		aiProcess_Triangulate |
+		aiProcess_FlipUVs |
+		aiProcess_JoinIdenticalVertices |
 		aiProcess_GenSmoothNormals |
 		aiProcess_FindInvalidData |
 		aiProcess_ImproveCacheLocality |
@@ -196,12 +196,12 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		aiProcess_OptimizeGraph |
 		aiProcess_OptimizeMeshes
 	);
-	
+
 	if (assimp_scene == nullptr) {
 		printf("ERROR: Unable to load Mesh %s!\n", filename.c_str());
 		abort();
 	}
-	
+
 	// Sum up total amount of Vertices/Indices in all Sub Meshes
 	int total_num_vertices = 0;
 	int total_num_indices  = 0;
@@ -215,7 +215,7 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 
 	std::vector<AnimatedMesh::Vertex> vertices(total_num_vertices);
 	std::vector<int>                  indices (total_num_indices);
-	
+
 	std::unordered_map<std::string, int> bone_cache;
 
 	std::vector<AnimatedMesh::SubMesh> sub_meshes;
@@ -226,10 +226,10 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 
 	auto offset_vertex = 0;
 	auto offset_index  = 0;
-	
+
 	for (int m = 0; m < assimp_scene->mNumMeshes; m++) {
 		auto assimp_mesh = assimp_scene->mMeshes[m];
-		
+
 		auto num_vertices = assimp_mesh->mNumVertices;
 		auto num_indices  = assimp_mesh->mNumFaces * 3;
 		auto num_bones    = assimp_mesh->mNumBones;
@@ -266,7 +266,7 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 			indices[index + 1] = offset_vertex + assimp_mesh->mFaces[i].mIndices[1];
 			indices[index + 2] = offset_vertex + assimp_mesh->mFaces[i].mIndices[2];
 		}
-		
+
 		// Load Bones
 		for (int b = 0; b < assimp_mesh->mNumBones; b++) {
 			auto assimp_bone = assimp_mesh->mBones[b];
@@ -274,11 +274,11 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 			std::string bone_name = assimp_bone->mName.C_Str();
 
 			int bone_index;
-			
+
 			if (bone_cache.find(bone_name) == bone_cache.end()) {
 				bone_index  = bones.size();
 				auto & bone = bones.emplace_back();
-				
+
 				bone.name = bone_name;
 				std::memcpy(&bone.inv_bind_pose.cells, &assimp_bone->mOffsetMatrix, 4 * 4 * sizeof(float));
 
@@ -317,12 +317,12 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		if (material_id != -1) {
 			auto assimp_material = assimp_scene->mMaterials[material_id];
 
-			aiString texture_path; 
+			aiString texture_path;
 			auto has_texture = assimp_material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_path) == AI_SUCCESS;
 
 			if (has_texture) {
 				auto texture_filename = std::string(texture_path.C_Str());
-				
+
 				if (std::filesystem::exists(texture_filename)) {
 					sub_mesh.texture_handle = load_texture(texture_filename);
 				} else {
@@ -336,11 +336,11 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		}
 
 		if (sub_mesh.texture_handle == -1) sub_mesh.texture_handle = load_texture("Data/bricks.png");
-		
+
 		offset_vertex += num_vertices;
 		offset_index  += num_indices;
 	}
-	
+
 	assert(offset_vertex == total_num_vertices);
 	assert(offset_index  == total_num_indices);
 
@@ -356,7 +356,7 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 
 			auto & position_channel = animation.position_channels.emplace_back();
 			auto & rotation_channel = animation.rotation_channels.emplace_back();
-			
+
 			auto node_name = std::string(assimp_channel->mNodeName.C_Str());
 
 			position_channel.name = node_name;
@@ -390,11 +390,11 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 			}
 		}
 	}
-	
+
 	int new_index = 0;
 	std::vector<int> displacement(bones.size());
 	init_bone_hierarchy(bones, assimp_scene->mRootNode, -1, displacement, &new_index);
-	
+
 	for (int v = 0; v < vertices.size(); v++) {
 		auto & vertex = vertices[v];
 
@@ -454,7 +454,7 @@ AnimatedMeshHandle AssetManager::load_animated_mesh(std::string const & filename
 		animation.position_channels = std::move(position_channels_copy);
 		animation.rotation_channels = std::move(rotation_channels_copy);
 	}
-	
+
 	animated_meshes.emplace_back(vertices, indices, std::move(bones), std::move(sub_meshes), std::move(animation_names), std::move(animations));
 	mesh_handle = animated_meshes.size();
 
@@ -478,7 +478,7 @@ TextureHandle AssetManager::load_texture(std::string const & filename) {
 	}
 
 	auto texture_size = texture_width * texture_height * 4;
-	
+
 	auto staging_buffer = VulkanMemory::Buffer(texture_size,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -513,7 +513,7 @@ TextureHandle AssetManager::load_texture(std::string const & filename) {
 	auto device = VulkanContext::get_device();
 
 	texture.image_view = VulkanMemory::create_image_view(texture.image, mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-	
+
 	VkSamplerCreateInfo sampler_create_info = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 	sampler_create_info.magFilter = VK_FILTER_LINEAR;
 	sampler_create_info.minFilter = VK_FILTER_LINEAR;

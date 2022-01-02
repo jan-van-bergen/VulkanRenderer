@@ -14,7 +14,7 @@ struct GizmoPushConstants {
 	alignas(16) Vector3 colour;
 };
 
-RenderTaskPostProcess::RenderTaskPostProcess(Scene & scene) : 
+RenderTaskPostProcess::RenderTaskPostProcess(Scene & scene) :
 	scene(scene),
 	gizmo_position(std::move(Gizmo::generate_position())),
 	gizmo_rotation(std::move(Gizmo::generate_rotation()))
@@ -31,7 +31,7 @@ RenderTaskPostProcess::~RenderTaskPostProcess() {
 
 void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, int height, int swapchain_image_count, RenderTarget const & render_target_input, GLFWwindow * window) {
 	auto device = VulkanContext::get_device();
-	
+
 	this->width  = width;
 	this->height = height;
 
@@ -117,7 +117,7 @@ void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, in
 	gizmo_vertex_attributes[0].location = 0;
 	gizmo_vertex_attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 	gizmo_vertex_attributes[0].offset = 0;
-	
+
 	pipeline_details.vertex_bindings   = Gizmo::Vertex::get_binding_descriptions();
 	pipeline_details.vertex_attributes = Gizmo::Vertex::get_attribute_descriptions();
 	pipeline_details.cull_mode = VK_CULL_MODE_BACK_BIT;
@@ -162,7 +162,7 @@ void RenderTaskPostProcess::init(VkDescriptorPool descriptor_pool, int width, in
 
 		vkUpdateDescriptorSets(device, Util::array_element_count(write_descriptor_sets), write_descriptor_sets, 0, nullptr);
 	}
-	
+
 	// Init GUI
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 
@@ -212,7 +212,7 @@ void RenderTaskPostProcess::free() {
 	auto device = VulkanContext::get_device();
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
-	
+
 	vkDestroyPipelineLayout(device, pipeline_layouts.tonemap, nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.gizmo,   nullptr);
 
@@ -220,7 +220,7 @@ void RenderTaskPostProcess::free() {
 	vkDestroyPipeline(device, pipelines.gizmo,   nullptr);
 
 	vkDestroyRenderPass(device, render_pass, nullptr);
-	
+
 	vkDestroyDescriptorPool(device, descriptor_pool_gui, nullptr);
 
 	ImGui_ImplVulkan_Shutdown();
@@ -231,7 +231,7 @@ void RenderTaskPostProcess::render(int image_index, VkCommandBuffer command_buff
 	VkClearValue clear[2] = { };
 	clear[0].color        = { 0.0f, 0.0f, 0.0f, 0.0f };
 	clear[1].depthStencil = { 1.0f, 0 };
-	
+
 	VkRenderPassBeginInfo renderpass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderpass_begin_info.renderPass  = render_pass;
 	renderpass_begin_info.framebuffer = frame_buffer;
@@ -279,6 +279,6 @@ void RenderTaskPostProcess::render(int image_index, VkCommandBuffer command_buff
 
 	// Render GUI
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
-	
+
 	vkCmdEndRenderPass(command_buffer);
 }

@@ -23,12 +23,12 @@ class Renderer {
 	VkImageView    depth_image_view;
 
 	VkDescriptorPool descriptor_pool;
-	
+
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-	
+
 	VkSemaphore semaphores_image_available[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore semaphores_render_done    [MAX_FRAMES_IN_FLIGHT];
-	
+
 	VkFence              fences[MAX_FRAMES_IN_FLIGHT];
 	std::vector<VkFence> fences_in_flight;
 
@@ -55,13 +55,13 @@ class Renderer {
 
 	void swapchain_create();
 	void swapchain_destroy();
-	
+
 public:
 	u32 width;
 	u32 height;
-	
+
 	bool framebuffer_needs_resize;
-	
+
 	Scene scene;
 
 	Renderer(GLFWwindow * window, u32 width, u32 height);

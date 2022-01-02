@@ -10,7 +10,7 @@ private:
 	int height;
 
 	Scene & scene;
-	
+
 	struct {
 		VkDescriptorSetLayout cull;
 		VkDescriptorSetLayout geometry;
@@ -18,7 +18,7 @@ private:
 		VkDescriptorSetLayout bones;
 		VkDescriptorSetLayout sky;
 	} descriptor_set_layouts;
-	
+
 	struct {
 		VkPipelineLayout cull;
 		VkPipelineLayout geometry_static;

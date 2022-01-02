@@ -33,7 +33,7 @@ void AnimatedMeshInstance::play_animation(int index, bool restart) {
 
 	if (index >= 0 && index < mesh.animations.size()) {
 		current_animation = &mesh.animations[index];
-		
+
 		if (restart) current_time = 0.0f;
 	} else {
 		printf("WARNING: Trying to play non-existent animation with index %i!\n", index);
@@ -66,7 +66,7 @@ void AnimatedMeshInstance::update(float delta) {
 
 		Vector3    position = current_animation->position_channels[i].get_position(current_time, loop);
 		Quaternion rotation = current_animation->rotation_channels[i].get_rotation(current_time, loop);
-		
+
 		auto local = Matrix4::create_translation(position) * Matrix4::create_rotation(rotation);
 
 		if (bone.parent == -1) {

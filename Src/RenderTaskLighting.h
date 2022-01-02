@@ -26,7 +26,7 @@ private:
 	struct LightPass {
 		VkPipelineLayout pipeline_layout;
 		VkPipeline       pipeline;
-	
+
 		std::vector<VkDescriptorSet>      descriptor_sets;
 		std::vector<VulkanMemory::Buffer> uniform_buffers;
 

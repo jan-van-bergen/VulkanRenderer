@@ -14,7 +14,7 @@ private:
 		VkDescriptorSetLayout shadow_static;
 		VkDescriptorSetLayout shadow_animated;
 	} descriptor_set_layouts;
-	
+
 	struct {
 		VkPipelineLayout shadow_static;
 		VkPipelineLayout shadow_animated;
@@ -24,7 +24,7 @@ private:
 		VkPipeline shadow_static;
 		VkPipeline shadow_animated;
 	} pipelines;
-		
+
 	struct {
 		std::vector<VkDescriptorSet> bones;
 	} descriptor_sets;

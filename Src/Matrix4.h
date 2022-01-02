@@ -9,18 +9,18 @@
 struct alignas(16) Matrix4 {
 	float cells[16];
 
-	inline FORCEINLINE float & operator()(int row, int col) { 
-		assert(row >= 0 && row < 4); 
-		assert(col >= 0 && col < 4); 
-		return cells[col + (row << 2)]; 
-	}
-
-	inline FORCEINLINE const float & operator()(int row, int col) const { 
-		assert(row >= 0 && row < 4); 
-		assert(col >= 0 && col < 4); 
+	inline FORCEINLINE float & operator()(int row, int col) {
+		assert(row >= 0 && row < 4);
+		assert(col >= 0 && col < 4);
 		return cells[col + (row << 2)];
 	}
-	
+
+	inline FORCEINLINE const float & operator()(int row, int col) const {
+		assert(row >= 0 && row < 4);
+		assert(col >= 0 && col < 4);
+		return cells[col + (row << 2)];
+	}
+
 	inline static Matrix4 identity() {
 		Matrix4 result;
 
@@ -59,15 +59,15 @@ struct alignas(16) Matrix4 {
 		result(0, 0) = 1.0f - 2.0f * (yy + zz);
 		result(1, 0) =        2.0f * (xy + wz);
 		result(2, 0) =        2.0f * (xz - wy);
-		
+
 		result(0, 1) =        2.0f * (xy - wz);
 		result(1, 1) = 1.0f - 2.0f * (xx + zz);
 		result(2, 1) =        2.0f * (yz + wx);
-		
+
 		result(0, 2) =        2.0f * (xz + wy);
 		result(1, 2) =        2.0f * (yz - wx);
 		result(2, 2) = 1.0f - 2.0f * (xx + yy);
-		
+
 		return result;
 	}
 
@@ -143,7 +143,7 @@ struct alignas(16) Matrix4 {
 
 		return result;
 	}
-	
+
 	inline static Matrix4 orthographic_inv(float width, float height, float near, float far) {
 		Matrix4 result = Matrix4::identity();
 		result(0, 0) =  0.5f * width;
@@ -162,7 +162,7 @@ struct alignas(16) Matrix4 {
 			matrix(2, 0) * position.x + matrix(2, 1) * position.y + matrix(2, 2) * position.z + matrix(2, 3)
 		);
 	}
-	
+
 	// Transforms a Vector3 as if the fourth coordinate is 0
 	inline static Vector3 transform_direction(const Matrix4 & matrix, const Vector3 & direction) {
 		return Vector3(
@@ -184,7 +184,7 @@ struct alignas(16) Matrix4 {
 		return result;
 	}
 
-	inline static Matrix4 invert(const Matrix4 & matrix) {		
+	inline static Matrix4 invert(const Matrix4 & matrix) {
 		float inv[16] = {
 			 matrix.cells[5] * matrix.cells[10] * matrix.cells[15] - matrix.cells[5]  * matrix.cells[11] * matrix.cells[14] - matrix.cells[9]  * matrix.cells[6] * matrix.cells[15] +
 			 matrix.cells[9] * matrix.cells[7]  * matrix.cells[14] + matrix.cells[13] * matrix.cells[6]  * matrix.cells[11] - matrix.cells[13] * matrix.cells[7] * matrix.cells[10],
@@ -219,11 +219,11 @@ struct alignas(16) Matrix4 {
 			 matrix.cells[0] * matrix.cells[5]  * matrix.cells[10] - matrix.cells[0]  * matrix.cells[6]  * matrix.cells[9]  - matrix.cells[4]  * matrix.cells[1] * matrix.cells[10] +
 			 matrix.cells[4] * matrix.cells[2]  * matrix.cells[9]  + matrix.cells[8]  * matrix.cells[1]  * matrix.cells[6]  - matrix.cells[8]  * matrix.cells[2] * matrix.cells[5]
 		};
-		
+
 		Matrix4 result;
 
-		float det = 
-			matrix.cells[0] * inv[0] + matrix.cells[1] * inv[4] + 
+		float det =
+			matrix.cells[0] * inv[0] + matrix.cells[1] * inv[4] +
 			matrix.cells[2] * inv[8] + matrix.cells[3] * inv[12];
 
 		if (det != 0.0f) {
@@ -253,7 +253,7 @@ inline Matrix4 operator*(const Matrix4 & left, const Matrix4 & right) {
 
 	for (int j = 0; j < 4; j++) {
 		for (int i = 0; i < 4; i++) {
-			result(i, j) = 
+			result(i, j) =
 				left(i, 0) * right(0, j) +
 				left(i, 1) * right(1, j) +
 				left(i, 2) * right(2, j) +

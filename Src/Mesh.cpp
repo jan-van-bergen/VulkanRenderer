@@ -7,7 +7,7 @@ Mesh::Mesh(std::vector<Vertex> const & vertices, std::vector<int> const & indice
 {
 	VulkanMemory::buffer_copy_staged(vertex_buffer, vertices.data(), Util::vector_size_in_bytes(vertices));
 	VulkanMemory::buffer_copy_staged(index_buffer,  indices .data(), Util::vector_size_in_bytes(indices));
-	
+
 	// Sort Submeshes so that Submeshes with the same Texture are contiguous
 	std::sort(sub_meshes.begin(), sub_meshes.end(), [](auto const & a, auto const & b) {
 		return a.texture_handle < b.texture_handle;

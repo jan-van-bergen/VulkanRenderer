@@ -46,7 +46,7 @@ Frustum::IntersectionType Frustum::intersect_aabb(Vector3 const & min, Vector3 c
 	// For each plane, test all 8 corners of the AABB
 	for (int p = 0; p < 6; p++) {
 		int num_inside = 0;
-		
+
 		__m256 plane_a = _mm256_set1_ps(planes[p].n.x);
 		__m256 plane_b = _mm256_set1_ps(planes[p].n.y);
 		__m256 plane_c = _mm256_set1_ps(planes[p].n.z);

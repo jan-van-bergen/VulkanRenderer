@@ -14,7 +14,7 @@ private:
 	std::unordered_map<std::string, MeshHandle>         cached_meshes;
 	std::unordered_map<std::string, AnimatedMeshHandle> cached_animated_meshes;
 	std::unordered_map<std::string, TextureHandle>      cached_textures;
-	
+
 public:
 	std::vector<Mesh> meshes;
 

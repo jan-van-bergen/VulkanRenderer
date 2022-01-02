@@ -66,7 +66,7 @@ static void init_instance() {
 	// Get GLFW required extensions
 	u32  glfw_extension_count = 0;
 	auto glfw_extensions      = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
-	
+
 	std::vector<char const *> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
 
 	// Init validation layers
@@ -91,7 +91,7 @@ static void init_instance() {
 
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // Additional debug extension
 	}
-	
+
 	VkApplicationInfo app_info = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	app_info.pApplicationName = "Hello Triangle";
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -105,10 +105,10 @@ static void init_instance() {
 	instance_create_info.ppEnabledLayerNames = validation_layers_names.data();
 	instance_create_info.enabledExtensionCount   = extensions.size();
 	instance_create_info.ppEnabledExtensionNames = extensions.data();
-	
+
 	VkDebugUtilsMessengerCreateInfoEXT callback_create_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 
-	if (validation_layers_enabled) {		
+	if (validation_layers_enabled) {
 		callback_create_info.messageSeverity =
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -122,9 +122,9 @@ static void init_instance() {
 
 		instance_create_info.pNext = &callback_create_info;
 	}
-	
+
 	VK_CHECK(vkCreateInstance(&instance_create_info, nullptr, &instance));
-	
+
 	if (validation_layers_enabled) {
 		VULKAN_PROC(vkCreateDebugUtilsMessengerEXT)(instance, &callback_create_info, nullptr, &debug_messenger);
 	}
@@ -149,13 +149,13 @@ static void init_physical_device() {
 }
 
 static void init_surface(GLFWwindow * window) {
-	VK_CHECK(glfwCreateWindowSurface(instance, window, nullptr, &surface));	
+	VK_CHECK(glfwCreateWindowSurface(instance, window, nullptr, &surface));
 }
 
 static void init_queue_families() {
 	u32                                  queue_families_count = 0;             vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
 	std::vector<VkQueueFamilyProperties> queue_families(queue_families_count); vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, queue_families.data());
-	
+
 	std::optional<u32> opt_queue_family_graphics;
 	std::optional<u32> opt_queue_family_compute;
 	std::optional<u32> opt_queue_family_present;
@@ -175,7 +175,7 @@ static void init_queue_families() {
 	}
 
 	if (!opt_queue_family_graphics.has_value() || !opt_queue_family_compute.has_value() || !opt_queue_family_present.has_value()) {
-		printf("Failed to create queue families!\n");	
+		printf("Failed to create queue families!\n");
 		abort();
 	}
 
@@ -186,7 +186,7 @@ static void init_queue_families() {
 
 static void init_device() {
 	auto queue_priority = 1.0f;
-	
+
 	std::set<u32> unique_queue_families = {
 		queue_family_graphics,
 		queue_family_present
@@ -200,7 +200,7 @@ static void init_device() {
 		queue_create_info.pQueuePriorities = &queue_priority;
 		queue_create_infos.push_back(queue_create_info);
 	}
-	
+
 	VkPhysicalDeviceFeatures device_features = { };
 	device_features.samplerAnisotropy = true;
 	device_features.independentBlend = true;
@@ -257,7 +257,7 @@ void VulkanContext::destroy() {
 	}
 
 	vkDestroySurfaceKHR(instance, surface, nullptr);
-	
+
 	vkDestroyDevice  (device,   nullptr);
 	vkDestroyInstance(instance, nullptr);
 }
@@ -347,7 +347,7 @@ VulkanContext::Shader VulkanContext::shader_load(std::string const & filename, V
 	shader.stage_create_info.stage  = stage;
 	shader.stage_create_info.module = shader.module;
 	shader.stage_create_info.pName = "main";
-	
+
 	return shader;
 }
 
@@ -374,7 +374,7 @@ VkRenderPass VulkanContext::create_render_pass(std::vector<VkAttachmentDescripti
 			refs_colour.push_back({ u32(i), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 		}
 	}
-	
+
 	VkSubpassDescription subpass = { };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = refs_colour.size();
@@ -382,7 +382,7 @@ VkRenderPass VulkanContext::create_render_pass(std::vector<VkAttachmentDescripti
 	subpass.pDepthStencilAttachment = refs_depth.size() > 0 ? refs_depth.data() : nullptr;
 
 	VkSubpassDependency dependencies[2] = { };
-	
+
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependencies[0].dstSubpass = 0;
 	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;

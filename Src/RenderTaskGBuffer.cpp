@@ -70,7 +70,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 		layout_bindings_cull[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		layout_bindings_cull[0].descriptorCount = 1;
 		layout_bindings_cull[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-		
+
 		layout_bindings_cull[1].binding = 1;
 		layout_bindings_cull[1].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		layout_bindings_cull[1].descriptorCount = 1;
@@ -124,7 +124,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.material));
 	}
-	
+
 	{
 		// Bones
 		VkDescriptorSetLayoutBinding layout_bindings_geometry[1] = { };
@@ -163,7 +163,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	constexpr auto readonly = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	render_target.add_attachment(width, height, VK_FORMAT_R8G8B8A8_UNORM,                    attachment_colour, readonly, VulkanContext::create_clear_value_colour()); // Albedo
-	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               attachment_colour, readonly, VulkanContext::create_clear_value_colour()); // Normal (packed in xy) + Roughness + Metallic 
+	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,               attachment_colour, readonly, VulkanContext::create_clear_value_colour()); // Normal (packed in xy) + Roughness + Metallic
 	render_target.add_attachment(width, height, VulkanContext::get_supported_depth_format(), attachment_depth,  readonly, VulkanContext::create_clear_value_depth());  // Depth
 
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
@@ -183,7 +183,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 	pipeline_layout_details.push_constants = { };
 
 	pipeline_layouts.cull = VulkanContext::create_pipeline_layout(pipeline_layout_details);
-	
+
 	// Static Geometry Pipeline Layout
 	pipeline_layout_details.descriptor_set_layouts = {
 		descriptor_set_layouts.geometry,
@@ -284,12 +284,12 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		));
-		
+
 		uniform_buffers.sky.push_back(VulkanMemory::Buffer(aligned_size_sky,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		));
-		
+
 		// Storage Buffers
 		storage_buffers.cull_commands.push_back(VulkanMemory::Buffer(total_mesh_count * aligned_size_cull_command,
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -300,7 +300,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		));
-		
+
 		storage_buffers.cull_model.push_back(VulkanMemory::Buffer(aligned_size_cull_model,
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, ////////////////////////////////////////////////////////////////////////////// VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
@@ -336,7 +336,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 		vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, nullptr);
 	}
-	
+
 	{
 		std::vector<VkDescriptorSetLayout> layouts(swapchain_image_count, descriptor_set_layouts.cull);
 
@@ -350,9 +350,9 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 
 		for (int i = 0; i < descriptor_sets.cull.size(); i++) {
 			auto descriptor_set = descriptor_sets.cull[i];
-			
+
 			VkWriteDescriptorSet write_descriptors[4] = { };
-			
+
 			VkDescriptorBufferInfo descriptor_commands = { };
 			descriptor_commands.buffer = storage_buffers.cull_commands[i].buffer;
 			descriptor_commands.offset = 0;
@@ -365,7 +365,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			write_descriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			write_descriptors[0].descriptorCount = 1;
 			write_descriptors[0].pBufferInfo     = &descriptor_commands;
-			
+
 			VkDescriptorBufferInfo descriptor_camera = { };
 			descriptor_camera.buffer = uniform_buffers.camera[i].buffer;
 			descriptor_camera.offset = 0;
@@ -378,7 +378,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			write_descriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			write_descriptors[1].descriptorCount = 1;
 			write_descriptors[1].pBufferInfo     = &descriptor_camera;
-			
+
 			VkDescriptorBufferInfo descriptor_stats = { };
 			descriptor_stats.buffer = storage_buffers.cull_stats[i].buffer;
 			descriptor_stats.offset = 0;
@@ -391,7 +391,7 @@ void RenderTaskGBuffer::init(VkDescriptorPool descriptor_pool, int width, int he
 			write_descriptors[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			write_descriptors[2].descriptorCount = 1;
 			write_descriptors[2].pBufferInfo     = &descriptor_stats;
-			
+
 			VkDescriptorBufferInfo descriptor_model = { };
 			descriptor_model.buffer = storage_buffers.cull_model[i].buffer;
 			descriptor_model.offset = 0;
@@ -507,13 +507,13 @@ void RenderTaskGBuffer::free() {
 	auto device = VulkanContext::get_device();
 
 	render_target.free();
-	
+
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.cull,     nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.geometry, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.material, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.bones,    nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.sky,      nullptr);
-	
+
 	vkDestroyPipelineLayout(device, pipeline_layouts.cull,              nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.geometry_static,   nullptr);
 	vkDestroyPipelineLayout(device, pipeline_layouts.geometry_animated, nullptr);
@@ -523,7 +523,7 @@ void RenderTaskGBuffer::free() {
 	vkDestroyPipeline(device, pipelines.geometry_static,   nullptr);
 	vkDestroyPipeline(device, pipelines.geometry_animated, nullptr);
 	vkDestroyPipeline(device, pipelines.sky,               nullptr);
-	
+
 	uniform_buffers.material.clear();
 	uniform_buffers.sky     .clear();
 
@@ -540,12 +540,12 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	render_pass_begin_info.pClearValues    = render_target.clear_values.data();
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-	
+
 	auto last_texture_handle = -1;
 
 	auto & uniform_buffer_material = uniform_buffers.material[image_index];
 	auto & descriptor_set_material = descriptor_sets.material[image_index];
-	
+
 	auto aligned_size = Math::round_up(sizeof(MaterialUBO), VulkanContext::get_min_uniform_buffer_alignment());
 	auto total_mesh_count = scene.animated_meshes.size() + scene.meshes.size();
 
@@ -556,20 +556,20 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 	auto bone_offset = 0;
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.geometry_animated);
-	
+
 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 2, 1, &descriptor_sets.bones[image_index], 0, nullptr);
 
 	for (int i = 0; i < scene.animated_meshes.size(); i++) {
 		auto const & mesh_instance = scene.animated_meshes[i];
 		auto const & mesh          = scene.asset_manager.get_animated_mesh(mesh_instance.mesh_handle);
-		
+
 		GBufferPushConstants push_constants = { };
 		push_constants.world           = mesh_instance.transform.matrix;
-		push_constants.view_projection = scene.camera.get_view_projection();		
+		push_constants.view_projection = scene.camera.get_view_projection();
 		push_constants.bone_offset = bone_offset;
 
 		vkCmdPushConstants(command_buffer, pipeline_layouts.geometry_animated, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
-			
+
 		auto ubo = reinterpret_cast<MaterialUBO *>(&buffer_material_ubo[num_unculled_mesh_instances * aligned_size]);
 		ubo->material_roughness = mesh_instance.material->roughness;
 		ubo->material_metallic  = mesh_instance.material->metallic;
@@ -577,19 +577,19 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 		u32 offset = num_unculled_mesh_instances * aligned_size;
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_animated, 1, 1, &descriptor_set_material, 1, &offset);
 		num_unculled_mesh_instances++;
-			
+
 		VkBuffer     vertex_buffers[] = { mesh.vertex_buffer.buffer };
 		VkDeviceSize vertex_offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, mesh.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-		
+
 		buffer_bones.resize(buffer_bones.size() + mesh.bones.size() * sizeof(Matrix4));
 		std::memcpy(buffer_bones.data() + bone_offset * sizeof(Matrix4), mesh_instance.bone_transforms.data(), mesh_instance.bone_transforms.size() * sizeof(Matrix4));
 
 		for (int j = 0; j < mesh.sub_meshes.size(); j++) {
 			auto const & sub_mesh = mesh.sub_meshes[j];
-			
+
 			if (last_texture_handle != sub_mesh.texture_handle) {
 				last_texture_handle  = sub_mesh.texture_handle;
 
@@ -599,14 +599,14 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 
 			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, sub_mesh.index_offset, 0, 0);
 		}
-		
+
 		bone_offset += mesh.bones.size();
 	}
-	
+
 	if (buffer_bones.size() > 0) VulkanMemory::buffer_copy_direct(scene.asset_manager.storage_buffer_bones[image_index], buffer_bones.data(), buffer_bones.size());
 
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.geometry_static);
-	
+
 	for (int i = 0; i < scene.meshes.size(); i++) {
 		auto const & mesh_instance = scene.meshes[i];
 		auto const & mesh          = scene.asset_manager.get_mesh(mesh_instance.mesh_handle);
@@ -632,7 +632,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 			if (scene.camera.frustum.intersect_aabb(aabb_world_min, aabb_world_max) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
 
 			// The first unculled Submesh must set the Push Constants, bind Descriptor Sets, and bind Vertex/Index Buffers
-			if (first_sub_mesh) {		
+			if (first_sub_mesh) {
 				first_sub_mesh = false;
 
 				GBufferPushConstants push_constants = { };
@@ -640,7 +640,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				push_constants.wvp   = scene.camera.get_view_projection() * transform;
 
 				vkCmdPushConstants(command_buffer, pipeline_layouts.geometry_static, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GBufferPushConstants), &push_constants);
-				
+
 				auto ubo = reinterpret_cast<MaterialUBO *>(&buffer_material_ubo[num_unculled_mesh_instances * aligned_size]);
 				ubo->material_roughness = mesh_instance.material->roughness;
 				ubo->material_metallic  = mesh_instance.material->metallic;
@@ -648,7 +648,7 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				u32 offset = num_unculled_mesh_instances * aligned_size;
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_static, 1, 1, &descriptor_set_material, 1, &offset);
 				num_unculled_mesh_instances++;
-				
+
 				VkBuffer     vertex_buffers[] = { mesh.vertex_buffer.buffer };
 				VkDeviceSize vertex_offsets[] = { 0 };
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
@@ -662,13 +662,13 @@ void RenderTaskGBuffer::render(int image_index, VkCommandBuffer command_buffer) 
 				auto const & texture = scene.asset_manager.textures[sub_mesh.texture_handle];
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts.geometry_static, 0, 1, &texture.descriptor_set, 0, nullptr);
 			}
-			
+
 			vkCmdDrawIndexed(command_buffer, sub_mesh.index_count, 1, sub_mesh.index_offset, 0, 0);
 		}
 	}
 
 	if (num_unculled_mesh_instances > 0) VulkanMemory::buffer_copy_direct(uniform_buffer_material, buffer_material_ubo.data(), num_unculled_mesh_instances * aligned_size);
-	
+
 	// Render Sky
 	auto const & uniform_buffer_sky = uniform_buffers.sky[image_index];
 	auto const & descriptor_set_sky = descriptor_sets.sky[image_index];

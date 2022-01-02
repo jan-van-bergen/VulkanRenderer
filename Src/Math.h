@@ -21,7 +21,7 @@ namespace Math {
 
 		return (n & (n - 1)) == 0;
 	}
-	
+
 	// Computes positive modulo of given value
 	inline unsigned mod(int value, int modulus) {
 		int result = value % modulus;

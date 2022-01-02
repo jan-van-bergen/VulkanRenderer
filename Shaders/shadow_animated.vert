@@ -16,7 +16,7 @@ layout(set = 1, binding = 0, row_major) buffer readonly Bones {
 };
 
 void main() {
-	mat4 skinned = 
+	mat4 skinned =
 		bones[bone_offset + in_bone_indices.x] * in_bone_weights.x +
 		bones[bone_offset + in_bone_indices.y] * in_bone_weights.y +
 		bones[bone_offset + in_bone_indices.z] * in_bone_weights.z +

@@ -19,9 +19,9 @@ namespace VulkanMemory {
 			other.buffer = nullptr;
 			other.memory = nullptr;
 		}
- 
+
 		Buffer & operator=(Buffer const & other) noexcept = delete;
- 
+
 		Buffer & operator=(Buffer && other) noexcept {
 			buffer = other.buffer;
 			memory = other.memory;

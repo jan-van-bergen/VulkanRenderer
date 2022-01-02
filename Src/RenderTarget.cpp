@@ -10,7 +10,7 @@
 
 void RenderTarget::add_attachment(int width, int height, VkFormat format, unsigned usage, VkImageLayout image_layout, VkClearValue clear_value) {
 	auto device = VulkanContext::get_device();
-	
+
 	VkImageAspectFlags image_aspect_mask = 0;
 
 	if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)         image_aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -70,7 +70,7 @@ void RenderTarget::add_attachment(int width, int height, VkFormat format, unsign
 
 void RenderTarget::init(int width, int height, VkRenderPass render_pass, VkFilter filter) {
 	auto device = VulkanContext::get_device();
-	
+
 	std::vector<VkImageView> attachment_views(attachments.size());
 
 	for (int i = 0; i < attachments.size(); i++) {

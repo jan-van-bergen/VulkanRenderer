@@ -20,7 +20,7 @@ struct DirectionalLightUBO {
 
 		alignas(16) Matrix4 light_matrix;
 	} directional_light;
-	
+
 	alignas(16) Vector3 camera_position;
 
 	alignas(16) Matrix4 inv_view_projection;
@@ -39,7 +39,7 @@ struct PointLightUBO {
 	} point_light;
 
 	alignas(16) Vector3 camera_position;
-	
+
 	alignas(16) Matrix4 inv_view_projection;
 };
 
@@ -54,9 +54,9 @@ struct SpotLightUBO {
 		alignas(4)  float   cutoff_inner;
 		alignas(4)  float   cutoff_outer;
 	} spot_light;
-	
+
 	alignas(16) Vector3 camera_position;
-	
+
 	alignas(16) Matrix4 inv_view_projection;
 };
 
@@ -75,7 +75,7 @@ void RenderTaskLighting::LightPass::free() {
 
 	vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
 	vkDestroyPipeline      (device, pipeline,        nullptr);
-	
+
 	uniform_buffers.clear();
 }
 
@@ -131,7 +131,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 	light_pass.uniform_buffers.reserve(swapchain_image_count);
 
 	auto aligned_size = Math::round_up(sizeof(PointLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
-	
+
 	for (int i = 0; i < swapchain_image_count; i++) {
 		light_pass.uniform_buffers.push_back(VulkanMemory::Buffer(scene.point_lights.size() * aligned_size,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -168,7 +168,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 		write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write_descriptor_sets[0].descriptorCount = 1;
 		write_descriptor_sets[0].pImageInfo = &descriptor_image_albedo;
-		
+
 		// Write Descriptor for Normal target
 		VkDescriptorImageInfo descriptor_image_normal = { };
 		descriptor_image_normal.sampler     = render_target_input.sampler;
@@ -182,7 +182,7 @@ RenderTaskLighting::LightPass RenderTaskLighting::create_light_pass(
 		write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write_descriptor_sets[1].descriptorCount = 1;
 		write_descriptor_sets[1].pImageInfo = &descriptor_image_normal;
-		
+
 		// Write Descriptor for Depth target
 		VkDescriptorImageInfo descriptor_image_depth = { };
 		descriptor_image_depth.sampler     = render_target_input.sampler;
@@ -248,14 +248,14 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		layout_bindings[2].descriptorCount = 1;
 		layout_bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		layout_bindings[2].pImmutableSamplers = nullptr;
-	
+
 		// Uniform Buffer
 		layout_bindings[3].binding = 3;
 		layout_bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		layout_bindings[3].descriptorCount = 1;
 		layout_bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		layout_bindings[3].pImmutableSamplers = nullptr;
-	
+
 		VkDescriptorSetLayoutCreateInfo layout_create_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		layout_create_info.bindingCount = Util::array_element_count(layout_bindings);
 		layout_create_info.pBindings    = layout_bindings;
@@ -280,9 +280,9 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 
 		VK_CHECK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layouts.shadow));
 	}
-	
+
 	render_target.add_attachment(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VulkanContext::create_clear_value_colour()); // HDR lighting
-	
+
 	render_pass = VulkanContext::create_render_pass(render_target.get_attachment_descriptions());
 	render_target.init(width, height, render_pass);
 
@@ -324,9 +324,9 @@ void RenderTaskLighting::init(VkDescriptorPool descriptor_pool, int width, int h
 		sizeof(PointLightPushConstants),
 		sizeof(SpotLightUBO)
 	);
-	
+
 	// Allocate and update Descriptor Sets
-	for (auto & directional_light : scene.directional_lights) {	
+	for (auto & directional_light : scene.directional_lights) {
 		VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		alloc_info.descriptorPool = descriptor_pool;
 		alloc_info.descriptorSetCount = 1;
@@ -360,7 +360,7 @@ void RenderTaskLighting::free() {
 
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.light,  nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptor_set_layouts.shadow, nullptr);
-	
+
 	render_target.free();
 
 	vkDestroyRenderPass(device, render_pass, nullptr);
@@ -374,7 +374,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 	renderpass_begin_info.renderArea = { 0, 0, u32(width), u32(height) };
 	renderpass_begin_info.clearValueCount = render_target.clear_values.size();
 	renderpass_begin_info.pClearValues    = render_target.clear_values.data();
-		
+
 	vkCmdBeginRenderPass(command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Render Directional Lights
@@ -383,10 +383,10 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		auto & descriptor_set = light_pass_directional.descriptor_sets[image_index];
 
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline);
-		
+
 		// Upload Uniform Buffer
 		auto aligned_size = Math::round_up(sizeof(DirectionalLightUBO), VulkanContext::get_min_uniform_buffer_alignment());
-		
+
 		std::vector<std::byte> buf(scene.directional_lights.size() * aligned_size);
 
 		// For each Directional Light render a full sqreen quad
@@ -401,12 +401,12 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			ubo->inv_view_projection = scene.camera.get_inv_view_projection();
 
 			u32 offset = i * aligned_size;
-			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set,                              1, &offset);	
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 0, 1, &descriptor_set,                              1, &offset);
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, light_pass_directional.pipeline_layout, 1, 1, &directional_light.shadow_map.descriptor_set, 0, nullptr);
 
 			vkCmdDraw(command_buffer, 3, 1, 0, 0);
 		}
-	
+
 		VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), buf.size());
 	}
 
@@ -430,7 +430,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, point_light_sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-		
+
 		int num_unculled_lights = 0;
 
 		// For each Point Light render a sphere with the appropriate radius and position
@@ -438,7 +438,7 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			auto const & point_light = scene.point_lights[i];
 
 			if (scene.camera.frustum.intersect_sphere(point_light.position, point_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
-			
+
 			// Upload UBO
 			auto ubo = reinterpret_cast<PointLightUBO *>(&buf[num_unculled_lights * aligned_size]);
 			ubo->point_light.colour   = point_light.colour;
@@ -460,12 +460,12 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 
 			num_unculled_lights++;
 		}
-		
+
 		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
 
 		num_culled_lights += scene.point_lights.size() - num_unculled_lights;
 	}
-	
+
 	// Render Spot Lights
 	if (scene.spot_lights.size() > 0) {
 		auto & uniform_buffer = light_pass_spot.uniform_buffers[image_index];
@@ -484,15 +484,15 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, vertex_offsets);
 
 		vkCmdBindIndexBuffer(command_buffer, point_light_sphere.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-		
+
 		int num_unculled_lights = 0;
 
 		// For each Spot Light render a sphere with the appropriate radius and position
 		for (int i = 0; i < scene.spot_lights.size(); i++) {
 			auto const & spot_light = scene.spot_lights[i];
-			
+
 			if (scene.camera.frustum.intersect_sphere(spot_light.position, spot_light.radius) == Frustum::IntersectionType::FULLY_OUTSIDE) continue;
-			
+
 			auto ubo = reinterpret_cast<SpotLightUBO *>(&buf[num_unculled_lights * aligned_size]);
 			ubo->spot_light.colour    = spot_light.colour;
 			ubo->spot_light.position  = spot_light.position;
@@ -514,10 +514,10 @@ void RenderTaskLighting::render(int image_index, VkCommandBuffer command_buffer)
 			vkCmdDrawIndexed(command_buffer, point_light_sphere.index_count, 1, 0, 0, 0);
 
 			num_unculled_lights++;
-		}	
-		
+		}
+
 		if (num_unculled_lights > 0) VulkanMemory::buffer_copy_direct(uniform_buffer, buf.data(), num_unculled_lights * aligned_size);
-		
+
 		num_culled_lights += scene.spot_lights.size() - num_unculled_lights;
 	}
 

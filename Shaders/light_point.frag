@@ -28,7 +28,7 @@ void main() {
 		out_colour = vec4(0.0f);
 		return;
 	}
-	
+
 	// Reconstruct Clip Space position
 	vec4 position;
 	position.xy = 2.0f * in_uv.xy - 1.0f;

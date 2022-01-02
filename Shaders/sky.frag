@@ -8,7 +8,7 @@ layout(binding = 0) uniform UBO {
 	vec3 camera_top_left_corner;
 	vec3 camera_x;
 	vec3 camera_y;
-	
+
 	vec3 sun_direction;
 };
 
@@ -52,7 +52,7 @@ void main(void) {
 		in_uv.x * camera_x +
 		in_uv.y * camera_y
 	);
-	
+
 	const vec3 up = { 0.0f, 1.0f , 0.0f };
 
 	float cos_angle_view_sun = dot(direction, sun_direction);

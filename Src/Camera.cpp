@@ -9,10 +9,10 @@ Camera::Camera(float fov, int width, int height, float near, float far) {
 	this->far  = far;
 
 	set_locked(false);
-	
+
 	angle_x = 0.0f;
 	angle_y = 0.0f;
-	
+
 	on_resize(width, height);
 }
 
@@ -50,7 +50,7 @@ void Camera::update(float delta) {
 
 	if (Input::is_key_down(GLFW_KEY_LEFT_SHIFT)) position.y -= MOVEMENT_SPEED * delta;
 	if (Input::is_key_down(GLFW_KEY_SPACE))      position.y += MOVEMENT_SPEED * delta;
-	
+
 	// Toggle mouse lock
 	if (Input::is_key_pressed(GLFW_KEY_ESCAPE)) set_locked(!mouse_locked);
 
@@ -59,11 +59,11 @@ void Camera::update(float delta) {
 	if (Input::is_key_down(GLFW_KEY_DOWN))  angle_y -= ROTATION_SPEED * delta;
 	if (Input::is_key_down(GLFW_KEY_LEFT))  angle_x += ROTATION_SPEED * delta;
 	if (Input::is_key_down(GLFW_KEY_RIGHT)) angle_x -= ROTATION_SPEED * delta;
-	
+
 	// If mouse is locked rotate Camera based on mouse movement
 	if (mouse_locked) {
 		int mouse_x, mouse_y; Input::get_mouse_pos(&mouse_x, &mouse_y);
-		
+
 		angle_x -= delta * float(mouse_x - mouse_prev_x);
 		angle_y -= delta * float(mouse_y - mouse_prev_y);
 
@@ -73,7 +73,7 @@ void Camera::update(float delta) {
 		mouse_prev_x = mouse_x;
 		mouse_prev_y = mouse_y;
 	}
-	
+
 	// For debugging purposes
 	if (Input::is_key_pressed(GLFW_KEY_F)) {
 		printf("camera.position = Vector3(%ff, %ff, %ff);\n", position.x, position.y, position.z);
@@ -85,12 +85,12 @@ void Camera::update(float delta) {
 		Quaternion::axis_angle(Vector3(0.0f, 1.0f, 0.0f), angle_x) *
 		Quaternion::axis_angle(Vector3(1.0f, 0.0f, 0.0f), angle_y);
 
-	view_projection = 
+	view_projection =
 		projection *
 		Matrix4::create_rotation(Quaternion::conjugate(rotation)) *
 		Matrix4::create_translation(-position);
 
-	view_projection_inv = 
+	view_projection_inv =
 		Matrix4::create_translation(position) *
 		Matrix4::create_rotation(rotation) *
 		projection_inv;

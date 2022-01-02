@@ -16,7 +16,7 @@ struct AABB {
 
 		Vector3 t0 = (min - origin) * inv_direction;
 		Vector3 t1 = (max - origin) * inv_direction;
-	
+
 		Vector3 t_min = Vector3::min(t0, t1);
 		Vector3 t_max = Vector3::max(t0, t1);
 

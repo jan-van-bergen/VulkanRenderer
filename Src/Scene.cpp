@@ -38,7 +38,7 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height),
 	auto rand_float = [](float min = 0.0f, float max = 1.0f) { return min + (max - min) * rand() / float(RAND_MAX); };
 
 	for (int i = 0; i < 500; i++) {
-		point_lights.push_back({ 
+		point_lights.push_back({
 			5.0f + 10.0f * Vector3(rand_float(), rand_float(), rand_float()),
 			Vector3(rand_float(-point_lights_width, point_lights_width), -7.0f, rand_float(-point_lights_height, point_lights_height)),
 			rand_float(0.5f, 10.0f)
@@ -51,7 +51,7 @@ Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height),
 
 void Scene::update(float delta) {
 	camera.update(delta);
-	
+
 	static float time = 0.0f;
 	time += delta;
 
