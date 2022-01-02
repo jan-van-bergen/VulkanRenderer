@@ -37,5 +37,9 @@ public:
 	void init(VkDescriptorPool descriptor_pool, int swapchain_image_count);
 	void free();
 
+	uint32_t get_num_descriptor_sets(uint32_t swapchain_image_count) {
+		return swapchain_image_count;
+	}
+
 	void render(int image_index, VkCommandBuffer command_buffer);
 };

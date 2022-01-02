@@ -44,5 +44,9 @@ public:
 
 	void render(int image_index, VkCommandBuffer command_buffer, VkFramebuffer frame_buffer);
 
+	uint32_t get_num_descriptor_sets(uint32_t swapchain_image_count) {
+		return swapchain_image_count;
+	}
+
 	VkRenderPass get_render_pass() { return render_pass; }
 };

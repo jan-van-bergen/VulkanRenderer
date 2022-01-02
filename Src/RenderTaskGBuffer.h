@@ -63,5 +63,9 @@ public:
 
 	void render(int image_index, VkCommandBuffer command_buffer);
 
+	uint32_t get_num_descriptor_sets(uint32_t swapchain_image_count) {
+		return swapchain_image_count * 4 + scene.asset_manager.textures.size();
+	}
+
 	RenderTarget const & get_render_target() { return render_target; }
 };
