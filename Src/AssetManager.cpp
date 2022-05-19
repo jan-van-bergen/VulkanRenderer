@@ -47,7 +47,8 @@ MeshHandle AssetManager::load_mesh(std::string const & filename) {
 		aiProcess_ImproveCacheLocality |
 		aiProcess_LimitBoneWeights |
 		aiProcess_OptimizeGraph |
-		aiProcess_OptimizeMeshes
+		aiProcess_OptimizeMeshes |
+		aiProcess_PreTransformVertices
 	);
 
 	if (assimp_scene == nullptr) {

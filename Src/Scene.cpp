@@ -1,6 +1,6 @@
 #include "Scene.h"
 
-Scene::Scene(int width, int height) : camera(DEG_TO_RAD(110.0f), width, height), asset_manager(*this) {
+Scene::Scene(int width, int height) : camera(DEG_TO_RAD(70.0f), width, height), asset_manager(*this) {
 	Material * material_diffuse = materials.emplace_back(std::make_unique<Material>(0.9f, 0.0f)).get();
 
 	animated_meshes.emplace_back(*this, "Cowboy",   asset_manager.load_animated_mesh("Data/Cowboy2.fbx"), material_diffuse);

@@ -6,7 +6,7 @@ layout(location = 2) in  vec3 in_normal;
 layout(location = 3) in ivec4 in_bone_indices;
 layout(location = 4) in  vec4 in_bone_weights;
 
-layout(binding = 0, push_constant, row_major) uniform PushConstants {
+layout(push_constant, row_major) uniform PushConstants {
 	mat4 wvp;
 	int bone_offset;
 };

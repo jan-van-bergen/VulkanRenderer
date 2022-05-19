@@ -8,7 +8,7 @@ layout(location = 0) out vec3 out_position;
 layout(location = 1) out vec2 out_texcoord;
 layout(location = 2) out vec3 out_normal;
 
-layout(binding = 0, push_constant, row_major) uniform PushConstants {
+layout(push_constant, row_major) uniform PushConstants {
 	mat4 world;
 	mat4 wvp;
 };
